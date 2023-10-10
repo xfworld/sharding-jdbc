@@ -20,7 +20,8 @@ package org.apache.shardingsphere.data.pipeline.scenario.consistencycheck.config
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import org.apache.shardingsphere.data.pipeline.api.config.job.PipelineJobConfiguration;
+import org.apache.shardingsphere.data.pipeline.common.config.job.PipelineJobConfiguration;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 
 import java.util.Properties;
 
@@ -40,10 +41,7 @@ public final class ConsistencyCheckJobConfiguration implements PipelineJobConfig
     
     private final Properties algorithmProps;
     
-    @Override
-    public String getSourceDatabaseType() {
-        throw new UnsupportedOperationException("");
-    }
+    private final DatabaseType sourceDatabaseType;
     
     /**
      * Get job sharding count.

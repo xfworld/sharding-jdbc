@@ -20,10 +20,10 @@ package org.apache.shardingsphere.driver.jdbc.core.resultset;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
-import org.apache.shardingsphere.infra.binder.segment.select.projection.DerivedColumn;
-import org.apache.shardingsphere.infra.binder.segment.select.projection.Projection;
-import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.segment.select.projection.DerivedColumn;
+import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -40,12 +40,14 @@ public final class ShardingSphereResultSetUtils {
      * Create column label and index map.
      *
      * @param sqlStatementContext SQL statement context
+     * @param selectContainsEnhancedTable select contains enhanced table
      * @param resultSetMetaData meta data of result set
      * @return column label and index map
      * @throws SQLException SQL exception
      */
-    public static Map<String, Integer> createColumnLabelAndIndexMap(final SQLStatementContext sqlStatementContext, final ResultSetMetaData resultSetMetaData) throws SQLException {
-        if (hasSelectExpandProjections(sqlStatementContext)) {
+    public static Map<String, Integer> createColumnLabelAndIndexMap(final SQLStatementContext sqlStatementContext, final boolean selectContainsEnhancedTable,
+                                                                    final ResultSetMetaData resultSetMetaData) throws SQLException {
+        if (selectContainsEnhancedTable && hasSelectExpandProjections(sqlStatementContext)) {
             return createColumnLabelAndIndexMapWithExpandProjections((SelectStatementContext) sqlStatementContext);
         }
         Map<String, Integer> result = new CaseInsensitiveMap<>(resultSetMetaData.getColumnCount(), 1);

@@ -16,10 +16,10 @@ The following code of conduct is based on full compliance with [ASF CODE OF COND
 ## Contributor Covenant Submitting of Conduct
 
  - Conform to `Contributor Covenant Code of Conduct` below.
- - Make sure Maven build process success. Run `./mvnw clean install -B -T1C -Dmaven.javadoc.skip -Dmaven.jacoco.skip -e` command in shell to start Maven build process.
+ - Make sure Maven build process success. Run `./mvnw clean install -B -T1C -Pcheck` command in shell to start Maven build process.
  - Make sure the test coverage rate is not lower than the master branch.
  - Careful consideration for each `pull request`; Small and frequent `pull request` with complete unit function is welcomed.
- - Through the uniform code style of spotless, execute the `mvn spotless:apply` formatted code.
+ - Through the uniform code style of spotless, execute the `./mvnw spotless:apply -Pcheck` formatted code.
  - If using IDEA, you can import the recommended `src/resources/code-style-idea.xml`.
 
 ## Contributor Covenant Code of Conduct
@@ -112,10 +112,11 @@ The following code of conduct is based on full compliance with [ASF CODE OF COND
 ## GitHub Action of Conduct
 
 - Workflow file name must end with `.yml`.
-- Workflow file name must consist with the lowercase of `triggerType-actionType`, for example: `nightly-check.yml`. Omit trigger type for pull_request, for example: `check.yml`.
-- Trigger type includes: pull_request (without prefix), nightly.
-- Action type includes: check, ci, e2e, build.
-- `name` property in workflow file should be same with file name, Words separated by `-`, add space between `-` and words, first letter of every word should be capital, for example: `Nightly - Check`.
+- Workflow file name must consist with the lowercase of `triggerType-actionType`. For example: `nightly-check.yml`. Omit trigger type for pull_request. For example: `check.yml`.
+- Trigger type includes: pull_request (without prefix), nightly, schedule.
+- Action type includes: check, ci, e2e, build, report.
+- `name` property in workflow file should be same with file name, Words separated by `-`, add space between `-` and words, first letter of every word should be capital. For example: `Nightly - Check`.
+- `name` property in step should describe the usage of step, first letter of every word should be capital, preposition should be lowercase. For example: `Build Project with Maven`.
 - `job` property in workflow should be unique in that workflow file.
-- When using `matrix` property, must add job parallelism limit to 5: `max-parallel: 5`.
+- When using `matrix` property, must add job parallelism limit to 20. For example: `max-parallel: 20`.
 - Must set timeout for job, max timeout is 1 hour. For example: `timeout-minutes: 10`.

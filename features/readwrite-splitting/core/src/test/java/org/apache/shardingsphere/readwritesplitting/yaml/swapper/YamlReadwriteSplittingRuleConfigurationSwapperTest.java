@@ -35,7 +35,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class YamlReadwriteSplittingRuleConfigurationSwapperTest {
+class YamlReadwriteSplittingRuleConfigurationSwapperTest {
     
     @Test
     void assertSwapToYamlConfiguration() {
@@ -60,7 +60,7 @@ public class YamlReadwriteSplittingRuleConfigurationSwapperTest {
     }
     
     private ReadwriteSplittingRuleConfiguration creatReadwriteSplittingRuleConfiguration() {
-        Collection<ReadwriteSplittingDataSourceRuleConfiguration> dataSources = Collections.singletonList(
+        Collection<ReadwriteSplittingDataSourceRuleConfiguration> dataSources = Collections.singleton(
                 new ReadwriteSplittingDataSourceRuleConfiguration("readwrite", "write_ds", Arrays.asList("read_ds_0", "read_ds_1"), "random"));
         Map<String, AlgorithmConfiguration> loadBalancers = Collections.singletonMap("myLoadBalancer", new AlgorithmConfiguration("RANDOM", new Properties()));
         return new ReadwriteSplittingRuleConfiguration(dataSources, loadBalancers);

@@ -18,9 +18,9 @@
 package org.apache.shardingsphere.cdc.distsql.handler.query;
 
 import org.apache.shardingsphere.cdc.distsql.statement.ShowStreamingListStatement;
-import org.apache.shardingsphere.data.pipeline.api.pojo.TableBasedPipelineJobInfo;
 import org.apache.shardingsphere.data.pipeline.cdc.api.impl.CDCJobAPI;
-import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextKey;
+import org.apache.shardingsphere.data.pipeline.common.context.PipelineContextKey;
+import org.apache.shardingsphere.data.pipeline.common.pojo.TableBasedPipelineJobInfo;
 import org.apache.shardingsphere.distsql.handler.ral.query.QueryableRALExecutor;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 
@@ -50,7 +50,7 @@ public final class ShowStreamingListExecutor implements QueryableRALExecutor<Sho
     }
     
     @Override
-    public String getType() {
-        return ShowStreamingListStatement.class.getName();
+    public Class<ShowStreamingListStatement> getType() {
+        return ShowStreamingListStatement.class;
     }
 }

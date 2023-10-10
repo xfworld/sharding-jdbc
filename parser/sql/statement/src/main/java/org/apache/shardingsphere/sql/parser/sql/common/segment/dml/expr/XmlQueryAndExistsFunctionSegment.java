@@ -26,7 +26,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 /**
- * Xml Query and Exists Function segment.
+ * Xml query and exists function segment.
  */
 @RequiredArgsConstructor
 @Getter
@@ -43,4 +43,9 @@ public final class XmlQueryAndExistsFunctionSegment implements ComplexExpression
     private final Collection<ExpressionSegment> parameters = new LinkedList<>();
     
     private final String text;
+    
+    @Override
+    public String getColumnLabel() {
+        return text;
+    }
 }

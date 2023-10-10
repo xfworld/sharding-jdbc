@@ -119,8 +119,20 @@ FUNCTION
     : F U N C T I O N
     ;
 
+CONSTRUCTOR
+    : C O N S T R U C T O R
+    ;
+
+RESULT
+    : R E S U L T
+    ;
+
 TRIGGER
     : T R I G G E R
+    ;
+
+MAP
+    : M A P
     ;
 
 PROCEDURE
@@ -233,6 +245,10 @@ IF
 
 ELSE
     : E L S E
+    ;
+
+ELSIF
+    : E L S I F
     ;
 
 THEN
@@ -402,6 +418,14 @@ LOCALTIME
 
 LOCALTIMESTAMP
     : L O C A L T I M E S T A M P
+    ;
+
+LOOP
+    : L O O P
+    ;
+
+EXIT
+    : E X I T
     ;
 
 YEAR
@@ -775,6 +799,10 @@ SHOW
 XMLTABLE
     : X M L T A B L E
     ;
+    
+ISSCHEMAVALID
+    : I S S C H E M A V A L I D
+    ;
 
 XMLNAMESPACES
     : X M L N A M E S P A C E S
@@ -790,4 +818,20 @@ PATH
 
 EXTRACT
     : E X T R A C T
+    ;
+    
+ANYDATA
+    : A N Y D A T A
+    ;
+    
+ANYTYPE
+    : A N Y T Y P E
+    ;
+    
+ANYDATASET
+    : A N Y D A T A S E T
+    ;
+
+AUTONOMOUS_TRANSACTION
+    : A U T O N O M O U S UL_ T R A N S A C T I O N
     ;

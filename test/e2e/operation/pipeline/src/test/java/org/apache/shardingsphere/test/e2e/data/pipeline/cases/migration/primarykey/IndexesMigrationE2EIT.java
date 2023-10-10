@@ -20,10 +20,11 @@ package org.apache.shardingsphere.test.e2e.data.pipeline.cases.migration.primary
 import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.shardingsphere.data.pipeline.scenario.migration.MigrationJobType;
-import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
-import org.apache.shardingsphere.infra.database.type.dialect.PostgreSQLDatabaseType;
-import org.apache.shardingsphere.infra.util.exception.external.sql.type.wrapper.SQLWrapperException;
-import org.apache.shardingsphere.sharding.algorithm.keygen.SnowflakeKeyGenerateAlgorithm;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.mysql.type.MySQLDatabaseType;
+import org.apache.shardingsphere.infra.database.postgresql.type.PostgreSQLDatabaseType;
+import org.apache.shardingsphere.infra.exception.core.external.sql.type.wrapper.SQLWrapperException;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sharding.algorithm.keygen.UUIDKeyGenerateAlgorithm;
 import org.apache.shardingsphere.sharding.spi.KeyGenerateAlgorithm;
 import org.apache.shardingsphere.test.e2e.data.pipeline.cases.PipelineContainerComposer;
@@ -34,6 +35,7 @@ import org.apache.shardingsphere.test.e2e.data.pipeline.framework.param.Pipeline
 import org.apache.shardingsphere.test.e2e.data.pipeline.framework.param.PipelineE2ESettings.PipelineE2EDatabaseSettings;
 import org.apache.shardingsphere.test.e2e.data.pipeline.framework.param.PipelineE2ETestCaseArgumentsProvider;
 import org.apache.shardingsphere.test.e2e.data.pipeline.framework.param.PipelineTestParameter;
+import org.apache.shardingsphere.test.e2e.data.pipeline.util.AutoIncrementKeyGenerateAlgorithm;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -91,13 +93,12 @@ class IndexesMigrationE2EIT extends AbstractMigrationE2EIT {
             KeyGenerateAlgorithm keyGenerateAlgorithm = new UUIDKeyGenerateAlgorithm();
             // TODO PostgreSQL update delete events not support if table without unique keys at increment task.
             final Consumer<DataSource> incrementalTaskFn = dataSource -> {
+                if (containerComposer.getDatabaseType() instanceof MySQLDatabaseType) {
+                    doCreateUpdateDelete(containerComposer, keyGenerateAlgorithm.generateKey());
+                }
                 Object orderId = keyGenerateAlgorithm.generateKey();
                 insertOneOrder(containerComposer, orderId);
-                if (containerComposer.getDatabaseType() instanceof MySQLDatabaseType) {
-                    updateOneOrder(containerComposer, orderId, "updated");
-                    deleteOneOrder(containerComposer, orderId, "updated");
-                    insertOneOrder(containerComposer, keyGenerateAlgorithm.generateKey());
-                }
+                containerComposer.assertOrderRecordExist(dataSource, "t_order", orderId);
             };
             assertMigrationSuccess(containerComposer, sql, "user_id", keyGenerateAlgorithm, consistencyCheckAlgorithmType, incrementalTaskFn);
         }
@@ -192,7 +193,7 @@ class IndexesMigrationE2EIT extends AbstractMigrationE2EIT {
             } else {
                 return;
             }
-            KeyGenerateAlgorithm keyGenerateAlgorithm = new SnowflakeKeyGenerateAlgorithm();
+            KeyGenerateAlgorithm keyGenerateAlgorithm = new AutoIncrementKeyGenerateAlgorithm();
             Object uniqueKey = keyGenerateAlgorithm.generateKey();
             assertMigrationSuccess(containerComposer, sql, "user_id", keyGenerateAlgorithm, consistencyCheckAlgorithmType, dataSource -> {
                 insertOneOrder(containerComposer, uniqueKey);
@@ -233,7 +234,6 @@ class IndexesMigrationE2EIT extends AbstractMigrationE2EIT {
         try (Connection connection = containerComposer.getSourceDataSource().getConnection()) {
             PipelineCaseHelper.batchInsertOrderRecordsWithGeneralColumns(connection, keyGenerateAlgorithm, SOURCE_TABLE_NAME, PipelineContainerComposer.TABLE_INIT_ROW_COUNT);
         }
-        loadAllSingleTables(containerComposer);
         addMigrationProcessConfig(containerComposer);
         addMigrationSourceResource(containerComposer);
         addMigrationTargetResource(containerComposer);
@@ -254,6 +254,6 @@ class IndexesMigrationE2EIT extends AbstractMigrationE2EIT {
     }
     
     private static boolean isEnabled() {
-        return PipelineE2ECondition.isEnabled(new MySQLDatabaseType(), new PostgreSQLDatabaseType());
+        return PipelineE2ECondition.isEnabled(TypedSPILoader.getService(DatabaseType.class, "MySQL"), TypedSPILoader.getService(DatabaseType.class, "PostgreSQL"));
     }
 }

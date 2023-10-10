@@ -38,15 +38,15 @@ public final class ShowDefaultSingleTableStorageUnitExecutor implements RQLExecu
     }
     
     @Override
-    public Collection<LocalDataQueryResultRow> getRows(final ShardingSphereDatabase shardingSphereDatabase, final ShowDefaultSingleTableStorageUnitStatement sqlStatement) {
+    public Collection<LocalDataQueryResultRow> getRows(final ShardingSphereDatabase database, final ShowDefaultSingleTableStorageUnitStatement sqlStatement) {
         Collection<LocalDataQueryResultRow> result = new LinkedList<>();
-        SingleRule rule = shardingSphereDatabase.getRuleMetaData().getSingleRule(SingleRule.class);
+        SingleRule rule = database.getRuleMetaData().getSingleRule(SingleRule.class);
         result.add(new LocalDataQueryResultRow(rule.getConfiguration().getDefaultDataSource().orElse("RANDOM")));
         return result;
     }
     
     @Override
-    public String getType() {
-        return ShowDefaultSingleTableStorageUnitStatement.class.getName();
+    public Class<ShowDefaultSingleTableStorageUnitStatement> getType() {
+        return ShowDefaultSingleTableStorageUnitStatement.class;
     }
 }

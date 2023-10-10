@@ -19,8 +19,8 @@ package org.apache.shardingsphere.data.pipeline.opengauss.ingest.wal.decode;
 
 import com.google.common.base.Preconditions;
 import lombok.AllArgsConstructor;
-import org.apache.shardingsphere.data.pipeline.core.ingest.IngestDataChangeType;
-import org.apache.shardingsphere.data.pipeline.core.ingest.exception.IngestException;
+import org.apache.shardingsphere.data.pipeline.common.ingest.IngestDataChangeType;
+import org.apache.shardingsphere.data.pipeline.core.exception.IngestException;
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.wal.decode.BaseLogSequenceNumber;
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.wal.decode.BaseTimestampUtils;
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.wal.decode.DecodingException;
@@ -96,7 +96,7 @@ public final class MppdbDecodingPlugin implements DecodingPlugin {
     
     private AbstractRowEvent readTableEvent(final String mppData) {
         MppTableData mppTableData;
-        mppTableData = JsonUtils.readValue(mppData, MppTableData.class);
+        mppTableData = JsonUtils.fromJsonString(mppData, MppTableData.class);
         AbstractRowEvent result;
         String rowEventType = mppTableData.getOpType();
         switch (rowEventType) {
@@ -113,7 +113,7 @@ public final class MppdbDecodingPlugin implements DecodingPlugin {
                 throw new IngestException("Unknown rowEventType: " + rowEventType);
         }
         String[] tableMetaData = mppTableData.getTableName().split("\\.");
-        result.setDatabaseName(tableMetaData[0]);
+        result.setSchemaName(tableMetaData[0]);
         result.setTableName(tableMetaData[1]);
         return result;
     }

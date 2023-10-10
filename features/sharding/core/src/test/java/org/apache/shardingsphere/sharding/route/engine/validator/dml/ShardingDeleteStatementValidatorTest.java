@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.sharding.route.engine.validator.dml;
 
-import org.apache.shardingsphere.infra.binder.statement.dml.DeleteStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.DeleteStatementContext;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
@@ -88,7 +88,7 @@ class ShardingDeleteStatementValidatorTest {
         sqlStatement.setTable(tableSegment);
         Collection<String> tableNames = new HashSet<>(Arrays.asList("user", "order", "order_item"));
         when(shardingRule.isAllShardingTables(tableNames)).thenReturn(false);
-        when(shardingRule.tableRuleExists(tableNames)).thenReturn(true);
+        when(shardingRule.containsShardingTable(tableNames)).thenReturn(true);
         ShardingSphereDatabase database = mock(ShardingSphereDatabase.class);
         ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
         when(database.getSchema(any())).thenReturn(schema);

@@ -5,6 +5,18 @@ weight = 8
 chapter = true
 +++
 
+## MODE
+
+### [MODE] 单机模式 `Standalone` 和 `Compatible_Standalone` 区别?
+
+在 5.4.0 版本中调整了元数据存储结构，`Standalone` 代表新版本的元数据结构，`Compatible_Standalone` 则代表 5.4.0 之前版本的元数据结构。
+
+### [MODE] 集群模式 `Cluster` 和 `Compatible_Cluster` 区别?
+
+回答:
+
+在 5.4.0 版本中调整了元数据存储结构，`Cluster` 代表新版本的元数据结构，`Compatible_Cluster` 则代表 5.4.0 之前版本的元数据结构。
+
 ## JDBC
 
 ### [JDBC] 引入 `shardingsphere-transaction-xa-core` 后，如何避免 spring-boot 自动加载默认的 JtaTransactionManager？
@@ -110,7 +122,7 @@ DROP DATABASE sharding_db;
 
 回答：
 
-行表达式标识符可以使用 `${...}` 或 `$->{...}`，但前者与 Spring 本身的属性文件占位符冲突，因此在 Spring 环境中使用行表达式标识符建议使用 `$->{...}`。
+使用 `InlineExpressionParser` SPI 的默认实现的行表达式标识符可以使用 `${...}` 或 `$->{...}`，但前者与 Spring 本身的属性文件占位符冲突，因此在 Spring 环境中使用行表达式标识符建议使用 `$->{...}`。
 
 ### [分片] inline 表达式返回结果为何出现浮点数？
 
@@ -160,7 +172,7 @@ ShardingSphere 采用 snowflake 算法作为默认的分布式自增主键策略
 
 [Service Provider Interface (SPI)](https://docs.oracle.com/javase/tutorial/sound/SPI-intro.html) 是一种为了被第三方实现或扩展的 API，除了实现接口外，还需要在 META-INF/services 中创建对应文件来指定 SPI 的实现类，JVM 才会加载这些服务。
 具体的 SPI 使用方式，请大家自行搜索。
-与分布式主键 `KeyGenerateAlgorithm` 接口相同，其他 ShardingSphere 的[扩展功能](/cn/concepts/pluggable/)也需要用相同的方式注入才能生效。
+与分布式主键 `KeyGenerateAlgorithm` 接口相同，其他 ShardingSphere 的扩展功能也需要用相同的方式注入才能生效。
 
 ### [分片] ShardingSphere 除了支持自带的分布式自增主键之外，还能否支持原生的自增主键？
 
@@ -210,7 +222,7 @@ ShardingSphere-Proxy 在部署过程中没有添加 jdbc 驱动，需要将 jdbc
 ShardingSphere 使用 lombok 实现极简代码。关于更多使用和安装细节，请参考 [lombok官网](https://projectlombok.org/download.html)。
 `org.apache.shardingsphere.sql.parser.autogen` 包下的代码由 ANTLR 生成，可以执行以下命令快速生成：
 ```bash
-./mvnw -Dcheckstyle.skip=true -Dspotbugs.skip=true -Drat.skip=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -DskipITs -DskipTests install -T1C 
+./mvnw -DskipITs -DskipTests install -T1C
 ```
 生成的代码例如 `org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementParser` 等 Java 文件由于较大，默认配置的 IDEA 可能不会索引该文件。
 可以调整 IDEA 的属性：`idea.max.intellisense.filesize=10000`。
@@ -298,7 +310,7 @@ https://ourcodeworld.com/articles/read/109/how-to-solve-filename-too-long-error-
 
 回答：
 
-ShardingSphere 中很多功能实现类的加载方式是通过 [SPI](/cn/concepts/pluggable/) 注入的方式完成的，如分布式主键，注册中心等；这些功能通过配置中 type 类型来寻找对应的 SPI 实现，因此必须在配置文件中指定类型。
+ShardingSphere 中很多功能实现类的加载方式是通过 SPI 注入的方式完成的，如分布式主键，注册中心等；这些功能通过配置中 type 类型来寻找对应的 SPI 实现，因此必须在配置文件中指定类型。
 
 ### [其他] 服务启动时如何加快 `metadata` 加载速度？
 

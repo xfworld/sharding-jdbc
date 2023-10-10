@@ -19,14 +19,24 @@ lexer grammar Literals;
 
 import Alphabet, Symbol;
 
-IDENTIFIER_
-    : [A-Za-z\u0080-\uFF0B\uFF0D-\uFFFF]+[A-Za-z_$#0-9\u0080-\uFF0B\uFF0D-\uFFFF]*
-    |  DQ_ ~'"'+ DQ_
+TIME_UNIT
+    : M | H
     ;
 
-STRING_ 
+IDENTIFIER_
+    : [A-Za-z\u0080-\uFF0B\uFF0D-\uFFFF]+[A-Za-z_$#0-9\u0080-\uFF0B\uFF0D-\uFFFF]*
+    ;
+
+STRING_
+    : (N | U)? SINGLE_QUOTED_TEXT
+    ;
+
+SINGLE_QUOTED_TEXT
+    : (SQ_ ('\\'. | '\'\'' | ~('\'' | '\\'))* SQ_)
+    ;
+
+DOUBLE_QUOTED_TEXT
     : (DQ_ ( '\\'. | '""' | ~('"'| '\\') )* DQ_)
-    | (SQ_ ('\\'. | '\'\'' | ~('\'' | '\\'))* SQ_)
     ;
 
 INTEGER_

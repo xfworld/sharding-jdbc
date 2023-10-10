@@ -166,7 +166,7 @@ call
     ;
 
 doStatement
-    : DO expr (COMMA_ expr)*
+    : DO expr (AS? alias)? (COMMA_ expr (AS? alias)?)*
     ;
 
 handlerStatement
@@ -192,7 +192,7 @@ handlerCloseStatement
     ;
 
 importStatement
-    : IMPORT TABLE FROM string_ (COMMA_ string_)?
+    : IMPORT TABLE FROM textString (COMMA_ textString)?
     ;
 
 loadStatement
@@ -287,7 +287,7 @@ tableReference
     ;
 
 tableFactor
-    : tableName partitionNames? (AS? alias)? indexHintList? | subquery AS? alias (LP_ columnNames RP_)? | LP_ tableReferences RP_
+    : tableName partitionNames? (AS? alias)? indexHintList? | subquery AS? alias (LP_ columnNames RP_)? | LATERAL subquery AS? alias (LP_ columnNames RP_)? | LP_ tableReferences RP_
     ;
 
 partitionNames

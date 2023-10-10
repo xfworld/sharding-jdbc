@@ -23,10 +23,15 @@ import org.apache.shardingsphere.distsql.handler.update.RuleDefinitionDropUpdate
 import org.apache.shardingsphere.distsql.handler.update.RuleDefinitionUpdater;
 import org.apache.shardingsphere.distsql.parser.statement.rdl.RuleDefinitionStatement;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.infra.config.rule.decorator.RuleConfigurationDecorator;
+import org.apache.shardingsphere.infra.config.rule.scope.DatabaseRuleConfiguration;
+import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.infra.instance.mode.ModeContextManager;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.metadata.version.MetaDataVersion;
 import org.apache.shardingsphere.infra.rule.identifier.type.StaticDataSourceContainedRule;
-import org.apache.shardingsphere.infra.util.exception.external.sql.type.generic.UnsupportedSQLOperationException;
-import org.apache.shardingsphere.infra.util.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.yaml.config.swapper.rule.NewYamlRuleConfigurationSwapperEngine;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.handler.distsql.rdl.RDLBackendHandler;
 import org.apache.shardingsphere.proxy.backend.response.header.ResponseHeader;
@@ -34,9 +39,17 @@ import org.apache.shardingsphere.proxy.backend.response.header.update.UpdateResp
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
 import org.apache.shardingsphere.readwritesplitting.distsql.handler.update.DropReadwriteSplittingRuleStatementUpdater;
 import org.apache.shardingsphere.readwritesplitting.distsql.parser.statement.DropReadwriteSplittingRuleStatement;
+import org.apache.shardingsphere.single.distsql.statement.rdl.LoadSingleTableStatement;
+import org.apache.shardingsphere.single.distsql.statement.rdl.SetDefaultSingleTableStorageUnitStatement;
+import org.apache.shardingsphere.single.distsql.statement.rdl.UnloadSingleTableStatement;
 import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * TODO Rename to RuleDefinitionBackendHandler when metadata structure adjustment completed. #25485
@@ -53,13 +66,14 @@ public final class NewRuleDefinitionBackendHandler<T extends RuleDefinitionState
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     protected ResponseHeader execute(final String databaseName, final T sqlStatement) {
-        RuleDefinitionUpdater ruleDefinitionUpdater = TypedSPILoader.getService(RuleDefinitionUpdater.class, sqlStatement.getClass().getName());
+        RuleDefinitionUpdater ruleDefinitionUpdater = TypedSPILoader.getService(RuleDefinitionUpdater.class, sqlStatement.getClass());
         Class<? extends RuleConfiguration> ruleConfigClass = ruleDefinitionUpdater.getRuleConfigurationClass();
         ShardingSphereDatabase database = ProxyContext.getInstance().getDatabase(databaseName);
         RuleConfiguration currentRuleConfig = findCurrentRuleConfiguration(database, ruleConfigClass).orElse(null);
         ruleDefinitionUpdater.checkSQLStatement(database, sqlStatement, currentRuleConfig);
         if (getRefreshStatus(sqlStatement, currentRuleConfig, ruleDefinitionUpdater)) {
-            processSQLStatement(database, sqlStatement, ruleDefinitionUpdater, currentRuleConfig);
+            ProxyContext.getInstance().getContextManager().getMetaDataContexts().getPersistService().getMetaDataVersionPersistService().switchActiveVersion(
+                    processSQLStatement(database, sqlStatement, ruleDefinitionUpdater, currentRuleConfig));
         }
         return new UpdateResponseHeader(sqlStatement);
     }
@@ -74,54 +88,78 @@ public final class NewRuleDefinitionBackendHandler<T extends RuleDefinitionState
     }
     
     @SuppressWarnings("rawtypes")
-    private void processSQLStatement(final ShardingSphereDatabase database,
-                                     final T sqlStatement, final RuleDefinitionUpdater updater, final RuleConfiguration currentRuleConfig) {
+    private Collection<MetaDataVersion> processSQLStatement(final ShardingSphereDatabase database,
+                                                            final T sqlStatement, final RuleDefinitionUpdater updater, final RuleConfiguration currentRuleConfig) {
         if (updater instanceof RuleDefinitionCreateUpdater) {
-            processCreate(database, sqlStatement, (RuleDefinitionCreateUpdater) updater, currentRuleConfig);
-        } else if (updater instanceof RuleDefinitionAlterUpdater) {
-            processAlter(database, sqlStatement, (RuleDefinitionAlterUpdater) updater, currentRuleConfig);
-        } else if (updater instanceof RuleDefinitionDropUpdater) {
-            processDrop(database, sqlStatement, (RuleDefinitionDropUpdater) updater, currentRuleConfig);
-        } else {
-            throw new UnsupportedSQLOperationException(String.format("Cannot support RDL updater type `%s`", updater.getClass().getName()));
+            return processCreate(database, sqlStatement, (RuleDefinitionCreateUpdater) updater, currentRuleConfig);
         }
+        if (updater instanceof RuleDefinitionAlterUpdater) {
+            return processAlter(database, sqlStatement, (RuleDefinitionAlterUpdater) updater, currentRuleConfig);
+        }
+        if (updater instanceof RuleDefinitionDropUpdater) {
+            return processDrop(database, sqlStatement, (RuleDefinitionDropUpdater) updater, currentRuleConfig);
+        }
+        throw new UnsupportedSQLOperationException(String.format("Cannot support RDL updater type `%s`", updater.getClass().getName()));
     }
     
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void processCreate(final ShardingSphereDatabase database, final T sqlStatement, final RuleDefinitionCreateUpdater updater, final RuleConfiguration currentRuleConfig) {
+    private Collection<MetaDataVersion> processCreate(final ShardingSphereDatabase database, final T sqlStatement, final RuleDefinitionCreateUpdater updater,
+                                                      final RuleConfiguration currentRuleConfig) {
         RuleConfiguration toBeCreatedRuleConfig = updater.buildToBeCreatedRuleConfiguration(currentRuleConfig, sqlStatement);
         if (null != currentRuleConfig) {
             updater.updateCurrentRuleConfiguration(currentRuleConfig, toBeCreatedRuleConfig);
         }
-        ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager().alterRuleConfiguration(database.getName(), toBeCreatedRuleConfig);
+        if (sqlStatement instanceof LoadSingleTableStatement || sqlStatement instanceof SetDefaultSingleTableStorageUnitStatement) {
+            return ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager().alterRuleConfiguration(database.getName(),
+                    null == currentRuleConfig ? decorateRuleConfiguration(database, toBeCreatedRuleConfig) : decorateRuleConfiguration(database, currentRuleConfig));
+        }
+        return ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager().alterRuleConfiguration(database.getName(), toBeCreatedRuleConfig);
     }
     
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void processAlter(final ShardingSphereDatabase database, final T sqlStatement, final RuleDefinitionAlterUpdater updater, final RuleConfiguration currentRuleConfig) {
+    private Collection<MetaDataVersion> processAlter(final ShardingSphereDatabase database, final T sqlStatement, final RuleDefinitionAlterUpdater updater, final RuleConfiguration currentRuleConfig) {
         RuleConfiguration toBeAlteredRuleConfig = updater.buildToBeAlteredRuleConfiguration(sqlStatement);
-        RuleConfiguration toBeDroppedRuleConfig = updater.buildToBeDroppedRuleConfiguration(currentRuleConfig, toBeAlteredRuleConfig);
         updater.updateCurrentRuleConfiguration(currentRuleConfig, toBeAlteredRuleConfig);
-        ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager().removeRuleConfiguration(database.getName(), toBeDroppedRuleConfig);
-        ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager().alterRuleConfiguration(database.getName(), toBeAlteredRuleConfig);
+        if (sqlStatement instanceof UnloadSingleTableStatement) {
+            return ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager()
+                    .alterRuleConfiguration(database.getName(), decorateRuleConfiguration(database, currentRuleConfig));
+        }
+        RuleConfiguration toBeDroppedRuleConfig = updater.buildToBeDroppedRuleConfiguration(currentRuleConfig, toBeAlteredRuleConfig);
+        ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager().removeRuleConfigurationItem(database.getName(), toBeDroppedRuleConfig);
+        return ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager().alterRuleConfiguration(database.getName(), toBeAlteredRuleConfig);
+    }
+    
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private RuleConfiguration decorateRuleConfiguration(final ShardingSphereDatabase database, final RuleConfiguration ruleConfig) {
+        Optional<RuleConfigurationDecorator> decorator = TypedSPILoader.findService(RuleConfigurationDecorator.class, ruleConfig.getClass());
+        return decorator.map(optional -> optional.decorate(database.getName(),
+                database.getResourceMetaData().getStorageUnits().entrySet().stream()
+                        .collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getDataSource(), (oldValue, currentValue) -> oldValue, LinkedHashMap::new)),
+                database.getRuleMetaData().getRules(), ruleConfig)).orElse(ruleConfig);
     }
     
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void processDrop(final ShardingSphereDatabase database, final T sqlStatement, final RuleDefinitionDropUpdater updater, final RuleConfiguration currentRuleConfig) {
+    private Collection<MetaDataVersion> processDrop(final ShardingSphereDatabase database, final T sqlStatement, final RuleDefinitionDropUpdater updater, final RuleConfiguration currentRuleConfig) {
         if (!updater.hasAnyOneToBeDropped(sqlStatement, currentRuleConfig)) {
-            return;
+            return Collections.emptyList();
         }
+        ModeContextManager modeContextManager = ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager();
         RuleConfiguration toBeDroppedRuleConfig = updater.buildToBeDroppedRuleConfiguration(currentRuleConfig, sqlStatement);
-        RuleConfiguration toBeAlteredRuleConfig = updater.buildToBeAlteredRuleConfiguration(currentRuleConfig, sqlStatement);
-        if (updater.updateCurrentRuleConfiguration(sqlStatement, currentRuleConfig)) {
-            database.getRuleMetaData().getConfigurations().remove(currentRuleConfig);
-            // TODO remove rule root node
+        // TODO remove updateCurrentRuleConfiguration after update refactor completed.
+        if (updater.updateCurrentRuleConfiguration(sqlStatement, currentRuleConfig) && ((DatabaseRuleConfiguration) currentRuleConfig).isEmpty()) {
+            modeContextManager.removeRuleConfigurationItem(database.getName(), toBeDroppedRuleConfig);
+            new NewYamlRuleConfigurationSwapperEngine().swapToYamlRuleConfigurations(Collections.singleton(currentRuleConfig)).values().stream().findFirst()
+                    .ifPresent(swapper -> modeContextManager.removeRuleConfiguration(database.getName(), swapper.getRuleTagName().toLowerCase()));
+            return Collections.emptyList();
         }
-        ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager().removeRuleConfiguration(database.getName(), toBeDroppedRuleConfig);
-        ProxyContext.getInstance().getContextManager().getInstanceContext().getModeContextManager().alterRuleConfiguration(database.getName(), toBeAlteredRuleConfig);
         if (updater instanceof DropReadwriteSplittingRuleStatementUpdater) {
             database.getRuleMetaData().findSingleRule(StaticDataSourceContainedRule.class)
                     .ifPresent(optional -> ((DropReadwriteSplittingRuleStatement) sqlStatement).getNames().forEach(optional::cleanStorageNodeDataSource));
+            // TODO refactor to new metadata refresh way
         }
+        modeContextManager.removeRuleConfigurationItem(database.getName(), toBeDroppedRuleConfig);
+        final RuleConfiguration toBeAlteredRuleConfig = updater.buildToBeAlteredRuleConfiguration(currentRuleConfig, sqlStatement);
+        return modeContextManager.alterRuleConfiguration(database.getName(), toBeAlteredRuleConfig);
     }
     
     @SuppressWarnings({"rawtypes", "unchecked"})

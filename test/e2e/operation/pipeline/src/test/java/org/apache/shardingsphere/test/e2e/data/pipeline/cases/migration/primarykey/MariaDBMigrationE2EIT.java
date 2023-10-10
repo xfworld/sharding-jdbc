@@ -19,7 +19,8 @@ package org.apache.shardingsphere.test.e2e.data.pipeline.cases.migration.primary
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.data.pipeline.scenario.migration.MigrationJobType;
-import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sharding.algorithm.keygen.UUIDKeyGenerateAlgorithm;
 import org.apache.shardingsphere.sharding.spi.KeyGenerateAlgorithm;
 import org.apache.shardingsphere.test.e2e.data.pipeline.cases.PipelineContainerComposer;
@@ -65,7 +66,6 @@ class MariaDBMigrationE2EIT extends AbstractMigrationE2EIT {
                 KeyGenerateAlgorithm generateAlgorithm = new UUIDKeyGenerateAlgorithm();
                 PipelineCaseHelper.batchInsertOrderRecordsWithGeneralColumns(connection, generateAlgorithm, SOURCE_TABLE_NAME, PipelineContainerComposer.TABLE_INIT_ROW_COUNT);
             }
-            loadAllSingleTables(containerComposer);
             addMigrationProcessConfig(containerComposer);
             addMigrationSourceResource(containerComposer);
             addMigrationTargetResource(containerComposer);
@@ -86,6 +86,6 @@ class MariaDBMigrationE2EIT extends AbstractMigrationE2EIT {
     }
     
     private static boolean isEnabled() {
-        return PipelineE2ECondition.isEnabled(new MySQLDatabaseType());
+        return PipelineE2ECondition.isEnabled(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
     }
 }

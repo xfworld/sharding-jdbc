@@ -17,8 +17,8 @@
 
 package org.apache.shardingsphere.sharding.route.engine.validator.ddl;
 
-import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.statement.ddl.AlterTableStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.ddl.AlterTableStatementContext;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
@@ -68,7 +68,7 @@ class ShardingAlterTableStatementValidatorTest {
         sqlStatement.setTable(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_order"))));
         sqlStatement.setRenameTable(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_order_new"))));
         SQLStatementContext sqlStatementContext = new AlterTableStatementContext(sqlStatement);
-        when(shardingRule.tableRuleExists(Arrays.asList("t_order", "t_order_new"))).thenReturn(true);
+        when(shardingRule.containsShardingTable(Arrays.asList("t_order", "t_order_new"))).thenReturn(true);
         assertThrows(UnsupportedShardingOperationException.class,
                 () -> new ShardingAlterTableStatementValidator().preValidate(shardingRule, sqlStatementContext, Collections.emptyList(), database, mock(ConfigurationProperties.class)));
     }

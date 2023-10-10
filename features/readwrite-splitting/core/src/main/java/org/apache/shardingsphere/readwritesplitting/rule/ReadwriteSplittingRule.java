@@ -21,7 +21,7 @@ import com.google.common.base.Preconditions;
 import lombok.Getter;
 import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.datasource.state.DataSourceState;
+import org.apache.shardingsphere.infra.state.datasource.DataSourceState;
 import org.apache.shardingsphere.infra.instance.InstanceContext;
 import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedDatabase;
 import org.apache.shardingsphere.infra.rule.event.DataSourceStatusChangedEvent;
@@ -32,9 +32,9 @@ import org.apache.shardingsphere.infra.rule.identifier.type.StorageConnectorReus
 import org.apache.shardingsphere.infra.rule.identifier.type.exportable.ExportableRule;
 import org.apache.shardingsphere.infra.rule.identifier.type.exportable.constant.ExportableConstants;
 import org.apache.shardingsphere.infra.rule.identifier.type.exportable.constant.ExportableItemConstants;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.expr.core.InlineExpressionParserFactory;
-import org.apache.shardingsphere.infra.util.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.mode.event.storage.StorageNodeDataSourceChangedEvent;
 import org.apache.shardingsphere.mode.event.storage.StorageNodeDataSourceDeletedEvent;
 import org.apache.shardingsphere.readwritesplitting.api.ReadwriteSplittingRuleConfiguration;
@@ -103,10 +103,10 @@ public final class ReadwriteSplittingRule implements DatabaseRule, DataSourceCon
     
     private Map<String, ReadwriteSplittingDataSourceRule> createStaticDataSourceRules(final ReadwriteSplittingDataSourceRuleConfiguration config,
                                                                                       final ReadQueryLoadBalanceAlgorithm loadBalanceAlgorithm) {
-        List<String> inlineReadwriteDataSourceNames = InlineExpressionParserFactory.newInstance().splitAndEvaluate(config.getName());
-        List<String> inlineWriteDatasourceNames = InlineExpressionParserFactory.newInstance().splitAndEvaluate(config.getWriteDataSourceName());
+        List<String> inlineReadwriteDataSourceNames = InlineExpressionParserFactory.newInstance(config.getName()).splitAndEvaluate();
+        List<String> inlineWriteDatasourceNames = InlineExpressionParserFactory.newInstance(config.getWriteDataSourceName()).splitAndEvaluate();
         List<List<String>> inlineReadDatasourceNames = config.getReadDataSourceNames().stream()
-                .map(each -> InlineExpressionParserFactory.newInstance().splitAndEvaluate(each)).collect(Collectors.toList());
+                .map(each -> InlineExpressionParserFactory.newInstance(each).splitAndEvaluate()).collect(Collectors.toList());
         ShardingSpherePreconditions.checkState(inlineWriteDatasourceNames.size() == inlineReadwriteDataSourceNames.size(),
                 () -> new InvalidInlineExpressionDataSourceNameException("Inline expression write data source names size error."));
         inlineReadDatasourceNames.forEach(each -> ShardingSpherePreconditions.checkState(each.size() == inlineReadwriteDataSourceNames.size(),
@@ -204,10 +204,5 @@ public final class ReadwriteSplittingRule implements DatabaseRule, DataSourceCon
             }
         }
         return result;
-    }
-    
-    @Override
-    public String getType() {
-        return ReadwriteSplittingRule.class.getSimpleName();
     }
 }

@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.infra.yaml.config.swapper.rule;
 
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.util.spi.type.ordered.OrderedSPILoader;
+import org.apache.shardingsphere.infra.spi.type.ordered.OrderedSPILoader;
 import org.apache.shardingsphere.infra.util.yaml.datanode.YamlDataNode;
 
 import java.util.Collection;
@@ -52,7 +52,7 @@ public final class NewYamlRuleConfigurationSwapperEngine {
     public Collection<RuleConfiguration> swapToRuleConfigurations(final Collection<YamlDataNode> dataNodes) {
         Collection<RuleConfiguration> result = new LinkedList<>();
         for (NewYamlRuleConfigurationSwapper each : OrderedSPILoader.getServices(NewYamlRuleConfigurationSwapper.class)) {
-            result.add((RuleConfiguration) each.swapToObject(dataNodes));
+            each.swapToObject(dataNodes).ifPresent(optional -> result.add((RuleConfiguration) optional));
         }
         return result;
     }

@@ -23,10 +23,11 @@ import org.apache.shardingsphere.distsql.handler.update.RuleDefinitionDropUpdate
 import org.apache.shardingsphere.distsql.handler.update.RuleDefinitionUpdater;
 import org.apache.shardingsphere.distsql.parser.statement.rdl.RuleDefinitionStatement;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.infra.config.rule.decorator.RuleConfigurationDecorator;
+import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rule.identifier.type.StaticDataSourceContainedRule;
-import org.apache.shardingsphere.infra.util.exception.external.sql.type.generic.UnsupportedSQLOperationException;
-import org.apache.shardingsphere.infra.util.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.handler.distsql.rdl.RDLBackendHandler;
 import org.apache.shardingsphere.proxy.backend.response.header.ResponseHeader;
@@ -37,8 +38,11 @@ import org.apache.shardingsphere.readwritesplitting.distsql.parser.statement.Dro
 import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Rule definition backend handler.
@@ -54,7 +58,7 @@ public final class RuleDefinitionBackendHandler<T extends RuleDefinitionStatemen
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     protected ResponseHeader execute(final String databaseName, final T sqlStatement) {
-        RuleDefinitionUpdater ruleDefinitionUpdater = TypedSPILoader.getService(RuleDefinitionUpdater.class, sqlStatement.getClass().getName());
+        RuleDefinitionUpdater ruleDefinitionUpdater = TypedSPILoader.getService(RuleDefinitionUpdater.class, sqlStatement.getClass());
         Class<? extends RuleConfiguration> ruleConfigClass = ruleDefinitionUpdater.getRuleConfigurationClass();
         ShardingSphereDatabase database = ProxyContext.getInstance().getDatabase(databaseName);
         RuleConfiguration currentRuleConfig = findCurrentRuleConfiguration(database, ruleConfigClass).orElse(null);
@@ -83,16 +87,27 @@ public final class RuleDefinitionBackendHandler<T extends RuleDefinitionStatemen
             if (null != currentRuleConfig) {
                 result.remove(currentRuleConfig);
             }
-            result.add(processCreate(sqlStatement, (RuleDefinitionCreateUpdater) updater, currentRuleConfig));
+            RuleConfiguration createdRuleConfig = processCreate(sqlStatement, (RuleDefinitionCreateUpdater) updater, currentRuleConfig);
+            result.add(decorateRuleConfiguration(database, createdRuleConfig));
         } else if (updater instanceof RuleDefinitionAlterUpdater) {
             result.remove(currentRuleConfig);
-            result.add(processAlter(sqlStatement, (RuleDefinitionAlterUpdater) updater, currentRuleConfig));
+            RuleConfiguration alteredRuleConfig = processAlter(sqlStatement, (RuleDefinitionAlterUpdater) updater, currentRuleConfig);
+            result.add(decorateRuleConfiguration(database, alteredRuleConfig));
         } else if (updater instanceof RuleDefinitionDropUpdater) {
             processDrop(database, result, sqlStatement, (RuleDefinitionDropUpdater) updater, currentRuleConfig);
         } else {
             throw new UnsupportedSQLOperationException(String.format("Cannot support RDL updater type `%s`", updater.getClass().getName()));
         }
         return result;
+    }
+    
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private RuleConfiguration decorateRuleConfiguration(final ShardingSphereDatabase database, final RuleConfiguration ruleConfig) {
+        Optional<RuleConfigurationDecorator> decorator = TypedSPILoader.findService(RuleConfigurationDecorator.class, ruleConfig.getClass());
+        return decorator.map(optional -> optional.decorate(database.getName(),
+                database.getResourceMetaData().getStorageUnits().entrySet().stream()
+                        .collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getDataSource(), (oldValue, currentValue) -> oldValue, LinkedHashMap::new)),
+                database.getRuleMetaData().getRules(), ruleConfig)).orElse(ruleConfig);
     }
     
     @SuppressWarnings({"rawtypes", "unchecked"})

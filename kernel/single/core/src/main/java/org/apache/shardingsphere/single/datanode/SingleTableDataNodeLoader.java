@@ -19,9 +19,9 @@ package org.apache.shardingsphere.single.datanode;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.datanode.DataNode;
-import org.apache.shardingsphere.infra.metadata.database.schema.loader.common.SchemaMetaDataLoader;
+import org.apache.shardingsphere.infra.database.core.metadata.data.loader.type.SchemaMetaDataLoader;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.single.api.constant.SingleTableConstants;
 import org.apache.shardingsphere.single.exception.SingleTablesLoadingException;
@@ -56,13 +56,16 @@ public final class SingleTableDataNodeLoader {
      */
     public static Map<String, Collection<DataNode>> load(final String databaseName, final DatabaseType databaseType, final Map<String, DataSource> dataSourceMap,
                                                          final Collection<ShardingSphereRule> builtRules, final Collection<String> configuredTables) {
+        Collection<String> featureRequiredSingleTables = SingleTableLoadUtils.getFeatureRequiredSingleTables(builtRules);
+        if (configuredTables.isEmpty() && featureRequiredSingleTables.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
         Collection<String> excludedTables = SingleTableLoadUtils.getExcludedTables(builtRules);
         Map<String, Collection<DataNode>> actualDataNodes = load(databaseName, databaseType, dataSourceMap, excludedTables);
         Collection<String> splitTables = SingleTableLoadUtils.splitTableLines(configuredTables);
         if (splitTables.contains(SingleTableConstants.ALL_TABLES) || splitTables.contains(SingleTableConstants.ALL_SCHEMA_TABLES)) {
             return actualDataNodes;
         }
-        Collection<String> featureRequiredSingleTables = SingleTableLoadUtils.getFeatureRequiredSingleTables(builtRules);
         Map<String, Map<String, Collection<String>>> configuredTableMap = getConfiguredTableMap(databaseName, databaseType, splitTables);
         return loadSpecifiedDataNodes(actualDataNodes, featureRequiredSingleTables, configuredTableMap);
     }
@@ -114,27 +117,41 @@ public final class SingleTableDataNodeLoader {
                                                                             final Map<String, Map<String, Collection<String>>> configuredTableMap) {
         Map<String, Collection<DataNode>> result = new ConcurrentHashMap<>();
         for (Entry<String, Collection<DataNode>> entry : actualDataNodes.entrySet()) {
-            DataNode actualDataNode = entry.getValue().iterator().next();
-            if (featureRequiredSingleTables.contains(actualDataNode.getTableName())) {
-                result.put(actualDataNode.getTableName(), entry.getValue());
-                continue;
+            Collection<DataNode> singleNode = loadSpecifiedDataNode(entry.getValue(), featureRequiredSingleTables, configuredTableMap);
+            if (!singleNode.isEmpty()) {
+                result.put(entry.getKey(), singleNode);
             }
-            Map<String, Collection<String>> configuredTablesForDataSource = configuredTableMap.get(actualDataNode.getDataSourceName());
+        }
+        return result;
+    }
+    
+    private static Collection<DataNode> loadSpecifiedDataNode(final Collection<DataNode> dataNodes, final Collection<String> featureRequiredSingleTables,
+                                                              final Map<String, Map<String, Collection<String>>> configuredTableMap) {
+        for (DataNode each : dataNodes) {
+            if (featureRequiredSingleTables.contains(each.getTableName())) {
+                return getSingleDataNodeCollection(each);
+            }
+            Map<String, Collection<String>> configuredTablesForDataSource = configuredTableMap.get(each.getDataSourceName());
             if (null == configuredTablesForDataSource || configuredTablesForDataSource.isEmpty()) {
                 continue;
             }
             if (configuredTablesForDataSource.containsKey(SingleTableConstants.ASTERISK)) {
-                result.put(actualDataNode.getTableName(), entry.getValue());
-                continue;
+                return getSingleDataNodeCollection(each);
             }
-            Collection<String> configuredTablesForSchema = configuredTablesForDataSource.get(actualDataNode.getSchemaName());
+            Collection<String> configuredTablesForSchema = configuredTablesForDataSource.get(each.getSchemaName());
             if (null == configuredTablesForSchema || configuredTablesForSchema.isEmpty()) {
                 continue;
             }
-            if (configuredTablesForSchema.contains(SingleTableConstants.ASTERISK) || configuredTablesForSchema.contains(actualDataNode.getTableName())) {
-                result.put(actualDataNode.getTableName(), entry.getValue());
+            if (configuredTablesForSchema.contains(SingleTableConstants.ASTERISK) || configuredTablesForSchema.contains(each.getTableName().toLowerCase())) {
+                return getSingleDataNodeCollection(each);
             }
         }
+        return Collections.emptyList();
+    }
+    
+    private static Collection<DataNode> getSingleDataNodeCollection(final DataNode dataNode) {
+        Collection<DataNode> result = new LinkedList<>();
+        result.add(dataNode);
         return result;
     }
     

@@ -22,8 +22,8 @@ import com.google.common.base.Strings;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.distsql.parser.statement.ral.RALStatement;
 import org.apache.shardingsphere.distsql.parser.statement.rdl.RDLStatement;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.util.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
 import org.apache.shardingsphere.test.e2e.cases.IntegrationTestCaseContext;
 import org.apache.shardingsphere.test.e2e.cases.IntegrationTestCasesLoader;
@@ -105,7 +105,7 @@ public final class E2ETestParameterGenerator {
                                                                          final IntegrationTestCaseAssertion assertion, final SQLCommandType sqlCommandType) {
         Collection<AssertionTestParameter> result = new LinkedList<>();
         for (String each : getEnvAdapters(testCaseContext.getTestCase().getAdapters())) {
-            if (sqlCommandType.getRunningAdaptors().contains(each)) {
+            if (sqlCommandType.getRunningAdaptors().contains(each) && envAdapters.contains(each)) {
                 result.addAll(getAssertionTestParameter(testCaseContext, assertion, each, databaseType, sqlExecuteType, sqlCommandType));
             }
         }
@@ -128,8 +128,8 @@ public final class E2ETestParameterGenerator {
         if (sqlStatementClass == RALStatement.class) {
             return "empty_rules".equals(scenario);
         }
-        if (sqlStatementClass == RDLStatement.class) {
-            return "rdl_empty_rules".equals(scenario);
+        if (sqlStatementClass == RDLStatement.class || "rdl_empty_rules".equals(scenario)) {
+            return sqlStatementClass == RDLStatement.class && "rdl_empty_rules".equals(scenario);
         }
         if ("empty_rules".equals(scenario)) {
             return false;

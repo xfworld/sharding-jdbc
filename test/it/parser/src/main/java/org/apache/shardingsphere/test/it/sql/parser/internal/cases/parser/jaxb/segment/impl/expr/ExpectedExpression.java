@@ -95,4 +95,28 @@ public final class ExpectedExpression extends AbstractExpectedSQLSegment {
     
     @XmlElement(name = "variable-segment")
     private ExpectedVariableSegment variableSegment;
+    
+    @XmlElement(name = "values-expression")
+    private ExpectedValuesExpression valuesExpression;
+    
+    @XmlElement(name = "extract-arg")
+    private ExpectedExtractArgExpression extractArgExpression;
+    
+    @XmlElement(name = "match-expression")
+    private ExpectedMatchExpression matchExpression;
+    
+    @XmlElement(name = "colum-with-join-operator-segment")
+    private ExpectedColumnWithJoinOperatorSegment columnWithJoinOperatorSegment;
+    
+    @XmlElement(name = "interval-expression")
+    private ExpectedIntervalExpression intervalExpression;
+    
+    @XmlElement(name = "multiset-expression")
+    private ExpectedMultisetExpression multisetExpression;
+    
+    @XmlElement(name = "row-expression")
+    private ExpectedRowExpression rowExpression;
+    
+    @XmlElement(name = "unary-operation-expression")
+    private ExpectedUnaryOperationExpression unaryOperationExpression;
 }

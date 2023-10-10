@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.test.e2e.driver.statement;
 
+import org.apache.shardingsphere.infra.exception.UnknownColumnException;
 import org.apache.shardingsphere.test.e2e.driver.AbstractShardingDriverTest;
 import org.apache.shardingsphere.test.e2e.driver.fixture.keygen.ResetIncrementKeyGenerateAlgorithmFixture;
 import org.junit.jupiter.api.Test;
@@ -40,7 +41,7 @@ class ShardingPreparedStatementTest extends AbstractShardingDriverTest {
     
     private static final String INSERT_MULTI_VALUES_WITH_GENERATE_SHARDING_KEY_SQL = "INSERT INTO t_user (name) VALUES (?),(?),(?),(?)";
     
-    private static final String SELECT_FOR_INSERT_MULTI_VALUES_WITH_GENERATE_SHARDING_KEY_SQL = "SELECT name FROM t_user WHERE id=%dL";
+    private static final String SELECT_FOR_INSERT_MULTI_VALUES_WITH_GENERATE_SHARDING_KEY_SQL = "SELECT name FROM t_user WHERE id=%d";
     
     private static final String INSERT_WITH_GENERATE_KEY_SQL = "INSERT INTO t_order_item (item_id, order_id, user_id, status) VALUES (?, ?, ?, ?)";
     
@@ -416,7 +417,6 @@ class ShardingPreparedStatementTest extends AbstractShardingDriverTest {
                 assertThat(resultSet.getString(3), is(status));
             }
         }
-        
         try (
                 Connection connection = getShardingSphereDataSource().getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(INSERT_ON_DUPLICATE_KEY_SQL);
@@ -607,10 +607,7 @@ class ShardingPreparedStatementTest extends AbstractShardingDriverTest {
     }
     
     @Test
-    void assertColumnNotFoundException() throws SQLException {
-        try (PreparedStatement preparedStatement = getShardingSphereDataSource().getConnection().prepareStatement(UPDATE_WITH_ERROR_COLUMN)) {
-            preparedStatement.setString(1, "OK");
-            assertThrows(SQLException.class, preparedStatement::executeUpdate);
-        }
+    void assertColumnNotFoundException() {
+        assertThrows(UnknownColumnException.class, () -> getShardingSphereDataSource().getConnection().prepareStatement(UPDATE_WITH_ERROR_COLUMN));
     }
 }

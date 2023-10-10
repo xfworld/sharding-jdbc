@@ -17,11 +17,12 @@
 
 package org.apache.shardingsphere.sharding.algorithm.sharding.inline;
 
+import com.google.common.base.Strings;
 import groovy.lang.Closure;
 import groovy.util.Expando;
 import org.apache.shardingsphere.infra.expr.core.InlineExpressionParserFactory;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.util.exception.external.sql.type.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.sharding.api.sharding.complex.ComplexKeysShardingAlgorithm;
 import org.apache.shardingsphere.sharding.api.sharding.complex.ComplexKeysShardingValue;
 import org.apache.shardingsphere.sharding.exception.algorithm.sharding.MismatchedComplexInlineShardingAlgorithmColumnAndValueSizeException;
@@ -64,8 +65,9 @@ public final class ComplexInlineShardingAlgorithm implements ComplexKeysSharding
     
     private String getAlgorithmExpression(final Properties props) {
         String algorithmExpression = props.getProperty(ALGORITHM_EXPRESSION_KEY);
-        ShardingSpherePreconditions.checkNotNull(algorithmExpression, () -> new ShardingAlgorithmInitializationException(getType(), "Inline sharding algorithm expression can not be null."));
-        return InlineExpressionParserFactory.newInstance().handlePlaceHolder(algorithmExpression.trim());
+        ShardingSpherePreconditions.checkState(!Strings.isNullOrEmpty(algorithmExpression),
+                () -> new ShardingAlgorithmInitializationException(getType(), "Inline sharding algorithm expression can not be null."));
+        return InlineExpressionParserFactory.newInstance(algorithmExpression.trim()).handlePlaceHolder();
     }
     
     private Collection<String> getShardingColumns(final Properties props) {
@@ -130,7 +132,7 @@ public final class ComplexInlineShardingAlgorithm implements ComplexKeysSharding
     }
     
     private Closure<?> createClosure() {
-        Closure<?> result = InlineExpressionParserFactory.newInstance().evaluateClosure(algorithmExpression).rehydrate(new Expando(), null, null);
+        Closure<?> result = InlineExpressionParserFactory.newInstance(algorithmExpression).evaluateClosure().rehydrate(new Expando(), null, null);
         result.setResolveStrategy(Closure.DELEGATE_ONLY);
         return result;
     }

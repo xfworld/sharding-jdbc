@@ -23,6 +23,8 @@ import lombok.Setter;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.AliasSegment;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OwnerAvailable;
 import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OwnerSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.PivotSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
 
 import java.util.Optional;
 
@@ -40,6 +42,9 @@ public final class SimpleTableSegment implements TableSegment, OwnerAvailable {
     
     @Setter
     private AliasSegment alias;
+    
+    @Setter
+    private PivotSegment pivot;
     
     @Override
     public int getStartIndex() {
@@ -65,7 +70,25 @@ public final class SimpleTableSegment implements TableSegment, OwnerAvailable {
     }
     
     @Override
-    public Optional<AliasSegment> getAlias() {
+    public Optional<IdentifierValue> getAlias() {
+        return Optional.ofNullable(alias).map(AliasSegment::getIdentifier);
+    }
+    
+    /**
+     * Get alias segment.
+     * 
+     * @return alias segment
+     */
+    public Optional<AliasSegment> getAliasSegment() {
         return Optional.ofNullable(alias);
+    }
+    
+    /**
+     * Get pivot segment.
+     * 
+     * @return pivot segment
+     */
+    public Optional<PivotSegment> getPivot() {
+        return Optional.ofNullable(pivot);
     }
 }

@@ -20,7 +20,7 @@ package org.apache.shardingsphere.shadow.checker;
 import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.config.rule.checker.RuleConfigurationChecker;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.shadow.api.config.ShadowRuleConfiguration;
 import org.apache.shardingsphere.shadow.api.config.datasource.ShadowDataSourceConfiguration;
 import org.apache.shardingsphere.shadow.api.config.table.ShadowTableConfiguration;
@@ -57,11 +57,11 @@ public final class ShadowRuleConfigurationChecker implements RuleConfigurationCh
     }
     
     private void checkDataSources(final Map<String, ShadowDataSourceConfiguration> shadowDataSources, final Map<String, DataSource> dataSourceMap, final String databaseName) {
-        Set<String> dataSource = dataSourceMap.keySet();
+        Set<String> dataSourceName = dataSourceMap.keySet();
         for (Entry<String, ShadowDataSourceConfiguration> entry : shadowDataSources.entrySet()) {
-            ShardingSpherePreconditions.checkState(dataSource.contains(entry.getValue().getProductionDataSourceName()),
+            ShardingSpherePreconditions.checkState(dataSourceName.contains(entry.getValue().getProductionDataSourceName()),
                     () -> new MissingRequiredShadowConfigurationException("ProductionDataSourceName", databaseName));
-            ShardingSpherePreconditions.checkState(dataSource.contains(entry.getValue().getShadowDataSourceName()),
+            ShardingSpherePreconditions.checkState(dataSourceName.contains(entry.getValue().getShadowDataSourceName()),
                     () -> new MissingRequiredShadowConfigurationException("ShadowDataSourceName", databaseName));
         }
     }

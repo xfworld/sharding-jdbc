@@ -17,8 +17,8 @@
 
 package org.apache.shardingsphere.sharding.distsql.handler.enums;
 
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.util.exception.external.sql.type.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.ComplexShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.HintShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.NoneShardingStrategyConfiguration;
@@ -177,7 +177,7 @@ public enum ShardingStrategyType {
      * @return sharding strategy type
      */
     public static ShardingStrategyType getValueOf(final ShardingStrategyConfiguration config) {
-        Optional<ShardingStrategyType> result = Arrays.stream(values()).filter(each -> config.getClass().getName().equals(each.getImplementedClass().getName())).findFirst();
+        Optional<ShardingStrategyType> result = Arrays.stream(values()).filter(each -> config.getClass().isAssignableFrom(each.getImplementedClass())).findFirst();
         ShardingSpherePreconditions.checkState(result.isPresent(), () -> new UnsupportedOperationException(String.format("unsupported strategy type: `%s`.", config.getClass().getName())));
         return result.get();
     }

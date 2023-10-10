@@ -107,13 +107,13 @@ public class DumperConfiguration {
     }
     
     /**
-     * Get column name list of table.
+     * Get column names.
      *
      * @param logicTableName logic table name
-     * @return column names of table
+     * @return column names
      */
-    public Optional<List<String>> getColumnNameList(final LogicTableName logicTableName) {
-        Set<ColumnName> columnNames = null != targetTableColumnsMap ? targetTableColumnsMap.get(logicTableName) : null;
+    public Optional<List<String>> getColumnNames(final LogicTableName logicTableName) {
+        Set<ColumnName> columnNames = null == targetTableColumnsMap ? null : targetTableColumnsMap.get(logicTableName);
         if (null == columnNames) {
             return Optional.empty();
         }
@@ -127,7 +127,7 @@ public class DumperConfiguration {
      * @return column names of table
      */
     public Optional<Set<ColumnName>> getColumnNameSet(final String actualTableName) {
-        Set<ColumnName> result = null != targetTableColumnsMap ? targetTableColumnsMap.get(getLogicTableName(actualTableName)) : null;
+        Set<ColumnName> result = null == targetTableColumnsMap ? null : targetTableColumnsMap.get(getLogicTableName(actualTableName));
         return Optional.ofNullable(result);
     }
 }

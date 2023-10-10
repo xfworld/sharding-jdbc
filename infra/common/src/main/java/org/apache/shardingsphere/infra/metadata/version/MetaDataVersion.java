@@ -23,11 +23,11 @@ import lombok.RequiredArgsConstructor;
 /**
  * Meta data version.
  */
-@Getter
 @RequiredArgsConstructor
+@Getter
 public final class MetaDataVersion {
     
-    private final String persistKey;
+    private final String key;
     
     private final String currentActiveVersion;
     

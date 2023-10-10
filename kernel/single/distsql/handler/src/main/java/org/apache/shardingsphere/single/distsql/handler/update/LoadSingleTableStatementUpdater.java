@@ -17,24 +17,23 @@
 
 package org.apache.shardingsphere.single.distsql.handler.update;
 
-import org.apache.shardingsphere.dialect.exception.syntax.table.TableExistsException;
 import org.apache.shardingsphere.distsql.handler.exception.storageunit.MissingRequiredStorageUnitsException;
 import org.apache.shardingsphere.distsql.handler.update.RuleDefinitionCreateUpdater;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypeEngine;
-import org.apache.shardingsphere.infra.database.type.SchemaSupportedDatabaseType;
+import org.apache.shardingsphere.infra.database.core.metadata.database.DialectDatabaseMetaData;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.exception.InvalidDataNodesFormatException;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.table.TableExistsException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.resource.ShardingSphereResourceMetaData;
+import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.rule.identifier.type.DataSourceContainedRule;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.single.api.config.SingleRuleConfiguration;
 import org.apache.shardingsphere.single.api.constant.SingleTableConstants;
 import org.apache.shardingsphere.single.datanode.SingleTableDataNodeLoader;
 import org.apache.shardingsphere.single.distsql.handler.exception.MissingRequiredSingleTableException;
 import org.apache.shardingsphere.single.distsql.segment.SingleTableSegment;
 import org.apache.shardingsphere.single.distsql.statement.rdl.LoadSingleTableStatement;
-import org.apache.shardingsphere.single.exception.InvalidSingleRuleConfigurationException;
 import org.apache.shardingsphere.single.util.SingleTableLoadUtils;
 
 import javax.sql.DataSource;
@@ -42,6 +41,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 /**
@@ -51,32 +51,24 @@ public final class LoadSingleTableStatementUpdater implements RuleDefinitionCrea
     
     @Override
     public void checkSQLStatement(final ShardingSphereDatabase database, final LoadSingleTableStatement sqlStatement, final SingleRuleConfiguration currentRuleConfig) {
-        String defaultSchemaName = DatabaseTypeEngine.getDefaultSchemaName(database.getProtocolType(), database.getName());
-        checkTables(database, sqlStatement, currentRuleConfig, defaultSchemaName);
+        String defaultSchemaName = new DatabaseTypeRegistry(database.getProtocolType()).getDefaultSchemaName(database.getName());
+        checkDuplicatedTables(database, sqlStatement, defaultSchemaName);
         checkStorageUnits(database, sqlStatement);
         checkActualTableExist(database, sqlStatement, defaultSchemaName);
     }
     
-    private void checkTables(final ShardingSphereDatabase database, final LoadSingleTableStatement sqlStatement, final SingleRuleConfiguration currentRuleConfig, final String defaultSchemaName) {
+    private void checkDuplicatedTables(final ShardingSphereDatabase database, final LoadSingleTableStatement sqlStatement, final String defaultSchemaName) {
         Collection<SingleTableSegment> tableSegments = sqlStatement.getTables();
-        boolean isSchemaSupportedDatabaseType = database.getProtocolType() instanceof SchemaSupportedDatabaseType;
+        DialectDatabaseMetaData dialectDatabaseMetaData = new DatabaseTypeRegistry(database.getProtocolType()).getDialectDatabaseMetaData();
+        boolean isSchemaSupportedDatabaseType = dialectDatabaseMetaData.getDefaultSchema().isPresent();
         ShardingSphereSchema schema = database.getSchema(defaultSchemaName);
         for (SingleTableSegment each : tableSegments) {
-            checkTableRuleExist(currentRuleConfig, each);
             checkDatabaseTypeAndTableNodeStyle(isSchemaSupportedDatabaseType, each);
             if (SingleTableConstants.ASTERISK.equals(each.getTableName())) {
                 continue;
             }
             ShardingSpherePreconditions.checkState(!schema.containsTable(each.getTableName()), () -> new TableExistsException(each.getTableName()));
         }
-    }
-    
-    private void checkTableRuleExist(final SingleRuleConfiguration currentRuleConfig, final SingleTableSegment segment) {
-        if (null == currentRuleConfig) {
-            return;
-        }
-        ShardingSpherePreconditions.checkState(!currentRuleConfig.getTables().contains(segment.toString()),
-                () -> new InvalidSingleRuleConfigurationException(String.format("Duplicated table definition `%s`", segment)));
     }
     
     private void checkDatabaseTypeAndTableNodeStyle(final boolean isSchemaSupportedDatabaseType, final SingleTableSegment singleTableSegment) {
@@ -92,7 +84,10 @@ public final class LoadSingleTableStatementUpdater implements RuleDefinitionCrea
         }
     }
     
-    private Collection<String> getRequiredTables(final LoadSingleTableStatement sqlStatement) {
+    private Collection<String> getRequiredTables(final SingleRuleConfiguration currentRuleConfig, final LoadSingleTableStatement sqlStatement) {
+        if (null != currentRuleConfig) {
+            return sqlStatement.getTables().stream().map(SingleTableSegment::toString).filter(each -> !currentRuleConfig.getTables().contains(each)).collect(Collectors.toSet());
+        }
         return sqlStatement.getTables().stream().map(SingleTableSegment::toString).collect(Collectors.toSet());
     }
     
@@ -117,8 +112,11 @@ public final class LoadSingleTableStatementUpdater implements RuleDefinitionCrea
         if (requiredDataSources.isEmpty()) {
             return;
         }
-        ShardingSphereResourceMetaData resourceMetaData = database.getResourceMetaData();
-        Map<String, DataSource> aggregateDataSourceMap = SingleTableLoadUtils.getAggregatedDataSourceMap(resourceMetaData.getDataSources(), database.getRuleMetaData().getRules());
+        ResourceMetaData resourceMetaData = database.getResourceMetaData();
+        Map<String, DataSource> aggregateDataSourceMap = SingleTableLoadUtils.getAggregatedDataSourceMap(
+                resourceMetaData.getStorageUnits().entrySet().stream()
+                        .collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getDataSource(), (oldValue, currentValue) -> oldValue, LinkedHashMap::new)),
+                database.getRuleMetaData().getRules());
         Map<String, Map<String, Collection<String>>> actualTableNodes = new LinkedHashMap<>();
         for (String each : requiredDataSources) {
             Map<String, Collection<String>> schemaTableNames = SingleTableDataNodeLoader.loadSchemaTableNames(database.getName(), database.getProtocolType(), aggregateDataSourceMap.get(each), each);
@@ -146,7 +144,7 @@ public final class LoadSingleTableStatementUpdater implements RuleDefinitionCrea
     @Override
     public SingleRuleConfiguration buildToBeCreatedRuleConfiguration(final SingleRuleConfiguration currentRuleConfig, final LoadSingleTableStatement sqlStatement) {
         SingleRuleConfiguration result = new SingleRuleConfiguration();
-        result.getTables().addAll(getRequiredTables(sqlStatement));
+        result.getTables().addAll(getRequiredTables(currentRuleConfig, sqlStatement));
         return result;
     }
     
@@ -161,7 +159,7 @@ public final class LoadSingleTableStatementUpdater implements RuleDefinitionCrea
     }
     
     @Override
-    public String getType() {
-        return LoadSingleTableStatement.class.getName();
+    public Class<LoadSingleTableStatement> getType() {
+        return LoadSingleTableStatement.class;
     }
 }

@@ -19,14 +19,18 @@ package org.apache.shardingsphere.broadcast.yaml.swapper;
 
 import org.apache.shardingsphere.broadcast.api.config.BroadcastRuleConfiguration;
 import org.apache.shardingsphere.broadcast.constant.BroadcastOrder;
-import org.apache.shardingsphere.broadcast.metadata.converter.BroadcastNodeConverter;
+import org.apache.shardingsphere.broadcast.metadata.nodepath.BroadcastRuleNodePathProvider;
 import org.apache.shardingsphere.broadcast.yaml.config.YamlBroadcastRuleConfiguration;
+import org.apache.shardingsphere.mode.path.RuleNodePath;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.util.yaml.datanode.YamlDataNode;
 import org.apache.shardingsphere.infra.yaml.config.swapper.rule.NewYamlRuleConfigurationSwapper;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * TODO Rename to YamlBroadcastRuleConfigurationSwapper when metadata structure adjustment completed.
@@ -34,23 +38,28 @@ import java.util.Collections;
  */
 public final class NewYamlBroadcastRuleConfigurationSwapper implements NewYamlRuleConfigurationSwapper<BroadcastRuleConfiguration> {
     
+    private final RuleNodePath broadcastRuleNodePath = new BroadcastRuleNodePathProvider().getRuleNodePath();
+    
     @Override
     public Collection<YamlDataNode> swapToDataNodes(final BroadcastRuleConfiguration data) {
         if (data.getTables().isEmpty()) {
             return Collections.emptyList();
         }
-        YamlBroadcastRuleConfiguration yamlBroadcastRuleConfiguration = new YamlBroadcastRuleConfiguration();
-        yamlBroadcastRuleConfiguration.getTables().addAll(data.getTables());
-        return Collections.singleton(new YamlDataNode(BroadcastNodeConverter.getTablesPath(), YamlEngine.marshal(yamlBroadcastRuleConfiguration)));
+        YamlBroadcastRuleConfiguration yamlBroadcastRuleConfig = new YamlBroadcastRuleConfiguration();
+        yamlBroadcastRuleConfig.getTables().addAll(data.getTables());
+        return Collections.singleton(new YamlDataNode(BroadcastRuleNodePathProvider.TABLES, YamlEngine.marshal(yamlBroadcastRuleConfig)));
     }
     
     @Override
-    public BroadcastRuleConfiguration swapToObject(final Collection<YamlDataNode> dataNodes) {
-        if (!dataNodes.isEmpty()) {
-            YamlBroadcastRuleConfiguration yamlBroadcastRuleConfiguration = YamlEngine.unmarshal(dataNodes.iterator().next().getValue(), YamlBroadcastRuleConfiguration.class);
-            return new BroadcastRuleConfiguration(yamlBroadcastRuleConfiguration.getTables());
+    public Optional<BroadcastRuleConfiguration> swapToObject(final Collection<YamlDataNode> dataNodes) {
+        List<YamlDataNode> validDataNodes = dataNodes.stream().filter(each -> broadcastRuleNodePath.getRoot().isValidatedPath(each.getKey())).collect(Collectors.toList());
+        for (YamlDataNode each : validDataNodes) {
+            if (broadcastRuleNodePath.getRoot().isValidatedPath(each.getKey())) {
+                YamlBroadcastRuleConfiguration yamlBroadcastRuleConfig = YamlEngine.unmarshal(each.getValue(), YamlBroadcastRuleConfiguration.class);
+                return Optional.of(new BroadcastRuleConfiguration(yamlBroadcastRuleConfig.getTables()));
+            }
         }
-        return new BroadcastRuleConfiguration(Collections.emptyList());
+        return Optional.empty();
     }
     
     @Override

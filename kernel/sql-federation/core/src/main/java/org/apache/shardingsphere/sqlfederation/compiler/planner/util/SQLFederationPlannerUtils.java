@@ -39,8 +39,6 @@ import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -50,9 +48,10 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.SqlToRelConverter.Config;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.parser.rule.SQLParserRule;
 import org.apache.shardingsphere.sqlfederation.compiler.metadata.view.ShardingSphereViewExpander;
+import org.apache.shardingsphere.sqlfederation.compiler.planner.rule.converter.EnumerableScanConverterRule;
 import org.apache.shardingsphere.sqlfederation.compiler.planner.rule.transformation.PushFilterIntoScanRule;
 import org.apache.shardingsphere.sqlfederation.compiler.planner.rule.transformation.PushProjectIntoScanRule;
 
@@ -110,7 +109,29 @@ public final class SQLFederationPlannerUtils {
     private static void setUpRules(final RelOptPlanner planner) {
         planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
         planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
-        EnumerableRules.rules().forEach(planner::addRule);
+        planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_CALC_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_COLLECT_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_UNCOLLECT_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_UNION_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_REPEAT_UNION_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SPOOL_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_MINUS_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_WINDOW_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_MATCH_RULE);
+        planner.addRule(EnumerableScanConverterRule.DEFAULT_CONFIG.toRule());
     }
     
     private static Collection<RelOptRule> getSubQueryRules() {
@@ -142,7 +163,7 @@ public final class SQLFederationPlannerUtils {
         result.add(CoreRules.PROJECT_JOIN_TRANSPOSE);
         result.add(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
         result.add(ProjectRemoveRule.Config.DEFAULT.toRule());
-        result.add(PushProjectIntoScanRule.INSTANCE);
+        result.add(PushProjectIntoScanRule.Config.DEFAULT.toRule());
         return result;
     }
     
@@ -158,7 +179,7 @@ public final class SQLFederationPlannerUtils {
         result.add(CoreRules.FILTER_MERGE);
         result.add(CoreRules.JOIN_PUSH_EXPRESSIONS);
         result.add(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES);
-        result.add(PushFilterIntoScanRule.INSTANCE);
+        result.add(PushFilterIntoScanRule.Config.DEFAULT.toRule());
         return result;
     }
     
@@ -181,38 +202,8 @@ public final class SQLFederationPlannerUtils {
     public static CalciteCatalogReader createCatalogReader(final String schemaName, final Schema schema, final RelDataTypeFactory relDataTypeFactory, final CalciteConnectionConfig connectionConfig) {
         CalciteSchema rootSchema = CalciteSchema.createRootSchema(true);
         rootSchema.add(schemaName, schema);
-        registryUserDefinedFunction(schemaName, rootSchema.plus());
+        SQLFederationFunctionUtils.registryUserDefinedFunction(schemaName, rootSchema.plus());
         return new CalciteCatalogReader(rootSchema, Collections.singletonList(schemaName), relDataTypeFactory, connectionConfig);
-    }
-    
-    private static void registryUserDefinedFunction(final String schemaName, final SchemaPlus schemaPlus) {
-        if (!"pg_catalog".equalsIgnoreCase(schemaName)) {
-            return;
-        }
-        schemaPlus.add("pg_catalog.pg_table_is_visible", ScalarFunctionImpl.create(SQLFederationPlannerUtils.class, "pgTableIsVisible"));
-        schemaPlus.add("pg_catalog.pg_get_userbyid", ScalarFunctionImpl.create(SQLFederationPlannerUtils.class, "pgGetUserById"));
-    }
-    
-    /**
-     * Mock pg_table_is_visible function.
-     *
-     * @param oid oid
-     * @return true
-     */
-    @SuppressWarnings("unused")
-    public static boolean pgTableIsVisible(final Long oid) {
-        return true;
-    }
-    
-    /**
-     * Mock pg_get_userbyid function.
-     * 
-     * @param oid oid
-     * @return user name
-     */
-    @SuppressWarnings("unused")
-    public static String pgGetUserById(final Long oid) {
-        return "mock user";
     }
     
     /**
@@ -231,7 +222,7 @@ public final class SQLFederationPlannerUtils {
                 .withConformance(connectionConfig.conformance())
                 .withDefaultNullCollation(connectionConfig.defaultNullCollation())
                 .withIdentifierExpansion(true);
-        SqlOperatorTable sqlOperatorTable = getSQLOperatorTable(catalogReader, databaseType);
+        SqlOperatorTable sqlOperatorTable = getSQLOperatorTable(catalogReader, databaseType.getTrunkDatabaseType().orElse(databaseType));
         return SqlValidatorUtil.newValidator(sqlOperatorTable, catalogReader, relDataTypeFactory, validatorConfig);
     }
     
@@ -242,7 +233,7 @@ public final class SQLFederationPlannerUtils {
     
     /**
      * Create sql to rel converter.
-     *
+     * 
      * @param catalogReader catalog reader
      * @param validator validator
      * @param cluster cluster
@@ -256,7 +247,7 @@ public final class SQLFederationPlannerUtils {
         ViewExpander expander = needsViewExpand ? new ShardingSphereViewExpander(sqlParserRule, databaseType,
                 createSqlToRelConverter(catalogReader, validator, cluster, sqlParserRule, databaseType, false)) : (rowType, queryString, schemaPath, viewPath) -> null;
         // TODO remove withRemoveSortInSubQuery when calcite can expand view which contains order by correctly
-        Config converterConfig = SqlToRelConverter.config().withTrimUnusedFields(true).withRemoveSortInSubQuery(false);
+        Config converterConfig = SqlToRelConverter.config().withTrimUnusedFields(true).withRemoveSortInSubQuery(false).withExpand(true);
         return new SqlToRelConverter(expander, validator, catalogReader, cluster, StandardConvertletTable.INSTANCE, converterConfig);
     }
     

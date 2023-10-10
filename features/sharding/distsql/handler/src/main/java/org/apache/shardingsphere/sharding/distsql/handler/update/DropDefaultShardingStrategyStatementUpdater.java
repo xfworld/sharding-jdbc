@@ -20,7 +20,7 @@ package org.apache.shardingsphere.sharding.distsql.handler.update;
 import org.apache.shardingsphere.distsql.handler.exception.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.distsql.handler.update.RuleDefinitionDropUpdater;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.ShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.distsql.handler.enums.ShardingStrategyLevelType;
@@ -77,10 +77,12 @@ public final class DropDefaultShardingStrategyStatementUpdater implements RuleDe
         ShardingRuleConfiguration result = new ShardingRuleConfiguration();
         if (sqlStatement.getDefaultType().equalsIgnoreCase(ShardingStrategyLevelType.TABLE.name())) {
             result.setDefaultTableShardingStrategy(currentRuleConfig.getDefaultTableShardingStrategy());
+            currentRuleConfig.setDefaultTableShardingStrategy(null);
         } else {
             result.setDefaultDatabaseShardingStrategy(currentRuleConfig.getDefaultDatabaseShardingStrategy());
+            currentRuleConfig.setDefaultDatabaseShardingStrategy(null);
         }
-        // TODO find unused algorithm
+        UnusedAlgorithmFinder.find(currentRuleConfig).forEach(each -> result.getShardingAlgorithms().put(each, currentRuleConfig.getShardingAlgorithms().get(each)));
         return result;
     }
     
@@ -92,15 +94,7 @@ public final class DropDefaultShardingStrategyStatementUpdater implements RuleDe
             currentRuleConfig.setDefaultDatabaseShardingStrategy(null);
         }
         UnusedAlgorithmFinder.find(currentRuleConfig).forEach(each -> currentRuleConfig.getShardingAlgorithms().remove(each));
-        return isEmptyShardingTables(currentRuleConfig) && isEmptyShardingStrategy(currentRuleConfig);
-    }
-    
-    private boolean isEmptyShardingTables(final ShardingRuleConfiguration currentRuleConfig) {
-        return currentRuleConfig.getTables().isEmpty() && currentRuleConfig.getAutoTables().isEmpty();
-    }
-    
-    private boolean isEmptyShardingStrategy(final ShardingRuleConfiguration currentRuleConfig) {
-        return null == currentRuleConfig.getDefaultDatabaseShardingStrategy() && null == currentRuleConfig.getDefaultTableShardingStrategy();
+        return currentRuleConfig.isEmpty();
     }
     
     @Override
@@ -109,7 +103,7 @@ public final class DropDefaultShardingStrategyStatementUpdater implements RuleDe
     }
     
     @Override
-    public String getType() {
-        return DropDefaultShardingStrategyStatement.class.getName();
+    public Class<DropDefaultShardingStrategyStatement> getType() {
+        return DropDefaultShardingStrategyStatement.class;
     }
 }

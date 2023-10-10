@@ -21,7 +21,7 @@ import org.apache.shardingsphere.driver.jdbc.adapter.AbstractResultSetAdapter;
 import org.apache.shardingsphere.infra.executor.sql.context.ExecutionContext;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.impl.driver.jdbc.type.util.ResultSetUtils;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -66,7 +66,7 @@ public final class ShardingSphereResultSet extends AbstractResultSetAdapter {
                                    final ExecutionContext executionContext) throws SQLException {
         super(resultSets, statement, selectContainsEnhancedTable, executionContext);
         this.mergeResultSet = mergeResultSet;
-        columnLabelAndIndexMap = ShardingSphereResultSetUtils.createColumnLabelAndIndexMap(executionContext.getSqlStatementContext(), resultSets.get(0).getMetaData());
+        columnLabelAndIndexMap = ShardingSphereResultSetUtils.createColumnLabelAndIndexMap(executionContext.getSqlStatementContext(), selectContainsEnhancedTable, resultSets.get(0).getMetaData());
     }
     
     public ShardingSphereResultSet(final List<ResultSet> resultSets, final MergedResult mergeResultSet, final Statement statement, final boolean selectContainsEnhancedTable,

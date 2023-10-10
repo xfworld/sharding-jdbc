@@ -17,10 +17,10 @@
 
 package org.apache.shardingsphere.test.it.data.pipeline.scenario.consistencycheck;
 
-import org.apache.shardingsphere.data.pipeline.api.job.JobStatus;
-import org.apache.shardingsphere.data.pipeline.core.api.PipelineAPIFactory;
-import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextKey;
-import org.apache.shardingsphere.data.pipeline.core.job.progress.yaml.YamlConsistencyCheckJobItemProgress;
+import org.apache.shardingsphere.data.pipeline.common.context.PipelineContextKey;
+import org.apache.shardingsphere.data.pipeline.common.job.JobStatus;
+import org.apache.shardingsphere.data.pipeline.common.job.progress.yaml.YamlConsistencyCheckJobItemProgress;
+import org.apache.shardingsphere.data.pipeline.core.job.service.PipelineAPIFactory;
 import org.apache.shardingsphere.data.pipeline.scenario.consistencycheck.ConsistencyCheckJob;
 import org.apache.shardingsphere.data.pipeline.scenario.consistencycheck.ConsistencyCheckJobId;
 import org.apache.shardingsphere.data.pipeline.scenario.consistencycheck.api.impl.ConsistencyCheckJobAPI;
@@ -56,13 +56,15 @@ class ConsistencyCheckJobTest {
         ConsistencyCheckJob consistencyCheckJob = new ConsistencyCheckJob(checkJobId);
         ConsistencyCheckJobItemContext actual = consistencyCheckJob.buildPipelineJobItemContext(
                 new ShardingContext(checkJobId, "", 1, YamlEngine.marshal(createYamlConsistencyCheckJobConfiguration(checkJobId)), 0, ""));
-        assertThat(actual.getProgressContext().getTableCheckPositions(), is(expectTableCheckPosition));
+        assertThat(actual.getProgressContext().getSourceTableCheckPositions(), is(expectTableCheckPosition));
+        assertThat(actual.getProgressContext().getTargetTableCheckPositions(), is(expectTableCheckPosition));
     }
     
     private YamlConsistencyCheckJobItemProgress createYamlConsistencyCheckJobItemProgress(final Map<String, Object> expectTableCheckPosition) {
         YamlConsistencyCheckJobItemProgress result = new YamlConsistencyCheckJobItemProgress();
         result.setStatus(JobStatus.RUNNING.name());
-        result.setTableCheckPositions(expectTableCheckPosition);
+        result.setSourceTableCheckPositions(expectTableCheckPosition);
+        result.setTargetTableCheckPositions(expectTableCheckPosition);
         return result;
     }
     
@@ -70,6 +72,8 @@ class ConsistencyCheckJobTest {
         YamlConsistencyCheckJobConfiguration result = new YamlConsistencyCheckJobConfiguration();
         result.setJobId(checkJobId);
         result.setParentJobId("");
+        result.setAlgorithmTypeName("DATA_MATCH");
+        result.setSourceDatabaseType("H2");
         return result;
     }
 }

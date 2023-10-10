@@ -17,28 +17,43 @@
 
 package org.apache.shardingsphere.driver.data.pipeline.datasource.creator;
 
+import org.apache.shardingsphere.authority.yaml.config.YamlAuthorityRuleConfiguration;
 import org.apache.shardingsphere.data.pipeline.api.datasource.config.impl.ShardingSpherePipelineDataSourceConfiguration;
 import org.apache.shardingsphere.data.pipeline.spi.datasource.creator.PipelineDataSourceCreator;
 import org.apache.shardingsphere.driver.api.yaml.YamlShardingSphereDataSourceFactory;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
+import org.apache.shardingsphere.infra.config.props.temporary.TemporaryConfigurationPropertyKey;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.yaml.config.pojo.YamlRootConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.pojo.algorithm.YamlAlgorithmConfiguration;
+import org.apache.shardingsphere.infra.yaml.config.pojo.mode.YamlModeConfiguration;
+import org.apache.shardingsphere.infra.yaml.config.pojo.mode.YamlPersistRepositoryConfiguration;
+import org.apache.shardingsphere.mode.repository.standalone.jdbc.props.JDBCRepositoryPropertyKey;
 import org.apache.shardingsphere.sharding.yaml.config.YamlShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.yaml.swapper.ShardingRuleConfigurationConverter;
+import org.apache.shardingsphere.single.api.constant.SingleTableConstants;
+import org.apache.shardingsphere.single.yaml.config.pojo.YamlSingleRuleConfiguration;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * ShardingSphere pipeline data source creator.
  */
 public final class ShardingSpherePipelineDataSourceCreator implements PipelineDataSourceCreator {
     
+    private static final AtomicInteger STANDALONE_DATABASE_ID = new AtomicInteger(1);
+    
     @Override
     public DataSource createPipelineDataSource(final Object dataSourceConfig) throws SQLException {
         YamlRootConfiguration rootConfig = YamlEngine.unmarshal(YamlEngine.marshal(dataSourceConfig), YamlRootConfiguration.class);
+        removeAuthorityRule(rootConfig);
+        updateSingleRuleConfiguration(rootConfig);
+        disableSystemSchemaMetadata(rootConfig);
         enableStreamingQuery(rootConfig);
         Optional<YamlShardingRuleConfiguration> yamlShardingRuleConfig = ShardingRuleConfigurationConverter.findYamlShardingRuleConfiguration(rootConfig.getRules());
         if (yamlShardingRuleConfig.isPresent()) {
@@ -47,7 +62,23 @@ public final class ShardingSpherePipelineDataSourceCreator implements PipelineDa
         }
         rootConfig.setDatabaseName(rootConfig.getDatabaseName());
         rootConfig.setSchemaName(rootConfig.getSchemaName());
+        rootConfig.setMode(createStandaloneModeConfiguration());
         return YamlShardingSphereDataSourceFactory.createDataSourceWithoutCache(rootConfig);
+    }
+    
+    private void removeAuthorityRule(final YamlRootConfiguration rootConfig) {
+        rootConfig.getRules().stream().filter(YamlAuthorityRuleConfiguration.class::isInstance).findFirst().map(each -> rootConfig.getRules().remove(each));
+    }
+    
+    private void updateSingleRuleConfiguration(final YamlRootConfiguration rootConfig) {
+        rootConfig.getRules().removeIf(YamlSingleRuleConfiguration.class::isInstance);
+        YamlSingleRuleConfiguration singleRuleConfig = new YamlSingleRuleConfiguration();
+        singleRuleConfig.setTables(Collections.singletonList(SingleTableConstants.ALL_TABLES));
+        rootConfig.getRules().add(singleRuleConfig);
+    }
+    
+    private void disableSystemSchemaMetadata(final YamlRootConfiguration rootConfig) {
+        rootConfig.getProps().put(TemporaryConfigurationPropertyKey.SYSTEM_SCHEMA_METADATA_ENABLED.getKey(), String.valueOf(Boolean.FALSE));
     }
     
     // TODO Another way is improving ExecuteQueryCallback.executeSQL to enable streaming query, then remove it
@@ -73,6 +104,19 @@ public final class ShardingSpherePipelineDataSourceCreator implements PipelineDa
         if (null != yamlShardingRuleConfig.getAutoTables()) {
             yamlShardingRuleConfig.getAutoTables().forEach((key, value) -> value.setAuditStrategy(null));
         }
+    }
+    
+    private YamlModeConfiguration createStandaloneModeConfiguration() {
+        YamlModeConfiguration result = new YamlModeConfiguration();
+        result.setType("Standalone");
+        YamlPersistRepositoryConfiguration repository = new YamlPersistRepositoryConfiguration();
+        result.setRepository(repository);
+        repository.setType("JDBC");
+        Properties props = new Properties();
+        repository.setProps(props);
+        props.setProperty(JDBCRepositoryPropertyKey.JDBC_URL.getKey(),
+                String.format("jdbc:h2:mem:pipeline_db_%d;DB_CLOSE_DELAY=0;DATABASE_TO_UPPER=false;MODE=MYSQL", STANDALONE_DATABASE_ID.getAndIncrement()));
+        return result;
     }
     
     @Override

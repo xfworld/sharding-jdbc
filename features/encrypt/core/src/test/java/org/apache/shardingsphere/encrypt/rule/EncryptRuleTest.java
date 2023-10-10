@@ -24,7 +24,6 @@ import org.apache.shardingsphere.encrypt.api.config.rule.EncryptTableRuleConfigu
 import org.apache.shardingsphere.encrypt.exception.algorithm.MismatchedEncryptAlgorithmTypeException;
 import org.apache.shardingsphere.encrypt.exception.metadata.EncryptTableNotFoundException;
 import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
-import org.apache.shardingsphere.infra.database.DefaultDatabase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,14 +35,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -51,54 +48,28 @@ class EncryptRuleTest {
     
     @Test
     void assertFindEncryptTable() {
-        assertTrue(new EncryptRule(createEncryptRuleConfiguration()).findEncryptTable("t_encrypt").isPresent());
+        assertTrue(new EncryptRule("foo_db", createEncryptRuleConfiguration()).findEncryptTable("t_encrypt").isPresent());
     }
     
     @Test
     void assertGetEncryptTable() {
-        assertThat(new EncryptRule(createEncryptRuleConfiguration()).getEncryptTable("t_encrypt").getTable(), is("t_encrypt"));
+        assertThat(new EncryptRule("foo_db", createEncryptRuleConfiguration()).getEncryptTable("t_encrypt").getTable(), is("t_encrypt"));
     }
     
     @Test
     void assertGetNotExistedEncryptTable() {
-        assertThrows(EncryptTableNotFoundException.class, () -> new EncryptRule(createEncryptRuleConfiguration()).getEncryptTable("not_existed_tbl"));
-    }
-    
-    @Test
-    void assertGetEncryptValues() {
-        List<Object> encryptAssistedQueryValues = new EncryptRule(createEncryptRuleConfiguration())
-                .encrypt(DefaultDatabase.LOGIC_NAME, DefaultDatabase.LOGIC_NAME, "t_encrypt", "pwd", Collections.singletonList(null));
-        for (Object each : encryptAssistedQueryValues) {
-            assertNull(each);
-        }
-    }
-    
-    @Test
-    void assertGetEncryptAssistedQueryValues() {
-        List<Object> encryptAssistedQueryValues = new EncryptRule(createEncryptRuleConfiguration())
-                .getEncryptAssistedQueryValues(DefaultDatabase.LOGIC_NAME, DefaultDatabase.LOGIC_NAME, "t_encrypt", "pwd", Collections.singletonList(null));
-        for (Object each : encryptAssistedQueryValues) {
-            assertNull(each);
-        }
-    }
-    
-    @Test
-    void assertGetEncryptLikeQueryValues() {
-        List<Object> encryptLikeQueryValues = new EncryptRule(createEncryptRuleConfiguration())
-                .getEncryptLikeQueryValues(DefaultDatabase.LOGIC_NAME, DefaultDatabase.LOGIC_NAME, "t_encrypt", "pwd", Collections.singletonList(null));
-        for (Object actual : encryptLikeQueryValues) {
-            assertNull(actual);
-        }
+        assertThrows(EncryptTableNotFoundException.class, () -> new EncryptRule("foo_db", createEncryptRuleConfiguration()).getEncryptTable("not_existed_tbl"));
     }
     
     @Test
     void assertGetTables() {
-        assertThat(new LinkedList<>(new EncryptRule(createEncryptRuleConfiguration()).getLogicTableMapper().getTableNames()), is(Collections.singletonList("t_encrypt")));
+        assertThat(new LinkedList<>(new EncryptRule("foo_db", createEncryptRuleConfiguration()).getLogicTableMapper().getTableNames()), is(Collections.singletonList("t_encrypt")));
     }
     
     @Test
     void assertGetTableWithLowercase() {
-        assertThat(new LinkedList<>(new EncryptRule(createEncryptRuleConfigurationWithUpperCaseLogicTable()).getLogicTableMapper().getTableNames()), is(Collections.singletonList("T_ENCRYPT")));
+        assertThat(new LinkedList<>(new EncryptRule("foo_db", createEncryptRuleConfigurationWithUpperCaseLogicTable()).getLogicTableMapper().getTableNames()),
+                is(Collections.singletonList("T_ENCRYPT")));
     }
     
     private EncryptRuleConfiguration createEncryptRuleConfiguration() {
@@ -155,7 +126,7 @@ class EncryptRuleTest {
         EncryptTableRuleConfiguration tableConfig = new EncryptTableRuleConfiguration("t_encrypt", Arrays.asList(pwdColumnConfig, creditCardColumnConfig));
         EncryptRuleConfiguration ruleConfig = new EncryptRuleConfiguration(Collections.singleton(tableConfig), getEncryptors(new AlgorithmConfiguration("CORE.FIXTURE", new Properties()),
                 new AlgorithmConfiguration("CORE.QUERY_ASSISTED.FIXTURE", new Properties()), new AlgorithmConfiguration("CORE.QUERY_LIKE.FIXTURE", new Properties())));
-        assertThrows(MismatchedEncryptAlgorithmTypeException.class, () -> new EncryptRule(ruleConfig));
+        assertThrows(MismatchedEncryptAlgorithmTypeException.class, () -> new EncryptRule("foo_db", ruleConfig));
     }
     
     private static EncryptColumnRuleConfiguration createEncryptColumnRuleConfiguration(final String encryptorName, final String assistedQueryEncryptorName, final String likeEncryptorName) {

@@ -18,15 +18,15 @@
 package org.apache.shardingsphere.sharding.route.engine.validator.dml.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.binder.segment.table.TablesContext;
-import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.segment.table.TablesContext;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.connection.validator.ShardingSphereMetaDataValidateUtils;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.sharding.exception.algorithm.sharding.DuplicateInsertDataRecordException;
 import org.apache.shardingsphere.sharding.exception.syntax.InsertSelectTableViolationException;
 import org.apache.shardingsphere.sharding.exception.syntax.MissingGenerateKeyColumnWithInsertSelectException;
@@ -71,7 +71,7 @@ public final class ShardingInsertStatementValidator extends ShardingDMLStatement
             throw new MissingGenerateKeyColumnWithInsertSelectException();
         }
         TablesContext tablesContext = sqlStatementContext.getTablesContext();
-        if (insertSelectSegment.isPresent() && shardingRule.tableRuleExists(tablesContext.getTableNames())
+        if (insertSelectSegment.isPresent() && shardingRule.containsShardingTable(tablesContext.getTableNames())
                 && !isAllSameTables(tablesContext.getTableNames()) && !shardingRule.isAllBindingTables(tablesContext.getTableNames())) {
             throw new InsertSelectTableViolationException();
         }

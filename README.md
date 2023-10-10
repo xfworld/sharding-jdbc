@@ -1,8 +1,8 @@
-## [Ecosystem to Transform Any Database into a Distributed Database System, and Enhance it with Sharding, Elastic Scaling, Encryption Features & More](https://shardingsphere.apache.org/)
+## [Distributed SQL transaction & query engine for data sharding, scaling, encryption, and more - on any database.](https://shardingsphere.apache.org/)
 
 **Official Website:** [https://shardingsphere.apache.org/](https://shardingsphere.apache.org/)
 
-[![GitHub release](https://img.shields.io/github/release/apache/shardingsphere.svg)](https://github.com/apache/shardingsphere/releases)
+[![GitHub Release](https://img.shields.io/github/release/apache/shardingsphere.svg)](https://github.com/apache/shardingsphere/releases)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=apache_shardingsphere&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=apache_shardingsphere)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=apache_shardingsphere&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=apache_shardingsphere)
@@ -20,17 +20,17 @@
 
 |                                               **Stargazers Over Time**                                                | **Contributors Over Time**                                                                                                                                                                                                                       |
 |:---------------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
-| [![Stargazers over time](https://starchart.cc/apache/shardingsphere.svg)](https://starchart.cc/apache/shardingsphere) | [![Contributor over time](https://contributor-graph-api.apiseven.com/contributors-svg?chart=contributorOverTime&repo=apache/shardingsphere)](https://www.apiseven.com/en/contributor-graph?chart=contributorOverTime&repo=apache/shardingsphere) |
+| [![Stargazers Over Time](https://starchart.cc/apache/shardingsphere.svg)](https://starchart.cc/apache/shardingsphere) | [![Contributor over time](https://contributor-graph-api.apiseven.com/contributors-svg?chart=contributorOverTime&repo=apache/shardingsphere)](https://www.apiseven.com/en/contributor-graph?chart=contributorOverTime&repo=apache/shardingsphere) |
 
 ### OVERVIEW
 
 <hr>
 
-Apache ShardingSphere follows Database Plus - our community's guiding development concept for creating a complete ecosystem that allows you to transform any database into a distributed database system, and easily enhance it with sharding, elastic scaling, data encryption features & more. 
+Apache ShardingSphere is a distributed SQL transaction & query engine for data sharding, scaling, encryption, and more - on any database. Our community's guiding development concept is Database Plus for creating a complete ecosystem that allows you to transform any database into a distributed database system. 
 
 It focuses on repurposing existing databases, by placing a standardized upper layer above existing and fragmented databases, rather than creating a new database. 
 
-The goal is to provide unified database services, and minimize or eliminate the challenges caused by underlying databases' fragmentation. 
+The goal is to provide unified database services and minimize or eliminate the challenges caused by underlying databases' fragmentation. 
 This results in applications only needing to communicate with a single standardized service.
 
 The concepts at the core of the project are `Connect`, `Enhance` and `Pluggable`.
@@ -38,8 +38,6 @@ The concepts at the core of the project are `Connect`, `Enhance` and `Pluggable`
 - `Connect:` Flexible adaptation of database protocol, SQL dialect and database storage. It can quickly connect applications and heterogeneous databases.
 - `Enhance:` Capture database access entry to provide additional features transparently, such as: redirect (sharding, readwrite-splitting and shadow), transform (data encrypt and mask), authentication (security, audit and authority), governance (circuit breaker and access limitation and analyze, QoS and observability).
 - `Pluggable:` Leveraging the micro kernel and 3 layers pluggable mode, features and database ecosystem can be embedded flexibly. Developers can customize their ShardingSphere just like building with LEGO blocks.
-
-Virtually all databases are [supported](https://shardingsphere.apache.org/document/current/en/dev-manual/data-source/) including [MySQL](https://www.mysql.com), [PostgreSQL](https://www.postgresql.org), [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads), [Oracle Database](https://www.oracle.com/database/), [MariaDB](https://mariadb.org) or any other SQL-92 database.
 
 ShardingSphere became an [Apache](https://apache.org/index.html#projects-list) Top-Level Project on April 16, 2020.
 
@@ -54,7 +52,7 @@ So far, ShardingSphere has been used by over [10,000 projects on GitHub](https:/
 
 For full documentation & more details, visit: [Docs](https://shardingsphere.apache.org/document/current/en/overview/)
 
-### CONTRIBUTION🚀🧑‍💻
+### CONTRIBUTION🚀🧑💻
 
 <hr>
 
@@ -97,13 +95,13 @@ We deeply appreciate [community contributors](https://shardingsphere.apache.org/
 
 <hr>
 
-:white_check_mark: Version 5.3.2: released :tada:
+:white_check_mark: Version 5.4.0: released :tada:
 
 🔗 For the release notes, follow this link to the relevant [GitHub page](https://github.com/apache/shardingsphere/blob/master/RELEASE-NOTES.md).
 
-:soon: Version 5.3.3
+:soon: Version 5.4.1
 
-We are currently working towards our 5.3.3 milestone. 
+We are currently working towards our 5.4.1 milestone. 
 Keep an eye on the [milestones page](https://github.com/apache/shardingsphere/milestones) of this repo to stay up to date.
 
 [comment]: <> (##)

@@ -231,7 +231,7 @@ export GPG_TTY=$(tty)
 ```
 
 ```shell
-mvn release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DdryRun=true -Dusername=${Github username}
+./mvnw release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DdryRun=true -Dusername=${Github username}
 ```
 
 -Prelease: choose release profile, which will pack all the source codes, jar files and executable binary packages of ShardingSphere-Proxy.
@@ -245,13 +245,13 @@ mvn release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=tru
 First, clean local pre-release check information.
 
 ```shell
-mvn release:clean
+./mvnw release:clean
 ```
 
 Then, prepare to execute the release.
 
 ```shell
-mvn release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DpushChanges=false -Dusername=${Github username}
+./mvnw release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DpushChanges=false -Dusername=${Github username}
 ```
 
 It is basically the same as the previous rehearsal command, but deleting -DdryRun=true parameter.
@@ -267,7 +267,7 @@ git push origin ${RELEASE.VERSION}
 ### 4. Deploy the Release
 
 ```shell
-mvn release:perform -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DlocalCheckout=true -Dusername=${Github username}
+./mvnw release:perform -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DlocalCheckout=true -Dusername=${Github username}
 ```
 
 -DlocalCheckout=true: checkout code from local repository instead of remote repository.
@@ -530,7 +530,7 @@ I will process to publish the release and send ANNOUNCE.
 
 ### 1. Move source packages, binary packages and KEYS from the `dev` directory to `release` directory
 
-It needs PMC help to do it.
+> Note: This step requires the help of PMC.
 
 Move release candidates to release area:
 ```shell
@@ -587,6 +587,8 @@ Click `Draft a new release` in [GitHub Releases](https://github.com/apache/shard
 Edit release version and release notes, select `Set as the latest release`, click `Publish release`.
 
 ### 5. Remove previous release from Release Area
+
+> Note: This step requires the help of PMC.
 
 Keep the latest version in [**Release Area**](https://dist.apache.org/repos/dist/release/shardingsphere/) only.
 

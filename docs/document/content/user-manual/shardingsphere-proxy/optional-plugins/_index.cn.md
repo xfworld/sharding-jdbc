@@ -4,7 +4,7 @@ weight = 6
 +++
 
 ShardingSphere 默认情况下仅包含核心 SPI 的实现，在 Git Source 存在一部分包含第三方依赖的 SPI
-实现的插件未包含在内。可在 https://central.sonatype.dev/ 进行检索。
+实现的插件未包含在内。可在 https://central.sonatype.com/ 进行检索。
 
 所有插件对应的 SPI 和 SPI 的已有实现类均可在 https://shardingsphere.apache.org/document/current/cn/dev-manual/ 检索。
 
@@ -33,10 +33,12 @@ ShardingSphere 默认情况下仅包含核心 SPI 的实现，在 Git Source 存
 - 单机模式配置信息持久化定义
   - `org.apache.shardingsphere:shardingsphere-standalone-mode-repository-jdbc`，基于 JDBC 的持久化
 - 集群模式配置信息持久化定义
-  - `org.apache.shardingsphere:shardingsphere-cluster-mode-repository-nacos`，基于 Nacos 的持久化实现
   - `org.apache.shardingsphere:shardingsphere-cluster-mode-repository-consul`，基于 Consul 的持久化实现
 - XA 分布式事务管理器
   - `org.apache.shardingsphere:shardingsphere-transaction-xa-narayana`，基于 Narayana 的 XA 分布式事务管理器
-  - `org.apache.shardingsphere:shardingsphere-transaction-xa-bitronix`，基于 Bitronix 的 XA 分布式事务管理器
 - SQL 翻译
   - `org.apache.shardingsphere:shardingsphere-sql-translator-jooq-provider`，使用 JooQ 的 SQL 翻译器
+- 行表达式
+  - `org.apache.shardingsphere:shardingsphere-infra-expr-espresso`，基于 GraalVM Truffle 的 Espresso 实现的使用 Groovy 语法的行表达式
+
+除了以上可选插件外，ShardingSphere 社区开发者还贡献了大量的插件实现，可以在 [ShardingSphere Plugin](https://github.com/apache/shardingsphere-plugin) 仓库中查看插件的使用说明，ShardingSphere Plugin 仓库中的插件会和 ShardingSphere 保持相同的发布节奏，可以在 https://central.sonatype.com/ 进行检索，并安装到 ShardingSphere 中。

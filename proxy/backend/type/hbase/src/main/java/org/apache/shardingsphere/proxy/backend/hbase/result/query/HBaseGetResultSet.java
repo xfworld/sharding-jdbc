@@ -19,6 +19,7 @@ package org.apache.shardingsphere.proxy.backend.hbase.result.query;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Get;
@@ -26,8 +27,8 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.proxy.backend.hbase.bean.HBaseOperation;
 import org.apache.shardingsphere.proxy.backend.hbase.context.HBaseContext;
 import org.apache.shardingsphere.proxy.backend.hbase.converter.HBaseOperationConverterFactory;
@@ -51,7 +52,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -144,7 +144,7 @@ public final class HBaseGetResultSet implements HBaseQueryResultSet {
     }
     
     private Map<String, String> parseResult(final Result result) {
-        Map<String, String> row = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        Map<String, String> row = new CaseInsensitiveMap<>();
         row.put(ROW_KEY_COLUMN_NAME, Bytes.toString(result.getRow()));
         Long timestamp = null;
         for (Cell each : result.listCells()) {
@@ -181,14 +181,14 @@ public final class HBaseGetResultSet implements HBaseQueryResultSet {
         if (expressionSegment instanceof BetweenExpression) {
             result.append(((BetweenExpression) expressionSegment).getBetweenExpr());
         } else if (expressionSegment instanceof BinaryOperationExpression) {
-            result.append(((BinaryOperationExpression) expressionSegment).getText());
+            result.append(expressionSegment.getText());
         }
         return result.toString();
     }
     
     @Override
     public boolean next() {
-        return resultNum < maxLimitResultSize && (rows.hasNext() || compensateResult != null);
+        return resultNum < maxLimitResultSize && (rows.hasNext() || null != compensateResult);
     }
     
     @Override
@@ -205,7 +205,7 @@ public final class HBaseGetResultSet implements HBaseQueryResultSet {
     }
     
     @Override
-    public String getType() {
-        return MySQLSelectStatement.class.getCanonicalName();
+    public Class<MySQLSelectStatement> getType() {
+        return MySQLSelectStatement.class;
     }
 }

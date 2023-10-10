@@ -20,7 +20,7 @@ package org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.meta
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.datasource.props.DataSourceProperties;
+import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.metadata.database.schema.builder.SystemSchemaBuilderRule;
 import org.apache.shardingsphere.infra.yaml.config.pojo.rule.YamlRuleConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.swapper.resource.YamlDataSourceConfigurationSwapper;
@@ -33,7 +33,8 @@ import org.apache.shardingsphere.infra.yaml.schema.swapper.YamlViewSwapper;
 import org.apache.shardingsphere.metadata.persist.node.DatabaseMetaDataNode;
 import org.apache.shardingsphere.infra.rule.event.GovernanceEvent;
 import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.GovernanceWatcher;
-import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.config.event.datasource.DataSourceChangedEvent;
+import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.config.event.datasource.DataSourceNodesChangedEvent;
+import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.config.event.datasource.DataSourceUnitsChangedEvent;
 import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.config.event.rule.RuleConfigurationsChangedEvent;
 import org.apache.shardingsphere.mode.event.schema.TableMetaDataChangedEvent;
 import org.apache.shardingsphere.mode.event.schema.ViewMetaDataChangedEvent;
@@ -141,9 +142,13 @@ public final class MetaDataChangedWatcher implements GovernanceWatcher<Governanc
         if (!databaseName.isPresent() || Strings.isNullOrEmpty(event.getValue())) {
             return Optional.empty();
         }
-        Optional<String> databaseVersion = DatabaseMetaDataNode.getVersionByDataSourcesPath(event.getKey());
+        Optional<String> databaseVersion = DatabaseMetaDataNode.getVersionByDataSourceUnitsPath(event.getKey());
         if (databaseVersion.isPresent() && event.getType() != Type.DELETED) {
-            return Optional.of(createDataSourceChangedEvent(databaseName.get(), databaseVersion.get(), event));
+            return Optional.of(createDataSourceUnitsChangedEvent(databaseName.get(), databaseVersion.get(), event));
+        }
+        databaseVersion = DatabaseMetaDataNode.getVersionByDataSourceNodesPath(event.getKey());
+        if (databaseVersion.isPresent() && event.getType() != Type.DELETED) {
+            return Optional.of(createDataSourceNodesChangedEvent(databaseName.get(), databaseVersion.get(), event));
         }
         databaseVersion = DatabaseMetaDataNode.getVersionByRulesPath(event.getKey());
         if (databaseVersion.isPresent() && event.getType() != Type.DELETED) {
@@ -153,13 +158,23 @@ public final class MetaDataChangedWatcher implements GovernanceWatcher<Governanc
     }
     
     @SuppressWarnings("unchecked")
-    private DataSourceChangedEvent createDataSourceChangedEvent(final String databaseName, final String databaseVersion, final DataChangedEvent event) {
+    private DataSourceUnitsChangedEvent createDataSourceUnitsChangedEvent(final String databaseName, final String databaseVersion, final DataChangedEvent event) {
         Map<String, Map<String, Object>> yamlDataSources = YamlEngine.unmarshal(event.getValue(), Map.class);
-        Map<String, DataSourceProperties> dataSourcePropertiesMap = yamlDataSources.isEmpty()
+        Map<String, DataSourcePoolProperties> propsMap = yamlDataSources.isEmpty()
                 ? new HashMap<>()
                 : yamlDataSources.entrySet().stream().collect(Collectors.toMap(
-                        Entry::getKey, entry -> new YamlDataSourceConfigurationSwapper().swapToDataSourceProperties(entry.getValue()), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
-        return new DataSourceChangedEvent(databaseName, databaseVersion, dataSourcePropertiesMap);
+                        Entry::getKey, entry -> new YamlDataSourceConfigurationSwapper().swapToDataSourcePoolProperties(entry.getValue()), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
+        return new DataSourceUnitsChangedEvent(databaseName, databaseVersion, propsMap);
+    }
+    
+    @SuppressWarnings("unchecked")
+    private DataSourceNodesChangedEvent createDataSourceNodesChangedEvent(final String databaseName, final String databaseVersion, final DataChangedEvent event) {
+        Map<String, Map<String, Object>> yamlDataSources = YamlEngine.unmarshal(event.getValue(), Map.class);
+        Map<String, DataSourcePoolProperties> propsMap = yamlDataSources.isEmpty()
+                ? new HashMap<>()
+                : yamlDataSources.entrySet().stream().collect(Collectors.toMap(
+                        Entry::getKey, entry -> new YamlDataSourceConfigurationSwapper().swapToDataSourcePoolProperties(entry.getValue()), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
+        return new DataSourceNodesChangedEvent(databaseName, databaseVersion, propsMap);
     }
     
     @SuppressWarnings("unchecked")

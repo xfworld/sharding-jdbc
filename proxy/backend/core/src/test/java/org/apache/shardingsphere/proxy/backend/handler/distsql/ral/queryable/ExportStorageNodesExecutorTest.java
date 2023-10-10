@@ -24,13 +24,17 @@ import org.apache.shardingsphere.distsql.parser.statement.ral.queryable.ExportSt
 import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.rule.ShardingSphereRuleMetaData;
+import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
+import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
+import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
-import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
@@ -42,14 +46,18 @@ import org.apache.shardingsphere.test.mock.AutoMockExtension;
 import org.apache.shardingsphere.test.mock.StaticMockSettings;
 import org.apache.shardingsphere.test.util.PropertiesBuilder;
 import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import javax.sql.DataSource;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,10 +75,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(AutoMockExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @StaticMockSettings(ProxyContext.class)
 class ExportStorageNodesExecutorTest {
     
-    private final ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private ShardingSphereDatabase database;
+    
+    @BeforeEach
+    void setUp() {
+        when(database.getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+    }
     
     @Test
     void assertGetColumns() {
@@ -106,15 +121,16 @@ class ExportStorageNodesExecutorTest {
     private ContextManager mockEmptyContextManager() {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
         MetaDataContexts metaDataContexts = new MetaDataContexts(mock(MetaDataPersistService.class), new ShardingSphereMetaData(new HashMap<>(),
-                new ShardingSphereRuleMetaData(Collections.emptyList()), new ConfigurationProperties(new Properties())));
+                new ResourceMetaData(Collections.emptyMap()), new RuleMetaData(Collections.emptyList()), new ConfigurationProperties(new Properties())));
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
         return result;
     }
     
     @Test
-    void assertExecute() throws SQLException {
+    void assertExecute() {
         when(database.getName()).thenReturn("normal_db");
-        when(database.getResourceMetaData().getDataSources()).thenReturn(createDataSourceMap());
+        Map<String, StorageUnit> storageUnits = createStorageUnits();
+        when(database.getResourceMetaData().getStorageUnits()).thenReturn(storageUnits);
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.singleton(createShardingRuleConfiguration()));
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
@@ -127,7 +143,8 @@ class ExportStorageNodesExecutorTest {
     @Test
     void assertExecuteWithDatabaseName() {
         when(database.getName()).thenReturn("normal_db");
-        when(database.getResourceMetaData().getDataSources()).thenReturn(createDataSourceMap());
+        Map<String, StorageUnit> storageUnits = createStorageUnits();
+        when(database.getResourceMetaData().getStorageUnits()).thenReturn(storageUnits);
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.singleton(createShardingRuleConfiguration()));
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
@@ -140,16 +157,21 @@ class ExportStorageNodesExecutorTest {
     private ContextManager mockContextManager() {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
         MetaDataContexts metaDataContexts = new MetaDataContexts(mock(MetaDataPersistService.class), new ShardingSphereMetaData(Collections.singletonMap(database.getName(), database),
-                new ShardingSphereRuleMetaData(Collections.singleton(new AuthorityRule(new DefaultAuthorityRuleConfigurationBuilder().build(), Collections.emptyMap()))),
+                new ResourceMetaData(Collections.emptyMap()),
+                new RuleMetaData(Collections.singleton(new AuthorityRule(new DefaultAuthorityRuleConfigurationBuilder().build()))),
                 new ConfigurationProperties(PropertiesBuilder.build(new Property(ConfigurationPropertyKey.SQL_SHOW.getKey(), "true")))));
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
         return result;
     }
     
-    private Map<String, DataSource> createDataSourceMap() {
-        Map<String, DataSource> result = new LinkedHashMap<>(2, 1F);
-        result.put("ds_0", createDataSource("demo_ds_0"));
-        result.put("ds_1", createDataSource("demo_ds_1"));
+    private Map<String, StorageUnit> createStorageUnits() {
+        StorageUnit storageUnit1 = mock(StorageUnit.class, RETURNS_DEEP_STUBS);
+        when(storageUnit1.getDataSource()).thenReturn(createDataSource("ds_0"));
+        StorageUnit storageUnit2 = mock(StorageUnit.class, RETURNS_DEEP_STUBS);
+        when(storageUnit2.getDataSource()).thenReturn(createDataSource("ds_2"));
+        Map<String, StorageUnit> result = new LinkedHashMap<>(2, 1F);
+        result.put("ds_0", storageUnit1);
+        result.put("ds_1", storageUnit2);
         return result;
     }
     

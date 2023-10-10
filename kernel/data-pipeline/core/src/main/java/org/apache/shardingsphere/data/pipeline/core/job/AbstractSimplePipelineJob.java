@@ -18,9 +18,8 @@
 package org.apache.shardingsphere.data.pipeline.core.job;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.data.pipeline.api.context.PipelineJobItemContext;
-import org.apache.shardingsphere.data.pipeline.api.task.PipelineTasksRunner;
-import org.apache.shardingsphere.data.pipeline.core.util.CloseUtils;
+import org.apache.shardingsphere.data.pipeline.common.context.PipelineJobItemContext;
+import org.apache.shardingsphere.data.pipeline.core.task.runner.PipelineTasksRunner;
 import org.apache.shardingsphere.elasticjob.api.ShardingContext;
 import org.apache.shardingsphere.elasticjob.simple.job.SimpleJob;
 
@@ -46,14 +45,6 @@ public abstract class AbstractSimplePipelineJob extends AbstractPipelineJob impl
     
     @Override
     public void execute(final ShardingContext shardingContext) {
-        try {
-            execute0(shardingContext);
-        } finally {
-            clean();
-        }
-    }
-    
-    private void execute0(final ShardingContext shardingContext) {
         String jobId = shardingContext.getJobName();
         int shardingItem = shardingContext.getShardingItem();
         log.info("Execute job {}-{}", jobId, shardingItem);
@@ -61,20 +52,33 @@ public abstract class AbstractSimplePipelineJob extends AbstractPipelineJob impl
             log.info("stopping true, ignore");
             return;
         }
-        PipelineJobItemContext jobItemContext = buildPipelineJobItemContext(shardingContext);
+        try {
+            PipelineJobItemContext jobItemContext = buildPipelineJobItemContext(shardingContext);
+            execute0(jobItemContext);
+            // CHECKSTYLE:OFF
+        } catch (final RuntimeException ex) {
+            // CHECKSTYLE:ON
+            processFailed(jobId, shardingItem, ex);
+            throw ex;
+        }
+    }
+    
+    private void execute0(final PipelineJobItemContext jobItemContext) {
+        String jobId = jobItemContext.getJobId();
+        int shardingItem = jobItemContext.getShardingItem();
         PipelineTasksRunner tasksRunner = buildPipelineTasksRunner(jobItemContext);
         if (!addTasksRunner(shardingItem, tasksRunner)) {
             return;
         }
-        getJobAPI().cleanJobItemErrorMessage(jobId, jobItemContext.getShardingItem());
+        getJobAPI().cleanJobItemErrorMessage(jobId, shardingItem);
         prepare(jobItemContext);
         log.info("start tasks runner, jobId={}, shardingItem={}", jobId, shardingItem);
         tasksRunner.start();
     }
     
-    private void clean() {
-        for (PipelineTasksRunner each : getTasksRunners()) {
-            CloseUtils.closeQuietly(each.getJobItemContext().getJobProcessContext());
-        }
+    private void processFailed(final String jobId, final int shardingItem, final Exception ex) {
+        log.error("job prepare failed, {}-{}", jobId, shardingItem, ex);
+        getJobAPI().updateJobItemErrorMessage(jobId, shardingItem, ex);
+        getJobAPI().stop(jobId);
     }
 }

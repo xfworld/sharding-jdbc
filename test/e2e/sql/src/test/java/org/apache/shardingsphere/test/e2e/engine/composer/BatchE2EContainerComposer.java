@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.test.e2e.engine.composer;
 
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.expr.core.InlineExpressionParserFactory;
 import org.apache.shardingsphere.test.e2e.cases.assertion.IntegrationTestCaseAssertion;
@@ -55,7 +55,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Batch E2E container composer.
  */
-public final class BatchE2EContainerComposer extends E2EContainerComposer {
+public final class BatchE2EContainerComposer extends E2EContainerComposer implements AutoCloseable {
     
     private final DatabaseType databaseType;
     
@@ -65,7 +65,7 @@ public final class BatchE2EContainerComposer extends E2EContainerComposer {
     
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     
-    public BatchE2EContainerComposer(final CaseTestParameter testParam) throws JAXBException, IOException, SQLException {
+    public BatchE2EContainerComposer(final CaseTestParameter testParam) throws JAXBException, IOException {
         super(testParam);
         databaseType = testParam.getDatabaseType();
         for (IntegrationTestCaseAssertion each : testParam.getTestCaseContext().getTestCase().getAssertions()) {
@@ -85,7 +85,7 @@ public final class BatchE2EContainerComposer extends E2EContainerComposer {
         DataSet expected = getDataSet(actualUpdateCounts);
         assertThat("Only support single table for DML.", expected.getMetaDataList().size(), is(1));
         DataSetMetaData expectedDataSetMetaData = expected.getMetaDataList().get(0);
-        for (String each : InlineExpressionParserFactory.newInstance().splitAndEvaluate(expectedDataSetMetaData.getDataNodes())) {
+        for (String each : InlineExpressionParserFactory.newInstance(expectedDataSetMetaData.getDataNodes()).splitAndEvaluate()) {
             DataNode dataNode = new DataNode(each);
             DataSource dataSource = getActualDataSourceMap().get(dataNode.getDataSourceName());
             try (
@@ -185,6 +185,5 @@ public final class BatchE2EContainerComposer extends E2EContainerComposer {
     @Override
     public void close() {
         dataSetEnvironmentManager.cleanData();
-        super.close();
     }
 }

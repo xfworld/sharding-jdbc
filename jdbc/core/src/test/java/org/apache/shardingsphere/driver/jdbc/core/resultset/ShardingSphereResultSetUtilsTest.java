@@ -17,10 +17,11 @@
 
 package org.apache.shardingsphere.driver.jdbc.core.resultset;
 
-import org.apache.shardingsphere.infra.binder.segment.select.projection.Projection;
-import org.apache.shardingsphere.infra.binder.segment.select.projection.ProjectionsContext;
-import org.apache.shardingsphere.infra.binder.segment.select.projection.impl.ColumnProjection;
-import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
+import org.apache.shardingsphere.infra.binder.context.segment.select.projection.ProjectionsContext;
+import org.apache.shardingsphere.infra.binder.context.segment.select.projection.impl.ColumnProjection;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSetMetaData;
@@ -45,7 +46,7 @@ class ShardingSphereResultSetUtilsTest {
         ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         when(resultSetMetaData.getColumnCount()).thenReturn(1);
         when(resultSetMetaData.getColumnLabel(1)).thenReturn("label");
-        Map<String, Integer> actual = ShardingSphereResultSetUtils.createColumnLabelAndIndexMap(selectStatementContext, resultSetMetaData);
+        Map<String, Integer> actual = ShardingSphereResultSetUtils.createColumnLabelAndIndexMap(selectStatementContext, true, resultSetMetaData);
         assertThat(actual, is(Collections.singletonMap("label", 1)));
     }
     
@@ -53,13 +54,13 @@ class ShardingSphereResultSetUtilsTest {
     void assertCreateColumnLabelAndIndexMapWithSelectWithExpandProjections() throws SQLException {
         SelectStatementContext selectStatementContext = mock(SelectStatementContext.class);
         List<Projection> projections = new ArrayList<>(2);
-        projections.add(new ColumnProjection(null, "col1", null));
-        projections.add(new ColumnProjection(null, "col2", null));
+        projections.add(new ColumnProjection(null, "col1", null, mock(DatabaseType.class)));
+        projections.add(new ColumnProjection(null, "col2", null, mock(DatabaseType.class)));
         when(selectStatementContext.getProjectionsContext()).thenReturn(new ProjectionsContext(0, 0, false, projections));
         Map<String, Integer> expected = new HashMap<>(2, 1F);
         expected.put("col1", 1);
         expected.put("col2", 2);
-        Map<String, Integer> actual = ShardingSphereResultSetUtils.createColumnLabelAndIndexMap(selectStatementContext, null);
+        Map<String, Integer> actual = ShardingSphereResultSetUtils.createColumnLabelAndIndexMap(selectStatementContext, true, null);
         assertThat(actual, is(expected));
     }
 }

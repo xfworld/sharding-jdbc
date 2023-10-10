@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.migration.distsql.handler.update;
 
-import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextKey;
+import org.apache.shardingsphere.data.pipeline.common.context.PipelineContextKey;
 import org.apache.shardingsphere.data.pipeline.scenario.migration.api.impl.MigrationJobAPI;
 import org.apache.shardingsphere.distsql.handler.ral.update.RALUpdater;
 import org.apache.shardingsphere.migration.distsql.statement.UnregisterMigrationSourceStorageUnitStatement;
@@ -35,7 +35,7 @@ public final class UnregisterMigrationSourceStorageUnitUpdater implements RALUpd
     }
     
     @Override
-    public String getType() {
-        return UnregisterMigrationSourceStorageUnitStatement.class.getName();
+    public Class<UnregisterMigrationSourceStorageUnitStatement> getType() {
+        return UnregisterMigrationSourceStorageUnitStatement.class;
     }
 }

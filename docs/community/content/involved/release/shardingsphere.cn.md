@@ -229,7 +229,7 @@ export GPG_TTY=$(tty)
 ```
 
 ```shell
-mvn release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DdryRun=true -Dusername=${Github用户名}
+./mvnw release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DdryRun=true -Dusername=${Github用户名}
 ```
 
 -Prelease：选择 release 的 profile，这个 profile 会打包所有源码、jar 文件以及 ShardingSphere-Proxy 的可执行二进制包。
@@ -243,11 +243,11 @@ mvn release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=tru
 首先清理发布预校验本地信息。
 
 ```shell
-mvn release:clean
+./mvnw release:clean
 ```
 
 ```shell
-mvn release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DpushChanges=false -Dusername=${Github 用户名}
+./mvnw release:prepare -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DpushChanges=false -Dusername=${Github 用户名}
 ```
 
 和上一步演练的命令基本相同，去掉了 -DdryRun=true 参数。
@@ -266,7 +266,7 @@ git push origin ${RELEASE.VERSION}
 使用稳定的网络环境，本过程可能持续`1`个小时以上。
 
 ```shell
-mvn release:perform -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DlocalCheckout=true -Dusername=${Github 用户名}
+./mvnw release:perform -Prelease -Darguments="-DskipTests -Dspotless.apply.skip=true" -DautoVersionSubmodules=true -DlocalCheckout=true -Dusername=${Github 用户名}
 ```
 
 -DlocalCheckout=true：从本地 checkout 代替从远程仓库拉取代码。
@@ -525,7 +525,7 @@ I will process to publish the release and send ANNOUNCE.
 
 ### 1. 将源码、二进制包以及 KEYS 从 svn 的 dev 目录移动到 release 目录
 
-需要 PMC 帮忙操作。
+> 注意：该步骤需要 PMC 帮忙操作。
 
 将发布内容移动到发布区：
 ```shell
@@ -582,6 +582,8 @@ docker logout
 编辑版本号及版本说明，选择 `Set as the latest release`，并点击 `Publish release`。
 
 ### 5. 从发布区移除上一版本内容
+
+> 注意：该步骤需要 PMC 帮忙操作。
 
 [**发布区**](https://dist.apache.org/repos/dist/release/shardingsphere/) 中仅保留一个最新的版本。
 确认 [Archive repository](https://archive.apache.org/dist/shardingsphere/) 中存在上一版本后，从 [**发布区**](https://dist.apache.org/repos/dist/release/shardingsphere/) 删除上一版本：

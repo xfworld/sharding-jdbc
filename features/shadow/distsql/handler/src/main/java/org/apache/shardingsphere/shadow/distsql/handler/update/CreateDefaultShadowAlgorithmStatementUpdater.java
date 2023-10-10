@@ -24,8 +24,8 @@ import org.apache.shardingsphere.distsql.handler.update.RuleDefinitionCreateUpda
 import org.apache.shardingsphere.distsql.parser.segment.AlgorithmSegment;
 import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.util.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.shadow.api.config.ShadowRuleConfiguration;
 import org.apache.shardingsphere.shadow.distsql.parser.statement.CreateDefaultShadowAlgorithmStatement;
 import org.apache.shardingsphere.shadow.spi.ShadowAlgorithm;
@@ -90,7 +90,7 @@ public final class CreateDefaultShadowAlgorithmStatementUpdater implements RuleD
     }
     
     private void checkAlgorithmCompleteness(final Collection<AlgorithmSegment> algorithmSegments) {
-        Collection<AlgorithmSegment> incompleteAlgorithms = algorithmSegments.stream().filter(each -> each.getName().isEmpty() || each.getProps().isEmpty()).collect(Collectors.toSet());
+        Collection<AlgorithmSegment> incompleteAlgorithms = algorithmSegments.stream().filter(each -> each.getName().isEmpty()).collect(Collectors.toSet());
         ShardingSpherePreconditions.checkState(incompleteAlgorithms.isEmpty(), () -> new InvalidAlgorithmConfigurationException("shadow"));
     }
     
@@ -100,7 +100,7 @@ public final class CreateDefaultShadowAlgorithmStatementUpdater implements RuleD
     }
     
     @Override
-    public String getType() {
-        return CreateDefaultShadowAlgorithmStatement.class.getName();
+    public Class<CreateDefaultShadowAlgorithmStatement> getType() {
+        return CreateDefaultShadowAlgorithmStatement.class;
     }
 }

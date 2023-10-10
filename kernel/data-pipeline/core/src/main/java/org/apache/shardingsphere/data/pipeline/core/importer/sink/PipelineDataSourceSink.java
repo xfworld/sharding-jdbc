@@ -21,40 +21,36 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.data.pipeline.api.config.ImporterConfiguration;
-import org.apache.shardingsphere.data.pipeline.api.datasource.PipelineDataSourceManager;
 import org.apache.shardingsphere.data.pipeline.api.ingest.record.Column;
 import org.apache.shardingsphere.data.pipeline.api.ingest.record.DataRecord;
 import org.apache.shardingsphere.data.pipeline.api.ingest.record.GroupedDataRecord;
 import org.apache.shardingsphere.data.pipeline.api.ingest.record.Record;
 import org.apache.shardingsphere.data.pipeline.api.job.JobOperationType;
-import org.apache.shardingsphere.data.pipeline.api.job.progress.listener.PipelineJobProgressUpdatedParameter;
 import org.apache.shardingsphere.data.pipeline.api.metadata.LogicTableName;
+import org.apache.shardingsphere.data.pipeline.common.config.ImporterConfiguration;
+import org.apache.shardingsphere.data.pipeline.common.datasource.PipelineDataSourceManager;
+import org.apache.shardingsphere.data.pipeline.common.ingest.IngestDataChangeType;
+import org.apache.shardingsphere.data.pipeline.common.ingest.record.RecordUtils;
+import org.apache.shardingsphere.data.pipeline.common.job.progress.listener.PipelineJobProgressUpdatedParameter;
+import org.apache.shardingsphere.data.pipeline.common.sqlbuilder.PipelineImportSQLBuilder;
+import org.apache.shardingsphere.data.pipeline.common.util.PipelineJdbcUtils;
 import org.apache.shardingsphere.data.pipeline.core.exception.job.PipelineImporterJobWriteException;
 import org.apache.shardingsphere.data.pipeline.core.importer.DataRecordMerger;
-import org.apache.shardingsphere.data.pipeline.core.ingest.IngestDataChangeType;
-import org.apache.shardingsphere.data.pipeline.core.record.RecordUtils;
-import org.apache.shardingsphere.data.pipeline.core.util.PipelineJdbcUtils;
-import org.apache.shardingsphere.data.pipeline.spi.importer.sink.PipelineSink;
 import org.apache.shardingsphere.data.pipeline.spi.ratelimit.JobRateLimitAlgorithm;
-import org.apache.shardingsphere.data.pipeline.spi.sqlbuilder.PipelineSQLBuilder;
-import org.apache.shardingsphere.data.pipeline.util.spi.PipelineTypedSPILoader;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
- * Default importer.
+ * Pipeline data source sink.
  */
 @Slf4j
 public final class PipelineDataSourceSink implements PipelineSink {
@@ -66,9 +62,9 @@ public final class PipelineDataSourceSink implements PipelineSink {
     
     private final PipelineDataSourceManager dataSourceManager;
     
-    private final PipelineSQLBuilder pipelineSqlBuilder;
-    
     private final JobRateLimitAlgorithm rateLimitAlgorithm;
+    
+    private final PipelineImportSQLBuilder importSQLBuilder;
     
     private final AtomicReference<Statement> batchInsertStatement = new AtomicReference<>();
     
@@ -78,9 +74,9 @@ public final class PipelineDataSourceSink implements PipelineSink {
     
     public PipelineDataSourceSink(final ImporterConfiguration importerConfig, final PipelineDataSourceManager dataSourceManager) {
         this.importerConfig = importerConfig;
-        rateLimitAlgorithm = importerConfig.getRateLimitAlgorithm();
         this.dataSourceManager = dataSourceManager;
-        pipelineSqlBuilder = PipelineTypedSPILoader.getDatabaseTypedService(PipelineSQLBuilder.class, importerConfig.getDataSourceConfig().getDatabaseType().getType());
+        rateLimitAlgorithm = importerConfig.getRateLimitAlgorithm();
+        importSQLBuilder = new PipelineImportSQLBuilder(importerConfig.getDataSourceConfig().getDatabaseType());
     }
     
     @Override
@@ -203,7 +199,7 @@ public final class PipelineDataSourceSink implements PipelineSink {
     
     private void executeBatchInsert(final Connection connection, final List<DataRecord> dataRecords) throws SQLException {
         DataRecord dataRecord = dataRecords.get(0);
-        String insertSql = pipelineSqlBuilder.buildInsertSQL(getSchemaName(dataRecord.getTableName()), dataRecord);
+        String insertSql = importSQLBuilder.buildInsertSQL(getSchemaName(dataRecord.getTableName()), dataRecord);
         try (PreparedStatement preparedStatement = connection.prepareStatement(insertSql)) {
             batchInsertStatement.set(preparedStatement);
             preparedStatement.setQueryTimeout(30);
@@ -232,26 +228,26 @@ public final class PipelineDataSourceSink implements PipelineSink {
     private void executeUpdate(final Connection connection, final DataRecord dataRecord) throws SQLException {
         Set<String> shardingColumns = importerConfig.getShardingColumns(dataRecord.getTableName());
         List<Column> conditionColumns = RecordUtils.extractConditionColumns(dataRecord, shardingColumns);
-        List<Column> updatedColumns = pipelineSqlBuilder.extractUpdatedColumns(dataRecord);
-        String updateSql = pipelineSqlBuilder.buildUpdateSQL(getSchemaName(dataRecord.getTableName()), dataRecord, conditionColumns);
+        List<Column> setColumns = dataRecord.getColumns().stream().filter(Column::isUpdated).collect(Collectors.toList());
+        String updateSql = importSQLBuilder.buildUpdateSQL(getSchemaName(dataRecord.getTableName()), dataRecord, conditionColumns);
         try (PreparedStatement preparedStatement = connection.prepareStatement(updateSql)) {
             updateStatement.set(preparedStatement);
-            for (int i = 0; i < updatedColumns.size(); i++) {
-                preparedStatement.setObject(i + 1, updatedColumns.get(i).getValue());
+            for (int i = 0; i < setColumns.size(); i++) {
+                preparedStatement.setObject(i + 1, setColumns.get(i).getValue());
             }
             for (int i = 0; i < conditionColumns.size(); i++) {
                 Column keyColumn = conditionColumns.get(i);
                 // TODO There to be compatible with PostgreSQL before value is null except primary key and unsupported updating sharding value now.
-                if (shardingColumns.contains(keyColumn.getName()) && keyColumn.getOldValue() == null) {
-                    preparedStatement.setObject(updatedColumns.size() + i + 1, keyColumn.getValue());
+                if (shardingColumns.contains(keyColumn.getName()) && null == keyColumn.getOldValue()) {
+                    preparedStatement.setObject(setColumns.size() + i + 1, keyColumn.getValue());
                     continue;
                 }
-                preparedStatement.setObject(updatedColumns.size() + i + 1, keyColumn.getOldValue());
+                preparedStatement.setObject(setColumns.size() + i + 1, keyColumn.getOldValue());
             }
             // TODO if table without unique key the conditionColumns before values is null, so update will fail at PostgreSQL
             int updateCount = preparedStatement.executeUpdate();
             if (1 != updateCount) {
-                log.warn("executeUpdate failed, updateCount={}, updateSql={}, updatedColumns={}, conditionColumns={}", updateCount, updateSql, updatedColumns, conditionColumns);
+                log.warn("executeUpdate failed, updateCount={}, updateSql={}, updatedColumns={}, conditionColumns={}", updateCount, updateSql, setColumns, conditionColumns);
             }
         } finally {
             updateStatement.set(null);
@@ -260,7 +256,7 @@ public final class PipelineDataSourceSink implements PipelineSink {
     
     private void executeBatchDelete(final Connection connection, final List<DataRecord> dataRecords) throws SQLException {
         DataRecord dataRecord = dataRecords.get(0);
-        String deleteSQL = pipelineSqlBuilder.buildDeleteSQL(getSchemaName(dataRecord.getTableName()), dataRecord,
+        String deleteSQL = importSQLBuilder.buildDeleteSQL(getSchemaName(dataRecord.getTableName()), dataRecord,
                 RecordUtils.extractConditionColumns(dataRecord, importerConfig.getShardingColumns(dataRecord.getTableName())));
         try (PreparedStatement preparedStatement = connection.prepareStatement(deleteSQL)) {
             batchDeleteStatement.set(preparedStatement);
@@ -276,10 +272,7 @@ public final class PipelineDataSourceSink implements PipelineSink {
                 }
                 preparedStatement.addBatch();
             }
-            int[] counts = preparedStatement.executeBatch();
-            if (IntStream.of(counts).anyMatch(value -> 1 != value)) {
-                log.warn("batchDelete failed, counts={}, sql={}, dataRecords={}", Arrays.toString(counts), deleteSQL, dataRecords);
-            }
+            preparedStatement.executeBatch();
         } finally {
             batchDeleteStatement.set(null);
         }

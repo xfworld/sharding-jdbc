@@ -18,16 +18,16 @@
 package org.apache.shardingsphere.infra.instance.mode;
 
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.datasource.props.DataSourceProperties;
+import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.metadata.database.schema.pojo.AlterSchemaMetaDataPOJO;
 import org.apache.shardingsphere.infra.metadata.database.schema.pojo.AlterSchemaPOJO;
 import org.apache.shardingsphere.infra.metadata.version.MetaDataVersion;
 
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Collections;
 
 /**
  * Mode context manager.
@@ -82,19 +82,19 @@ public interface ModeContextManager {
      * Register storage units.
      *
      * @param databaseName database name
-     * @param toBeRegisterStorageUnitProps to be register storage unit props
+     * @param toBeRegisteredProps to be registered storage unit properties
      * @throws SQLException SQL exception
      */
-    void registerStorageUnits(String databaseName, Map<String, DataSourceProperties> toBeRegisterStorageUnitProps) throws SQLException;
+    void registerStorageUnits(String databaseName, Map<String, DataSourcePoolProperties> toBeRegisteredProps) throws SQLException;
     
     /**
      * Alter storage units.
      *
      * @param databaseName database name
-     * @param toBeUpdatedStorageUnitProps to be updated storage unit props
+     * @param toBeUpdatedProps to be updated storage unit properties
      * @throws SQLException SQL exception
      */
-    void alterStorageUnits(String databaseName, Map<String, DataSourceProperties> toBeUpdatedStorageUnitProps) throws SQLException;
+    void alterStorageUnits(String databaseName, Map<String, DataSourcePoolProperties> toBeUpdatedProps) throws SQLException;
     
     /**
      * Unregister storage units.
@@ -124,12 +124,21 @@ public interface ModeContextManager {
     }
     
     /**
-     * Remove rule configuration.
+     * Remove rule configuration item.
      *
      * @param databaseName database name
      * @param toBeRemovedRuleConfig to be removed rule config
      */
-    default void removeRuleConfiguration(String databaseName, RuleConfiguration toBeRemovedRuleConfig) {
+    default void removeRuleConfigurationItem(String databaseName, RuleConfiguration toBeRemovedRuleConfig) {
+    }
+    
+    /**
+     * Remove rule configuration.
+     *
+     * @param databaseName database name
+     * @param ruleName rule name
+     */
+    default void removeRuleConfiguration(String databaseName, String ruleName) {
     }
     
     /**
@@ -144,10 +153,8 @@ public interface ModeContextManager {
      * Alter global rule configuration.
      *
      * @param globalRuleConfig global rule config
-     * @return meta data versions
      */
-    default Collection<MetaDataVersion> alterGlobalRuleConfiguration(RuleConfiguration globalRuleConfig) {
-        return Collections.emptyList();
+    default void alterGlobalRuleConfiguration(RuleConfiguration globalRuleConfig) {
     }
     
     /**
@@ -156,23 +163,4 @@ public interface ModeContextManager {
      * @param props pros
      */
     void alterProperties(Properties props);
-    
-    /**
-     * TODO Need to DistSQL handle call it
-     * New alter properties.
-     *
-     * @param props pros
-     * @return meta data versions
-     */
-    Collection<MetaDataVersion> newAlterProperties(Properties props);
-    
-    /**
-     * Get active version by key.
-     *
-     * @param key key
-     * @return active version
-     */
-    default int getActiveVersionByKey(String key) {
-        return 0;
-    }
 }

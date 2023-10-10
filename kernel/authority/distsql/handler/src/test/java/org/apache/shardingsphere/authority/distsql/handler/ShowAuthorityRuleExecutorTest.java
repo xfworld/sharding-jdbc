@@ -24,7 +24,8 @@ import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
-import org.apache.shardingsphere.infra.metadata.database.rule.ShardingSphereRuleMetaData;
+import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
+import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.metadata.user.ShardingSphereUser;
 import org.junit.jupiter.api.Test;
 
@@ -68,7 +69,8 @@ class ShowAuthorityRuleExecutorTest {
     private ShardingSphereMetaData mockMetaData() {
         AuthorityRule authorityRule = mock(AuthorityRule.class);
         when(authorityRule.getConfiguration()).thenReturn(createAuthorityRuleConfiguration());
-        return new ShardingSphereMetaData(new LinkedHashMap<>(), new ShardingSphereRuleMetaData(Collections.singleton(authorityRule)), new ConfigurationProperties(new Properties()));
+        return new ShardingSphereMetaData(new LinkedHashMap<>(), mock(ResourceMetaData.class),
+                new RuleMetaData(Collections.singleton(authorityRule)), new ConfigurationProperties(new Properties()));
     }
     
     private AuthorityRuleConfiguration createAuthorityRuleConfiguration() {
