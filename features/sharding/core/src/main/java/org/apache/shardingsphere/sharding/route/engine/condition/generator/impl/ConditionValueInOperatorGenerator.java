@@ -23,11 +23,12 @@ import org.apache.shardingsphere.sharding.route.engine.condition.generator.Condi
 import org.apache.shardingsphere.sharding.route.engine.condition.generator.ConditionValueGenerator;
 import org.apache.shardingsphere.sharding.route.engine.condition.value.ListShardingConditionValue;
 import org.apache.shardingsphere.sharding.route.engine.condition.value.ShardingConditionValue;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.InExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.InExpression;
 import org.apache.shardingsphere.timeservice.core.rule.TimestampServiceRule;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -40,8 +41,9 @@ public final class ConditionValueInOperatorGenerator implements ConditionValueGe
     @Override
     public Optional<ShardingConditionValue> generate(final InExpression predicate, final Column column, final List<Object> params, final TimestampServiceRule timestampServiceRule) {
         List<Comparable<?>> shardingConditionValues = new LinkedList<>();
-        List<Integer> parameterMarkerIndexes = new ArrayList<>(predicate.getExpressionList().size());
-        for (ExpressionSegment each : predicate.getExpressionList()) {
+        Collection<ExpressionSegment> expressionSegments = predicate.getExpressionList();
+        List<Integer> parameterMarkerIndexes = new ArrayList<>(expressionSegments.size());
+        for (ExpressionSegment each : expressionSegments) {
             ConditionValue conditionValue = new ConditionValue(each, params);
             Optional<Comparable<?>> value = conditionValue.getValue();
             if (conditionValue.isNull()) {

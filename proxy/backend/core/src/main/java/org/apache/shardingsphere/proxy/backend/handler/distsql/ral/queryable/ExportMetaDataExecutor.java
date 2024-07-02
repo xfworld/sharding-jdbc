@@ -18,10 +18,10 @@
 package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.queryable;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.shardingsphere.distsql.handler.ral.query.MetaDataRequiredQueryableRALExecutor;
-import org.apache.shardingsphere.distsql.parser.statement.ral.queryable.ExportMetaDataStatement;
-import org.apache.shardingsphere.globalclock.core.provider.GlobalClockProvider;
-import org.apache.shardingsphere.globalclock.core.rule.GlobalClockRule;
+import org.apache.shardingsphere.distsql.handler.engine.query.DistSQLQueryExecutor;
+import org.apache.shardingsphere.distsql.statement.ral.queryable.export.ExportMetaDataStatement;
+import org.apache.shardingsphere.globalclock.provider.GlobalClockProvider;
+import org.apache.shardingsphere.globalclock.rule.GlobalClockRule;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
@@ -31,6 +31,7 @@ import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.infra.util.json.JsonUtils;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.yaml.config.swapper.rule.YamlRuleConfigurationSwapper;
+import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.distsql.export.ExportedClusterInfo;
 import org.apache.shardingsphere.proxy.backend.distsql.export.ExportedMetaData;
@@ -49,24 +50,24 @@ import java.util.Properties;
 /**
  * Export metadata executor.
  */
-public final class ExportMetaDataExecutor implements MetaDataRequiredQueryableRALExecutor<ExportMetaDataStatement> {
+public final class ExportMetaDataExecutor implements DistSQLQueryExecutor<ExportMetaDataStatement> {
     
     @Override
-    public Collection<String> getColumnNames() {
+    public Collection<String> getColumnNames(final ExportMetaDataStatement sqlStatement) {
         return Arrays.asList("id", "create_time", "cluster_info");
     }
     
     @Override
-    public Collection<LocalDataQueryResultRow> getRows(final ShardingSphereMetaData metaData, final ExportMetaDataStatement sqlStatement) {
-        String exportedData = generateExportData(metaData);
+    public Collection<LocalDataQueryResultRow> getRows(final ExportMetaDataStatement sqlStatement, final ContextManager contextManager) {
+        String exportedData = generateExportData(contextManager.getMetaDataContexts().getMetaData());
         if (sqlStatement.getFilePath().isPresent()) {
             String filePath = sqlStatement.getFilePath().get();
             ExportUtils.exportToFile(filePath, exportedData);
-            return Collections.singleton(new LocalDataQueryResultRow(ProxyContext.getInstance().getContextManager().getInstanceContext().getInstance().getCurrentInstanceId(), LocalDateTime.now(),
+            return Collections.singleton(new LocalDataQueryResultRow(contextManager.getComputeNodeInstanceContext().getInstance().getMetaData().getId(), LocalDateTime.now(),
                     String.format("Successfully exported to：'%s'", filePath)));
         }
         return Collections.singleton(new LocalDataQueryResultRow(
-                ProxyContext.getInstance().getContextManager().getInstanceContext().getInstance().getCurrentInstanceId(), LocalDateTime.now(), Base64.encodeBase64String(exportedData.getBytes())));
+                contextManager.getComputeNodeInstanceContext().getInstance().getMetaData().getId(), LocalDateTime.now(), Base64.encodeBase64String(exportedData.getBytes())));
     }
     
     private String generateExportData(final ShardingSphereMetaData metaData) {
@@ -82,9 +83,10 @@ public final class ExportMetaDataExecutor implements MetaDataRequiredQueryableRA
     }
     
     private Map<String, String> getDatabases(final ProxyContext proxyContext) {
-        Map<String, String> result = new LinkedHashMap<>();
-        proxyContext.getAllDatabaseNames().forEach(each -> {
-            ShardingSphereDatabase database = proxyContext.getDatabase(each);
+        Collection<String> databaseNames = proxyContext.getAllDatabaseNames();
+        Map<String, String> result = new LinkedHashMap<>(databaseNames.size(), 1F);
+        databaseNames.forEach(each -> {
+            ShardingSphereDatabase database = proxyContext.getContextManager().getDatabase(each);
             if (database.getResourceMetaData().getAllInstanceDataSourceNames().isEmpty()) {
                 return;
             }
@@ -99,7 +101,11 @@ public final class ExportMetaDataExecutor implements MetaDataRequiredQueryableRA
         }
         StringBuilder result = new StringBuilder();
         result.append("props:").append(System.lineSeparator());
-        props.forEach((key, value) -> result.append("  ").append(key).append(": ").append(value).append(System.lineSeparator()));
+        props.forEach((key, value) -> {
+            if (null != value && !"".equals(value)) {
+                result.append("  ").append(key).append(": ").append(value).append(System.lineSeparator());
+            }
+        });
         return result.toString();
     }
     

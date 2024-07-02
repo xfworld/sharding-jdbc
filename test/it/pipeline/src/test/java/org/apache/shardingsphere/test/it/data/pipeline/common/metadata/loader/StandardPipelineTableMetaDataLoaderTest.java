@@ -19,11 +19,11 @@ package org.apache.shardingsphere.test.it.data.pipeline.common.metadata.loader;
 
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.SneakyThrows;
-import org.apache.shardingsphere.data.pipeline.api.metadata.model.PipelineColumnMetaData;
-import org.apache.shardingsphere.data.pipeline.api.metadata.model.PipelineIndexMetaData;
-import org.apache.shardingsphere.data.pipeline.api.metadata.model.PipelineTableMetaData;
-import org.apache.shardingsphere.data.pipeline.common.datasource.PipelineDataSourceWrapper;
-import org.apache.shardingsphere.data.pipeline.common.metadata.loader.StandardPipelineTableMetaDataLoader;
+import org.apache.shardingsphere.data.pipeline.core.datasource.PipelineDataSourceWrapper;
+import org.apache.shardingsphere.data.pipeline.core.metadata.loader.StandardPipelineTableMetaDataLoader;
+import org.apache.shardingsphere.data.pipeline.core.metadata.model.PipelineColumnMetaData;
+import org.apache.shardingsphere.data.pipeline.core.metadata.model.PipelineIndexMetaData;
+import org.apache.shardingsphere.data.pipeline.core.metadata.model.PipelineTableMetaData;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.junit.jupiter.api.AfterEach;
@@ -37,7 +37,6 @@ import java.util.Collection;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,8 +56,8 @@ class StandardPipelineTableMetaDataLoaderTest {
         result.setPassword("root");
         result.setMaximumPoolSize(10);
         result.setMinimumIdle(2);
-        result.setConnectionTimeout(15 * 1000L);
-        result.setIdleTimeout(40 * 1000L);
+        result.setConnectionTimeout(15L * 1000L);
+        result.setIdleTimeout(40L * 1000L);
         return result;
     }
     
@@ -95,7 +94,7 @@ class StandardPipelineTableMetaDataLoaderTest {
         assertThat(orderIdColumn.getName(), is("order_id"));
         assertThat(orderIdColumn.getDataType(), is(Types.INTEGER));
         assertFalse(orderIdColumn.isNullable());
-        assertEquals(orderIdColumn.isPrimaryKey(), expectedIsPrimaryKey);
+        assertThat(orderIdColumn.isPrimaryKey(), is(expectedIsPrimaryKey));
         assertTrue(orderIdColumn.isUniqueKey());
     }
     
@@ -104,8 +103,8 @@ class StandardPipelineTableMetaDataLoaderTest {
         assertThat(userIdColumn.getName(), is("user_id"));
         assertThat(userIdColumn.getDataType(), is(Types.INTEGER));
         assertFalse(userIdColumn.isNullable());
-        assertEquals(userIdColumn.isPrimaryKey(), expectedIsPrimaryKey);
-        assertEquals(userIdColumn.isUniqueKey(), expectedIsUniqueKey);
+        assertThat(userIdColumn.isPrimaryKey(), is(expectedIsPrimaryKey));
+        assertThat(userIdColumn.isUniqueKey(), is(expectedIsUniqueKey));
     }
     
     private void assertStatus(final PipelineColumnMetaData statusColumn) {

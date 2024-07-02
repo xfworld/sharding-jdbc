@@ -70,31 +70,32 @@ public final class ProxyDatabaseConnectionManager implements DatabaseConnectionM
     private final Collection<TransactionHook> transactionHooks = ShardingSphereServiceLoader.getServiceInstances(TransactionHook.class);
     
     @Override
-    public List<Connection> getConnections(final String dataSourceName, final int connectionOffset, final int connectionSize, final ConnectionMode connectionMode) throws SQLException {
-        Preconditions.checkNotNull(connectionSession.getDatabaseName(), "Current database name is null.");
+    public List<Connection> getConnections(final String databaseName, final String dataSourceName, final int connectionOffset, final int connectionSize,
+                                           final ConnectionMode connectionMode) throws SQLException {
+        Preconditions.checkNotNull(databaseName, "Current database name is null.");
         Collection<Connection> connections;
         synchronized (cachedConnections) {
-            connections = cachedConnections.get(connectionSession.getDatabaseName().toLowerCase() + "." + dataSourceName);
+            connections = cachedConnections.get(databaseName.toLowerCase() + "." + dataSourceName);
         }
         List<Connection> result;
         int maxConnectionSize = connectionOffset + connectionSize;
         if (connections.size() >= maxConnectionSize) {
             result = new ArrayList<>(connections).subList(connectionOffset, maxConnectionSize);
         } else if (connections.isEmpty()) {
-            Collection<Connection> newConnections = createNewConnections(dataSourceName, maxConnectionSize, connectionMode);
+            Collection<Connection> newConnections = createNewConnections(databaseName, dataSourceName, maxConnectionSize, connectionMode);
             result = new ArrayList<>(newConnections).subList(connectionOffset, maxConnectionSize);
             synchronized (cachedConnections) {
-                cachedConnections.putAll(connectionSession.getDatabaseName().toLowerCase() + "." + dataSourceName, newConnections);
+                cachedConnections.putAll(databaseName.toLowerCase() + "." + dataSourceName, newConnections);
             }
             executeTransactionHooksAfterCreateConnections(result);
         } else {
             List<Connection> allConnections = new ArrayList<>(maxConnectionSize);
             allConnections.addAll(connections);
-            List<Connection> newConnections = createNewConnections(dataSourceName, maxConnectionSize - connections.size(), connectionMode);
+            List<Connection> newConnections = createNewConnections(databaseName, dataSourceName, maxConnectionSize - connections.size(), connectionMode);
             allConnections.addAll(newConnections);
             result = allConnections.subList(connectionOffset, maxConnectionSize);
             synchronized (cachedConnections) {
-                cachedConnections.putAll(connectionSession.getDatabaseName().toLowerCase() + "." + dataSourceName, newConnections);
+                cachedConnections.putAll(databaseName.toLowerCase() + "." + dataSourceName, newConnections);
             }
         }
         return result;
@@ -108,8 +109,8 @@ public final class ProxyDatabaseConnectionManager implements DatabaseConnectionM
         }
     }
     
-    private List<Connection> createNewConnections(final String dataSourceName, final int connectionSize, final ConnectionMode connectionMode) throws SQLException {
-        List<Connection> result = ProxyContext.getInstance().getBackendDataSource().getConnections(connectionSession.getDatabaseName().toLowerCase(), dataSourceName, connectionSize, connectionMode);
+    private List<Connection> createNewConnections(final String databaseName, final String dataSourceName, final int connectionSize, final ConnectionMode connectionMode) throws SQLException {
+        List<Connection> result = ProxyContext.getInstance().getBackendDataSource().getConnections(databaseName.toLowerCase(), dataSourceName, connectionSize, connectionMode);
         setSessionVariablesIfNecessary(result);
         for (Connection each : result) {
             replayTransactionOption(each);
@@ -169,8 +170,8 @@ public final class ProxyDatabaseConnectionManager implements DatabaseConnectionM
         if (connectionSession.isReadOnly()) {
             connection.setReadOnly(true);
         }
-        if (null != connectionSession.getIsolationLevel()) {
-            connection.setTransactionIsolation(TransactionUtils.getTransactionIsolationLevel(connectionSession.getIsolationLevel()));
+        if (connectionSession.getIsolationLevel().isPresent()) {
+            connection.setTransactionIsolation(TransactionUtils.getTransactionIsolationLevel(connectionSession.getIsolationLevel().get()));
         }
     }
     
@@ -181,7 +182,7 @@ public final class ProxyDatabaseConnectionManager implements DatabaseConnectionM
      */
     public Collection<String> getUsedDataSourceNames() {
         Collection<String> result = new ArrayList<>(cachedConnections.size());
-        String databaseName = connectionSession.getDatabaseName().toLowerCase();
+        String databaseName = connectionSession.getUsedDatabaseName().toLowerCase();
         for (String each : cachedConnections.keySet()) {
             String[] split = each.split("\\.", 2);
             String cachedDatabaseName = split[0];
@@ -247,7 +248,7 @@ public final class ProxyDatabaseConnectionManager implements DatabaseConnectionM
     public void closeExecutionResources() throws BackendConnectionException {
         synchronized (this) {
             Collection<Exception> result = new LinkedList<>(closeHandlers(false));
-            if (!connectionSession.getTransactionStatus().isInConnectionHeldTransaction()) {
+            if (!connectionSession.getTransactionStatus().isInConnectionHeldTransaction(TransactionUtils.getTransactionType(connectionSession.getConnectionContext().getTransactionContext()))) {
                 result.addAll(closeHandlers(true));
                 result.addAll(closeConnections(false));
             } else if (closed.get()) {

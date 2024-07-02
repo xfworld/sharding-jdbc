@@ -17,9 +17,10 @@
 
 package org.apache.shardingsphere.single.route;
 
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.connection.validator.ShardingSphereMetaDataValidateUtils;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
@@ -33,15 +34,16 @@ import org.apache.shardingsphere.single.constant.SingleOrder;
 import org.apache.shardingsphere.single.route.engine.SingleRouteEngineFactory;
 import org.apache.shardingsphere.single.route.validator.SingleMetaDataValidatorFactory;
 import org.apache.shardingsphere.single.rule.SingleRule;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.CreateTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DMLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CreateTableStatement;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 
 /**
  * Single SQL router.
  */
+@HighFrequencyInvocation
 public final class SingleSQLRouter implements SQLRouter<SingleRule> {
     
     @Override
@@ -54,21 +56,13 @@ public final class SingleSQLRouter implements SQLRouter<SingleRule> {
         SQLStatementContext sqlStatementContext = queryContext.getSqlStatementContext();
         SingleMetaDataValidatorFactory.newInstance(sqlStatementContext.getSqlStatement()).ifPresent(optional -> optional.validate(rule, sqlStatementContext, database));
         Collection<QualifiedTable> singleTables = getSingleTables(database, rule, result, sqlStatementContext);
-        validateSingleTableMetaData(database, sqlStatementContext, singleTables);
         SingleRouteEngineFactory.newInstance(singleTables, sqlStatementContext.getSqlStatement()).ifPresent(optional -> optional.route(result, rule));
         return result;
     }
     
-    private void validateSingleTableMetaData(final ShardingSphereDatabase database, final SQLStatementContext sqlStatementContext, final Collection<QualifiedTable> singleTables) {
-        // TODO move single table metadata validate logic to infra validator
-        if (!singleTables.isEmpty() && sqlStatementContext.getSqlStatement() instanceof DMLStatement) {
-            ShardingSphereMetaDataValidateUtils.validateTableExist(sqlStatementContext, database);
-        }
-    }
-    
-    private Collection<QualifiedTable> getSingleTables(final ShardingSphereDatabase database, final SingleRule rule, final RouteContext result, final SQLStatementContext sqlStatementContext) {
+    private Collection<QualifiedTable> getSingleTables(final ShardingSphereDatabase database, final SingleRule rule, final RouteContext routeContext, final SQLStatementContext sqlStatementContext) {
         Collection<QualifiedTable> qualifiedTables = rule.getQualifiedTables(sqlStatementContext, database);
-        return result.getRouteUnits().isEmpty() && sqlStatementContext.getSqlStatement() instanceof CreateTableStatement ? qualifiedTables : rule.getSingleTables(qualifiedTables);
+        return routeContext.getRouteUnits().isEmpty() && sqlStatementContext.getSqlStatement() instanceof CreateTableStatement ? qualifiedTables : rule.getSingleTables(qualifiedTables);
     }
     
     @Override
@@ -76,7 +70,6 @@ public final class SingleSQLRouter implements SQLRouter<SingleRule> {
                                      final SingleRule rule, final ConfigurationProperties props, final ConnectionContext connectionContext) {
         SQLStatementContext sqlStatementContext = queryContext.getSqlStatementContext();
         Collection<QualifiedTable> singleTables = getSingleTables(database, rule, routeContext, sqlStatementContext);
-        validateSingleTableMetaData(database, sqlStatementContext, singleTables);
         SingleRouteEngineFactory.newInstance(singleTables, sqlStatementContext.getSqlStatement()).ifPresent(optional -> optional.route(routeContext, rule));
     }
     
@@ -84,7 +77,10 @@ public final class SingleSQLRouter implements SQLRouter<SingleRule> {
         String logicDataSource = rule.getDataSourceNames().iterator().next();
         String actualDataSource = database.getResourceMetaData().getStorageUnits().keySet().iterator().next();
         RouteContext result = new RouteContext();
-        result.getRouteUnits().add(new RouteUnit(new RouteMapper(logicDataSource, actualDataSource), createTableMappers(queryContext.getSqlStatementContext().getTablesContext().getTableNames())));
+        Collection<String> tableNames = queryContext.getSqlStatementContext() instanceof TableAvailable
+                ? ((TableAvailable) queryContext.getSqlStatementContext()).getTablesContext().getTableNames()
+                : Collections.emptyList();
+        result.getRouteUnits().add(new RouteUnit(new RouteMapper(logicDataSource, actualDataSource), createTableMappers(tableNames)));
         return result;
     }
     

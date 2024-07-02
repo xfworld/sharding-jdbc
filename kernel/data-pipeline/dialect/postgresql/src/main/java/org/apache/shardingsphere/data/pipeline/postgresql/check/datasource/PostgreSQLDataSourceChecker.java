@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.data.pipeline.core.exception.job.PrepareJobWithCheckPrivilegeFailedException;
 import org.apache.shardingsphere.data.pipeline.core.exception.job.PrepareJobWithoutEnoughPrivilegeException;
 import org.apache.shardingsphere.data.pipeline.core.exception.job.PrepareJobWithoutUserException;
-import org.apache.shardingsphere.data.pipeline.spi.check.DialectDataSourceChecker;
+import org.apache.shardingsphere.data.pipeline.core.checker.DialectDataSourceChecker;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 
 import javax.sql.DataSource;
@@ -42,7 +42,9 @@ public final class PostgreSQLDataSourceChecker implements DialectDataSourceCheck
     
     @Override
     public void checkPrivilege(final DataSource dataSource) {
-        try (Connection connection = dataSource.getConnection(); PreparedStatement preparedStatement = connection.prepareStatement(SHOW_GRANTS_SQL)) {
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(SHOW_GRANTS_SQL)) {
             DatabaseMetaData metaData = connection.getMetaData();
             preparedStatement.setString(1, metaData.getUserName());
             try (ResultSet resultSet = preparedStatement.executeQuery()) {

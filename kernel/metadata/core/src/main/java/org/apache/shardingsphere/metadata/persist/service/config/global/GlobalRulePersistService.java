@@ -18,56 +18,86 @@
 package org.apache.shardingsphere.metadata.persist.service.config.global;
 
 import com.google.common.base.Strings;
-import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.authority.config.AuthorityRuleConfiguration;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.metadata.user.ShardingSphereUser;
 import org.apache.shardingsphere.infra.metadata.version.MetaDataVersion;
-import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
+import org.apache.shardingsphere.infra.yaml.config.pojo.rule.YamlRuleConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.swapper.rule.YamlRuleConfigurationSwapperEngine;
 import org.apache.shardingsphere.metadata.persist.node.GlobalNode;
+import org.apache.shardingsphere.metadata.persist.service.config.RepositoryTuplePersistService;
+import org.apache.shardingsphere.metadata.persist.service.version.MetaDataVersionPersistService;
 import org.apache.shardingsphere.mode.spi.PersistRepository;
+import org.apache.shardingsphere.mode.tuple.RepositoryTuple;
+import org.apache.shardingsphere.mode.tuple.RepositoryTupleSwapperEngine;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 
 /**
  * Global rule persist service.
  */
-@RequiredArgsConstructor
-public final class GlobalRulePersistService implements GlobalPersistService<Collection<RuleConfiguration>> {
+public final class GlobalRulePersistService {
     
     private final PersistRepository repository;
     
-    @Override
-    public void persist(final Collection<RuleConfiguration> globalRuleConfigs) {
-        repository.persist(GlobalNode.getGlobalRuleNode(), YamlEngine.marshal(new YamlRuleConfigurationSwapperEngine().swapToYamlRuleConfigurations(globalRuleConfigs)));
-    }
+    private final MetaDataVersionPersistService metaDataVersionPersistService;
     
-    @Override
-    public Collection<MetaDataVersion> persistConfig(final Collection<RuleConfiguration> globalRuleConfigs) {
-        return Collections.emptyList();
-    }
+    private final RepositoryTuplePersistService repositoryTuplePersistService;
     
-    @Override
-    @SuppressWarnings("unchecked")
-    public Collection<RuleConfiguration> load() {
-        String globalRule = repository.getDirectly(GlobalNode.getGlobalRuleNode());
-        return Strings.isNullOrEmpty(globalRule)
-                ? Collections.emptyList()
-                : new YamlRuleConfigurationSwapperEngine().swapToRuleConfigurations(YamlEngine.unmarshal(globalRule, Collection.class));
+    public GlobalRulePersistService(final PersistRepository repository, final MetaDataVersionPersistService metaDataVersionPersistService) {
+        this.repository = repository;
+        this.metaDataVersionPersistService = metaDataVersionPersistService;
+        repositoryTuplePersistService = new RepositoryTuplePersistService(repository);
     }
     
     /**
-     * Load all users.
-     * 
-     * @return collection of user
+     * Load global rule configurations.
+     *
+     * @return global rule configurations
      */
-    @Override
-    public Collection<ShardingSphereUser> loadUsers() {
-        Optional<AuthorityRuleConfiguration> authorityRuleConfig = load().stream()
-                .filter(AuthorityRuleConfiguration.class::isInstance).map(AuthorityRuleConfiguration.class::cast).findFirst();
-        return authorityRuleConfig.isPresent() ? authorityRuleConfig.get().getUsers() : Collections.emptyList();
+    public Collection<RuleConfiguration> load() {
+        return new RepositoryTupleSwapperEngine().swapToRuleConfigurations(repositoryTuplePersistService.loadRepositoryTuples(GlobalNode.getGlobalRuleRootNode()));
+    }
+    
+    /**
+     * Load global rule configuration.
+     *
+     * @param ruleTypeName rule type name to be loaded
+     * @return global rule configuration
+     */
+    public Optional<RuleConfiguration> load(final String ruleTypeName) {
+        return new RepositoryTupleSwapperEngine().swapToRuleConfiguration(ruleTypeName, repositoryTuplePersistService.loadRepositoryTuples(GlobalNode.getGlobalRuleNode(ruleTypeName)));
+    }
+    
+    /**
+     * Persist global rule configurations.
+     *
+     * @param globalRuleConfigs global rule configurations
+     */
+    public void persist(final Collection<RuleConfiguration> globalRuleConfigs) {
+        Collection<MetaDataVersion> metaDataVersions = new LinkedList<>();
+        RepositoryTupleSwapperEngine repositoryTupleSwapperEngine = new RepositoryTupleSwapperEngine();
+        for (YamlRuleConfiguration each : new YamlRuleConfigurationSwapperEngine().swapToYamlRuleConfigurations(globalRuleConfigs)) {
+            Collection<RepositoryTuple> repositoryTuples = repositoryTupleSwapperEngine.swapToRepositoryTuples(each);
+            if (!repositoryTuples.isEmpty()) {
+                metaDataVersions.addAll(persistTuples(repositoryTuples));
+            }
+        }
+        metaDataVersionPersistService.switchActiveVersion(metaDataVersions);
+    }
+    
+    private Collection<MetaDataVersion> persistTuples(final Collection<RepositoryTuple> repositoryTuples) {
+        Collection<MetaDataVersion> result = new LinkedList<>();
+        for (RepositoryTuple each : repositoryTuples) {
+            List<String> versions = repository.getChildrenKeys(GlobalNode.getGlobalRuleVersionsNode(each.getKey()));
+            String nextActiveVersion = versions.isEmpty() ? MetaDataVersion.DEFAULT_VERSION : String.valueOf(Integer.parseInt(versions.get(0)) + 1);
+            repository.persist(GlobalNode.getGlobalRuleVersionNode(each.getKey(), nextActiveVersion), each.getValue());
+            if (Strings.isNullOrEmpty(repository.query(GlobalNode.getGlobalRuleActiveVersionNode(each.getKey())))) {
+                repository.persist(GlobalNode.getGlobalRuleActiveVersionNode(each.getKey()), MetaDataVersion.DEFAULT_VERSION);
+            }
+            result.add(new MetaDataVersion(GlobalNode.getGlobalRuleNode(each.getKey()), repository.query(GlobalNode.getGlobalRuleActiveVersionNode(each.getKey())), nextActiveVersion));
+        }
+        return result;
     }
 }

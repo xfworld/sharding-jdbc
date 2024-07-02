@@ -19,15 +19,13 @@ package org.apache.shardingsphere.infra.datanode;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
-import org.apache.shardingsphere.infra.rule.identifier.type.DataNodeContainedRule;
+import org.apache.shardingsphere.infra.rule.attribute.datanode.DataNodeRuleAttribute;
 import org.apache.shardingsphere.infra.spi.type.ordered.OrderedSPILoader;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 
 /**
  * Data nodes.
@@ -53,22 +51,27 @@ public final class DataNodes {
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Collection<DataNode> getDataNodes(final String tableName) {
-        Optional<DataNodeContainedRule> dataNodeContainedRule = findDataNodeContainedRule(tableName);
-        if (!dataNodeContainedRule.isPresent()) {
-            return Collections.emptyList();
+        Collection<DataNode> result = getDataNodesByTableName(tableName);
+        if (result.isEmpty()) {
+            return result;
         }
-        Collection<DataNode> result = new LinkedList<>(dataNodeContainedRule.get().getDataNodesByTableName(tableName));
         for (Entry<ShardingSphereRule, DataNodeBuilder> entry : dataNodeBuilders.entrySet()) {
             result = entry.getValue().build(result, entry.getKey());
         }
         return result;
     }
     
-    private Optional<DataNodeContainedRule> findDataNodeContainedRule(final String tableName) {
-        return rules.stream().filter(each -> isDataNodeContainedRuleContainsTable(each, tableName)).findFirst().map(DataNodeContainedRule.class::cast);
+    private Collection<DataNode> getDataNodesByTableName(final String tableName) {
+        for (ShardingSphereRule each : rules) {
+            Collection<DataNode> dataNodes = getDataNodesByTableName(each, tableName);
+            if (!dataNodes.isEmpty()) {
+                return Collections.unmodifiableCollection(dataNodes);
+            }
+        }
+        return Collections.emptyList();
     }
     
-    private boolean isDataNodeContainedRuleContainsTable(final ShardingSphereRule each, final String tableName) {
-        return each instanceof DataNodeContainedRule && !((DataNodeContainedRule) each).getDataNodesByTableName(tableName).isEmpty();
+    private Collection<DataNode> getDataNodesByTableName(final ShardingSphereRule rule, final String tableName) {
+        return rule.getAttributes().findAttribute(DataNodeRuleAttribute.class).map(optional -> optional.getDataNodesByTableName(tableName)).orElse(Collections.emptyList());
     }
 }

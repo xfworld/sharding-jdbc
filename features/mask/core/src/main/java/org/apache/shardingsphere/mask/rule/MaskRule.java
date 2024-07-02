@@ -17,70 +17,105 @@
 
 package org.apache.shardingsphere.mask.rule;
 
-import lombok.Getter;
-import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.rule.identifier.scope.DatabaseRule;
-import org.apache.shardingsphere.infra.rule.identifier.type.TableContainedRule;
-import org.apache.shardingsphere.infra.rule.identifier.type.TableNamesMapper;
+import com.cedarsoftware.util.CaseInsensitiveMap;
+import com.cedarsoftware.util.CaseInsensitiveSet;
+import com.google.common.base.Preconditions;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
+import org.apache.shardingsphere.infra.rule.PartialRuleUpdateSupported;
+import org.apache.shardingsphere.infra.rule.attribute.RuleAttributes;
+import org.apache.shardingsphere.infra.rule.scope.DatabaseRule;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.mask.api.config.MaskRuleConfiguration;
+import org.apache.shardingsphere.mask.config.MaskRuleConfiguration;
+import org.apache.shardingsphere.mask.config.rule.MaskTableRuleConfiguration;
+import org.apache.shardingsphere.mask.rule.attribute.MaskTableMapperRuleAttribute;
 import org.apache.shardingsphere.mask.spi.MaskAlgorithm;
 
-import java.util.LinkedHashMap;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * Mask rule.
  */
-@SuppressWarnings("rawtypes")
-public final class MaskRule implements DatabaseRule, TableContainedRule {
+public final class MaskRule implements DatabaseRule, PartialRuleUpdateSupported<MaskRuleConfiguration> {
     
-    @Getter
-    private final RuleConfiguration configuration;
+    private final AtomicReference<MaskRuleConfiguration> configuration = new AtomicReference<>();
     
-    private final Map<String, MaskAlgorithm> maskAlgorithms = new LinkedHashMap<>();
+    private final Map<String, MaskAlgorithm<?, ?>> maskAlgorithms = new CaseInsensitiveMap<>(Collections.emptyMap(), new ConcurrentHashMap<>());
     
-    private final Map<String, MaskTable> tables = new LinkedHashMap<>();
+    private final Map<String, MaskTable> tables = new CaseInsensitiveMap<>(Collections.emptyMap(), new ConcurrentHashMap<>());
     
-    private final TableNamesMapper tableNamesMapper = new TableNamesMapper();
+    private final AtomicReference<RuleAttributes> attributes = new AtomicReference<>();
     
     public MaskRule(final MaskRuleConfiguration ruleConfig) {
-        configuration = ruleConfig;
+        configuration.set(ruleConfig);
         ruleConfig.getMaskAlgorithms().forEach((key, value) -> maskAlgorithms.put(key, TypedSPILoader.getService(MaskAlgorithm.class, value.getType(), value.getProps())));
-        ruleConfig.getTables().forEach(each -> tables.put(each.getName().toLowerCase(), new MaskTable(each)));
-        ruleConfig.getTables().forEach(each -> tableNamesMapper.put(each.getName()));
+        ruleConfig.getTables().forEach(each -> tables.put(each.getName(), new MaskTable(each, maskAlgorithms)));
+        attributes.set(new RuleAttributes(new MaskTableMapperRuleAttribute(tables.keySet())));
     }
     
     /**
-     * Find mask algorithm.
+     * Find mask table.
      *
-     * @param logicTable logic table name
-     * @param logicColumn logic column name
-     * @return maskAlgorithm
+     * @param tableName table name
+     * @return found mask table
      */
-    public Optional<MaskAlgorithm> findMaskAlgorithm(final String logicTable, final String logicColumn) {
-        String lowerCaseLogicTable = logicTable.toLowerCase();
-        return tables.containsKey(lowerCaseLogicTable) ? tables.get(lowerCaseLogicTable).findMaskAlgorithmName(logicColumn).map(maskAlgorithms::get) : Optional.empty();
+    public Optional<MaskTable> findMaskTable(final String tableName) {
+        return Optional.ofNullable(tables.get(tableName));
     }
     
     @Override
-    public TableNamesMapper getLogicTableMapper() {
-        return tableNamesMapper;
+    public RuleAttributes getAttributes() {
+        return attributes.get();
     }
     
     @Override
-    public TableNamesMapper getActualTableMapper() {
-        return new TableNamesMapper();
+    public MaskRuleConfiguration getConfiguration() {
+        return configuration.get();
     }
     
     @Override
-    public TableNamesMapper getDistributedTableMapper() {
-        return new TableNamesMapper();
+    public void updateConfiguration(final MaskRuleConfiguration toBeUpdatedRuleConfig) {
+        configuration.set(toBeUpdatedRuleConfig);
     }
     
     @Override
-    public TableNamesMapper getEnhancedTableMapper() {
-        return new TableNamesMapper();
+    public boolean partialUpdate(final MaskRuleConfiguration toBeUpdatedRuleConfig) {
+        Collection<String> toBeUpdatedTablesNames = toBeUpdatedRuleConfig.getTables().stream().map(MaskTableRuleConfiguration::getName).collect(Collectors.toCollection(CaseInsensitiveSet::new));
+        Collection<String> toBeAddedTableNames = toBeUpdatedTablesNames.stream().filter(each -> !tables.containsKey(each)).collect(Collectors.toList());
+        if (!toBeAddedTableNames.isEmpty()) {
+            toBeAddedTableNames.forEach(each -> addTableRule(each, toBeUpdatedRuleConfig));
+            attributes.set(new RuleAttributes(new MaskTableMapperRuleAttribute(tables.keySet())));
+            return true;
+        }
+        Collection<String> toBeRemovedTableNames = tables.keySet().stream().filter(each -> !toBeUpdatedTablesNames.contains(each)).collect(Collectors.toList());
+        if (!toBeRemovedTableNames.isEmpty()) {
+            toBeRemovedTableNames.forEach(tables::remove);
+            attributes.set(new RuleAttributes(new MaskTableMapperRuleAttribute(tables.keySet())));
+            // TODO check and remove unused INLINE mask algorithms
+            return true;
+        }
+        // TODO Process update table
+        // TODO Process CRUD mask algorithms
+        return false;
+    }
+    
+    private void addTableRule(final String tableName, final MaskRuleConfiguration toBeUpdatedRuleConfig) {
+        MaskTableRuleConfiguration tableRuleConfig = getTableRuleConfiguration(tableName, toBeUpdatedRuleConfig);
+        for (Entry<String, AlgorithmConfiguration> entry : toBeUpdatedRuleConfig.getMaskAlgorithms().entrySet()) {
+            maskAlgorithms.computeIfAbsent(entry.getKey(), key -> TypedSPILoader.getService(MaskAlgorithm.class, entry.getValue().getType(), entry.getValue().getProps()));
+        }
+        tables.put(tableName, new MaskTable(tableRuleConfig, maskAlgorithms));
+    }
+    
+    private MaskTableRuleConfiguration getTableRuleConfiguration(final String tableName, final MaskRuleConfiguration toBeUpdatedRuleConfig) {
+        Optional<MaskTableRuleConfiguration> result = toBeUpdatedRuleConfig.getTables().stream().filter(table -> table.getName().equals(tableName)).findFirst();
+        Preconditions.checkState(result.isPresent());
+        return result.get();
     }
 }

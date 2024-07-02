@@ -26,8 +26,9 @@ import org.apache.shardingsphere.proxy.backend.hbase.converter.HBaseOperationCon
 import org.apache.shardingsphere.proxy.backend.hbase.converter.HBaseOperationConverterFactory;
 import org.apache.shardingsphere.proxy.backend.hbase.result.update.HBaseUpdater;
 import org.apache.shardingsphere.proxy.backend.response.header.update.UpdateResponseHeader;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -41,13 +42,8 @@ public final class HBaseBackendUpdateHandler implements DatabaseBackendHandler {
     
     private final HBaseUpdater updater;
     
-    /**
-     * Execute HBase update handler.
-     *
-     * @return update response header
-     */
     @Override
-    public UpdateResponseHeader execute() {
+    public UpdateResponseHeader execute() throws SQLException {
         SQLStatementContext sqlStatementContext = SQLStatementContextFactory.newInstance(null, Collections.emptyList(), sqlStatement, "");
         HBaseOperationConverter converter = HBaseOperationConverterFactory.newInstance(sqlStatementContext);
         Collection<UpdateResult> updateResults = updater.executeUpdate(converter.convert());

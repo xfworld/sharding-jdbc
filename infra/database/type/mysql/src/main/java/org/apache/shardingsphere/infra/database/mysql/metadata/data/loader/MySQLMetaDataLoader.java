@@ -26,6 +26,7 @@ import org.apache.shardingsphere.infra.database.core.metadata.data.model.IndexMe
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.database.datatype.DataTypeLoader;
+import org.apache.shardingsphere.infra.database.core.metadata.database.enums.TableType;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -62,19 +63,43 @@ public final class MySQLMetaDataLoader implements DialectMetaDataLoader {
     private static final String CONSTRAINT_META_DATA_SQL = "SELECT CONSTRAINT_NAME, TABLE_NAME, REFERENCED_TABLE_NAME FROM information_schema.KEY_COLUMN_USAGE "
             + "WHERE TABLE_NAME IN (%s) AND REFERENCED_TABLE_SCHEMA IS NOT NULL";
     
+    private static final String VIEW_META_DATA_SQL = "SELECT TABLE_NAME FROM information_schema.VIEWS WHERE TABLE_SCHEMA=? AND TABLE_NAME IN (%s)";
+    
     @Override
     public Collection<SchemaMetaData> load(final MetaDataLoaderMaterial material) throws SQLException {
         Collection<TableMetaData> tableMetaDataList = new LinkedList<>();
         Map<String, Collection<ColumnMetaData>> columnMetaDataMap = loadColumnMetaDataMap(material.getDataSource(), material.getActualTableNames());
+        Collection<String> viewNames = loadViewNames(material.getDataSource(), columnMetaDataMap.keySet());
         Map<String, Collection<IndexMetaData>> indexMetaDataMap = columnMetaDataMap.isEmpty() ? Collections.emptyMap() : loadIndexMetaData(material.getDataSource(), columnMetaDataMap.keySet());
         Map<String, Collection<ConstraintMetaData>> constraintMetaDataMap =
                 columnMetaDataMap.isEmpty() ? Collections.emptyMap() : loadConstraintMetaDataMap(material.getDataSource(), columnMetaDataMap.keySet());
         for (Entry<String, Collection<ColumnMetaData>> entry : columnMetaDataMap.entrySet()) {
             Collection<IndexMetaData> indexMetaDataList = indexMetaDataMap.getOrDefault(entry.getKey(), Collections.emptyList());
             Collection<ConstraintMetaData> constraintMetaDataList = constraintMetaDataMap.getOrDefault(entry.getKey(), Collections.emptyList());
-            tableMetaDataList.add(new TableMetaData(entry.getKey(), entry.getValue(), indexMetaDataList, constraintMetaDataList));
+            tableMetaDataList.add(
+                    new TableMetaData(entry.getKey(), entry.getValue(), indexMetaDataList, constraintMetaDataList, viewNames.contains(entry.getKey()) ? TableType.VIEW : TableType.TABLE));
         }
         return Collections.singletonList(new SchemaMetaData(material.getDefaultSchemaName(), tableMetaDataList));
+    }
+    
+    private Collection<String> loadViewNames(final DataSource dataSource, final Collection<String> tableNames) throws SQLException {
+        Collection<String> result = new LinkedList<>();
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(getViewMetaDataSQL(tableNames))) {
+            String databaseName = "".equals(connection.getCatalog()) ? GlobalDataSourceRegistry.getInstance().getCachedDatabaseTables().get(tableNames.iterator().next()) : connection.getCatalog();
+            preparedStatement.setString(1, databaseName);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    result.add(resultSet.getString(1));
+                }
+            }
+        }
+        return result;
+    }
+    
+    private String getViewMetaDataSQL(final Collection<String> tableNames) {
+        return String.format(VIEW_META_DATA_SQL, tableNames.stream().map(each -> String.format("'%s'", each)).collect(Collectors.joining(",")));
     }
     
     private Map<String, Collection<ConstraintMetaData>> loadConstraintMetaDataMap(final DataSource dataSource, final Collection<String> tables) throws SQLException {
@@ -156,18 +181,18 @@ public final class MySQLMetaDataLoader implements DialectMetaDataLoader {
                         tableToIndex.put(tableName, new HashMap<>());
                     }
                     Map<String, IndexMetaData> indexMap = tableToIndex.get(tableName);
-                    if (!indexMap.containsKey(indexName)) {
+                    if (indexMap.containsKey(indexName)) {
+                        indexMap.get(indexName).getColumns().add(resultSet.getString("COLUMN_NAME"));
+                    } else {
                         IndexMetaData indexMetaData = new IndexMetaData(indexName);
                         indexMetaData.getColumns().add(resultSet.getString("COLUMN_NAME"));
                         indexMetaData.setUnique("0".equals(resultSet.getString("NON_UNIQUE")));
                         indexMap.put(indexName, indexMetaData);
-                    } else {
-                        indexMap.get(indexName).getColumns().add(resultSet.getString("COLUMN_NAME"));
                     }
                 }
             }
         }
-        Map<String, Collection<IndexMetaData>> result = new HashMap<>(tableToIndex.size(), 1);
+        Map<String, Collection<IndexMetaData>> result = new HashMap<>(tableToIndex.size(), 1F);
         for (Entry<String, Map<String, IndexMetaData>> entry : tableToIndex.entrySet()) {
             result.put(entry.getKey(), entry.getValue().values());
         }

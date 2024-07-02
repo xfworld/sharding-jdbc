@@ -27,18 +27,16 @@ import org.apache.shardingsphere.infra.binder.statement.dml.MergeStatementBinder
 import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementBinder;
 import org.apache.shardingsphere.infra.binder.statement.dml.UpdateStatementBinder;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
-import org.apache.shardingsphere.infra.hint.SQLHintUtils;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.AbstractSQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.DDLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DMLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DeleteStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.InsertStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.MergeStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.UpdateStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCursorStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CursorStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.DDLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.DMLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.DeleteStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.MergeStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.UpdateStatement;
 
 import java.util.List;
 
@@ -50,15 +48,9 @@ public final class SQLBindEngine {
     
     private final ShardingSphereMetaData metaData;
     
-    private final String defaultDatabaseName;
+    private final String currentDatabaseName;
     
     private final HintValueContext hintValueContext;
-    
-    public SQLBindEngine(final ShardingSphereMetaData metaData, final String defaultDatabaseName) {
-        this.metaData = metaData;
-        this.defaultDatabaseName = defaultDatabaseName;
-        this.hintValueContext = new HintValueContext();
-    }
     
     /**
      * Bind SQL statement with metadata.
@@ -68,55 +60,45 @@ public final class SQLBindEngine {
      * @return SQL statement context
      */
     public SQLStatementContext bind(final SQLStatement sqlStatement, final List<Object> params) {
-        SQLStatement buoundedSQLStatement = bind(sqlStatement, metaData, defaultDatabaseName);
-        return SQLStatementContextFactory.newInstance(metaData, params, buoundedSQLStatement, defaultDatabaseName);
+        SQLStatement buoundedSQLStatement = bind(sqlStatement, metaData, currentDatabaseName);
+        return SQLStatementContextFactory.newInstance(metaData, params, buoundedSQLStatement, currentDatabaseName);
     }
     
-    private SQLStatement bind(final SQLStatement statement, final ShardingSphereMetaData metaData, final String defaultDatabaseName) {
-        if (containsDataSourceNameSQLHint(hintValueContext, statement)) {
+    private SQLStatement bind(final SQLStatement statement, final ShardingSphereMetaData metaData, final String currentDatabaseName) {
+        if (hintValueContext.findHintDataSourceName().isPresent()) {
             return statement;
         }
         if (statement instanceof DMLStatement) {
-            return bindDMLStatement(statement, metaData, defaultDatabaseName);
+            return bindDMLStatement(statement, metaData, currentDatabaseName);
         }
         if (statement instanceof DDLStatement) {
-            return bindDDLStatement(statement, metaData, defaultDatabaseName);
+            return bindDDLStatement(statement, metaData, currentDatabaseName);
         }
         return statement;
     }
     
-    private boolean containsDataSourceNameSQLHint(final HintValueContext hintValueContext, final SQLStatement sqlStatement) {
-        if (hintValueContext.findHintDataSourceName().isPresent()) {
-            return true;
-        }
-        if (sqlStatement instanceof AbstractSQLStatement && !((AbstractSQLStatement) sqlStatement).getCommentSegments().isEmpty()) {
-            return SQLHintUtils.extractHint(((AbstractSQLStatement) sqlStatement).getCommentSegments().iterator().next().getText()).flatMap(HintValueContext::findHintDataSourceName).isPresent();
-        }
-        return false;
-    }
-    
-    private static SQLStatement bindDMLStatement(final SQLStatement statement, final ShardingSphereMetaData metaData, final String defaultDatabaseName) {
+    private static SQLStatement bindDMLStatement(final SQLStatement statement, final ShardingSphereMetaData metaData, final String currentDatabaseName) {
         if (statement instanceof SelectStatement) {
-            return new SelectStatementBinder().bind((SelectStatement) statement, metaData, defaultDatabaseName);
+            return new SelectStatementBinder().bind((SelectStatement) statement, metaData, currentDatabaseName);
         }
         if (statement instanceof InsertStatement) {
-            return new InsertStatementBinder().bind((InsertStatement) statement, metaData, defaultDatabaseName);
+            return new InsertStatementBinder().bind((InsertStatement) statement, metaData, currentDatabaseName);
         }
         if (statement instanceof UpdateStatement) {
-            return new UpdateStatementBinder().bind((UpdateStatement) statement, metaData, defaultDatabaseName);
+            return new UpdateStatementBinder().bind((UpdateStatement) statement, metaData, currentDatabaseName);
         }
         if (statement instanceof DeleteStatement) {
-            return new DeleteStatementBinder().bind((DeleteStatement) statement, metaData, defaultDatabaseName);
+            return new DeleteStatementBinder().bind((DeleteStatement) statement, metaData, currentDatabaseName);
         }
         if (statement instanceof MergeStatement) {
-            return new MergeStatementBinder().bind((MergeStatement) statement, metaData, defaultDatabaseName);
+            return new MergeStatementBinder().bind((MergeStatement) statement, metaData, currentDatabaseName);
         }
         return statement;
     }
     
-    private static SQLStatement bindDDLStatement(final SQLStatement statement, final ShardingSphereMetaData metaData, final String defaultDatabaseName) {
-        if (statement instanceof OpenGaussCursorStatement) {
-            return new CursorStatementBinder().bind((OpenGaussCursorStatement) statement, metaData, defaultDatabaseName);
+    private static SQLStatement bindDDLStatement(final SQLStatement statement, final ShardingSphereMetaData metaData, final String currentDatabaseName) {
+        if (statement instanceof CursorStatement) {
+            return new CursorStatementBinder().bind((CursorStatement) statement, metaData, currentDatabaseName);
         }
         return statement;
     }

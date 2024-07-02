@@ -17,7 +17,7 @@
 
 grammar BaseRule;
 
-import Symbol, Keyword, MySQLKeyword, Literals;
+import Comments, Symbol, Keyword, MySQLKeyword, Literals;
 
 parameterMarker
     : QUESTION_
@@ -442,7 +442,7 @@ identifierKeywordsUnambiguous
     | SERVER
     | SHARE
     | SIMPLE
-//    | SKIP
+    | SKIP_SYMBOL
     | SLOW
     | SNAPSHOT
     | SOCKET
@@ -649,24 +649,24 @@ transactionAccessMode
     : READ (WRITE | ONLY)
     ;
     
-schemaName
+databaseName
     : identifier
     ;
     
-schemaNames
-    : schemaName (COMMA_ schemaName)*
+databaseNames
+    : databaseName (COMMA_ databaseName)*
     ;
     
 charsetName
     : textOrIdentifier | BINARY | DEFAULT
     ;
     
-schemaPairs
-    : schemaPair (COMMA_ schemaPair)*
+databasePairs
+    : databasePair (COMMA_ databasePair)*
     ;
     
-schemaPair
-    : LP_ schemaName COMMA_ schemaName RP_
+databasePair
+    : LP_ databaseName COMMA_ databaseName RP_
     ;
     
 tableName
@@ -959,8 +959,24 @@ aggregationFunction
     ;
 
 jsonFunction
-    : columnRef (JSON_SEPARATOR | JSON_UNQUOTED_SEPARATOR) path
+    : jsonTableFunction
     | jsonFunctionName LP_ (expr? | expr (COMMA_ expr)*) RP_
+    | columnRef (JSON_SEPARATOR | JSON_UNQUOTED_SEPARATOR) path
+    ;
+
+jsonTableFunction
+    : JSON_TABLE LP_ expr COMMA_ path jsonTableColumns RP_
+    ;
+
+jsonTableColumns
+    : COLUMNS LP_ jsonTableColumn (COMMA_ jsonTableColumn)* RP_
+    ;
+
+jsonTableColumn
+    : name FOR ORDINALITY
+    | name dataType PATH path (NULL | DEFAULT string_ | ERROR) ON (EMPTY | ERROR)
+    | name dataType EXISTS PATH string_ path
+    | NESTED PATH? path COLUMNS
     ;
 
 jsonFunctionName
@@ -968,7 +984,7 @@ jsonFunctionName
     | JSON_CONTAINS_PATH | JSON_DEPTH | JSON_EXTRACT | JSON_INSERT | JSON_KEYS | JSON_LENGTH | JSON_MERGE | JSON_MERGE_PATCH
     | JSON_MERGE_PRESERVE | JSON_OBJECT | JSON_OVERLAPS | JSON_PRETTY | JSON_QUOTE | JSON_REMOVE | JSON_REPLACE
     | JSON_SCHEMA_VALID | JSON_SCHEMA_VALIDATION_REPORT | JSON_SEARCH | JSON_SET | JSON_STORAGE_FREE | JSON_STORAGE_SIZE
-    | JSON_TABLE | JSON_TYPE | JSON_UNQUOTE | JSON_VALID | JSON_VALUE | MEMBER OF
+    | JSON_TYPE | JSON_UNQUOTE | JSON_VALID | JSON_VALUE | MEMBER OF
     ;
 
 aggregationFunctionName
@@ -1017,6 +1033,7 @@ specialFunction
     | weightStringFunction
     | windowFunction
     | groupingFunction
+    | timeStampDiffFunction
     ;
     
 currentUserFunction
@@ -1025,6 +1042,10 @@ currentUserFunction
     
 groupingFunction
     : GROUPING LP_ expr (COMMA_ expr)* RP_
+    ;
+
+timeStampDiffFunction
+    : TIMESTAMPDIFF LP_ intervalUnit COMMA_ expr COMMA_ expr RP_
     ;
 
 groupConcatFunction
@@ -1329,7 +1350,7 @@ collateClause
     ;
     
 fieldOrVarSpec
-    : LP_ (identifier (COMMA_ identifier)*)? RP_
+    : LP_ (userVariable (COMMA_ userVariable)*)? RP_
     ;
     
 ifNotExists

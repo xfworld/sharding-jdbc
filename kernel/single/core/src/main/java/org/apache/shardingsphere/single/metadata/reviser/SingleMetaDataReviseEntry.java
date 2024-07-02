@@ -20,7 +20,6 @@ package org.apache.shardingsphere.single.metadata.reviser;
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.MetaDataReviseEntry;
 import org.apache.shardingsphere.single.constant.SingleOrder;
 import org.apache.shardingsphere.single.metadata.reviser.constraint.SingleConstraintReviser;
-import org.apache.shardingsphere.single.metadata.reviser.index.SingleIndexReviser;
 import org.apache.shardingsphere.single.rule.SingleRule;
 
 import java.util.Optional;
@@ -29,11 +28,6 @@ import java.util.Optional;
  * Single meta data revise entry.
  */
 public final class SingleMetaDataReviseEntry implements MetaDataReviseEntry<SingleRule> {
-    
-    @Override
-    public Optional<SingleIndexReviser> getIndexReviser(final SingleRule rule, final String tableName) {
-        return Optional.of(new SingleIndexReviser());
-    }
     
     @Override
     public Optional<SingleConstraintReviser> getConstraintReviser(final SingleRule rule, final String tableName) {

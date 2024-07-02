@@ -50,6 +50,12 @@ public final class IntegrationTestCase {
     @XmlAttribute(name = "adapters")
     private String adapters;
     
+    @XmlAttribute(name = "delay-assertion-seconds")
+    private Integer delayAssertionSeconds;
+    
+    @XmlAttribute(name = "smoke")
+    private boolean smoke;
+    
     @XmlElement(name = "assertion")
     private Collection<IntegrationTestCaseAssertion> assertions = new LinkedList<>();
 }

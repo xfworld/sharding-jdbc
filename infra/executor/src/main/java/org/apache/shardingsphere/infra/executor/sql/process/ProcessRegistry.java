@@ -17,8 +17,12 @@
 
 package org.apache.shardingsphere.infra.executor.sql.process;
 
+import com.google.common.base.Strings;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.connection.SQLExecutionInterruptedException;
 
 import java.util.Collection;
 import java.util.Map;
@@ -27,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Process registry.
  */
+@HighFrequencyInvocation
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProcessRegistry {
     
@@ -45,11 +50,28 @@ public final class ProcessRegistry {
     
     /**
      * Put process.
-     * 
+     *
      * @param process process
      */
     public void add(final Process process) {
-        processes.put(process.getId(), process);
+        if (isSameExecutionProcess(process)) {
+            merge(processes.get(process.getId()), process);
+        } else {
+            processes.put(process.getId(), process);
+        }
+    }
+    
+    private boolean isSameExecutionProcess(final Process process) {
+        return !Strings.isNullOrEmpty(process.getSql()) && processes.containsKey(process.getId()) && processes.get(process.getId()).getSql().equalsIgnoreCase(process.getSql());
+    }
+    
+    private void merge(final Process oldProcess, final Process newProcess) {
+        ShardingSpherePreconditions.checkState(!oldProcess.isInterrupted(), SQLExecutionInterruptedException::new);
+        oldProcess.getTotalUnitCount().addAndGet(newProcess.getTotalUnitCount().get());
+        oldProcess.getCompletedUnitCount().addAndGet(newProcess.getCompletedUnitCount().get());
+        oldProcess.getIdle().set(newProcess.getIdle().get());
+        oldProcess.getInterrupted().compareAndSet(false, newProcess.getInterrupted().get());
+        oldProcess.getProcessStatements().putAll(newProcess.getProcessStatements());
     }
     
     /**

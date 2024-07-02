@@ -17,16 +17,11 @@
 
 package org.apache.shardingsphere.infra.session.query;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
-import org.apache.shardingsphere.infra.hint.SQLHintUtils;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.AbstractSQLStatement;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Query context.
@@ -40,19 +35,9 @@ public final class QueryContext {
     
     private final List<Object> parameters;
     
-    @Getter(AccessLevel.NONE)
-    private final String databaseName;
-    
-    @Getter(AccessLevel.NONE)
-    private final String schemaName;
-    
     private final HintValueContext hintValueContext;
     
     private final boolean useCache;
-    
-    public QueryContext(final SQLStatementContext sqlStatementContext, final String sql, final List<Object> params) {
-        this(sqlStatementContext, sql, params, new HintValueContext());
-    }
     
     public QueryContext(final SQLStatementContext sqlStatementContext, final String sql, final List<Object> params, final HintValueContext hintValueContext) {
         this(sqlStatementContext, sql, params, hintValueContext, false);
@@ -62,29 +47,7 @@ public final class QueryContext {
         this.sqlStatementContext = sqlStatementContext;
         this.sql = sql;
         parameters = params;
-        databaseName = sqlStatementContext instanceof TableAvailable ? ((TableAvailable) sqlStatementContext).getTablesContext().getDatabaseName().orElse(null) : null;
-        schemaName = sqlStatementContext instanceof TableAvailable ? ((TableAvailable) sqlStatementContext).getTablesContext().getSchemaName().orElse(null) : null;
-        this.hintValueContext = sqlStatementContext.getSqlStatement() instanceof AbstractSQLStatement && !((AbstractSQLStatement) sqlStatementContext.getSqlStatement()).getCommentSegments().isEmpty()
-                ? SQLHintUtils.extractHint(((AbstractSQLStatement) sqlStatementContext.getSqlStatement()).getCommentSegments().iterator().next().getText()).orElse(hintValueContext)
-                : hintValueContext;
+        this.hintValueContext = hintValueContext;
         this.useCache = useCache;
-    }
-    
-    /**
-     * Get database name from SQL statement.
-     * 
-     * @return got database name
-     */
-    public Optional<String> getDatabaseNameFromSQLStatement() {
-        return Optional.ofNullable(databaseName);
-    }
-    
-    /**
-     * Get schema name from SQL statement.
-     *
-     * @return got schema name
-     */
-    public Optional<String> getSchemaNameFromSQLStatement() {
-        return Optional.ofNullable(schemaName);
     }
 }

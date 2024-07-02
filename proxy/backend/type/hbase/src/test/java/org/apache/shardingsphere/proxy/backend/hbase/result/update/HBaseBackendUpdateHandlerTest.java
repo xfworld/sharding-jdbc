@@ -21,9 +21,10 @@ import org.apache.shardingsphere.infra.executor.sql.execute.result.update.Update
 import org.apache.shardingsphere.proxy.backend.hbase.handler.HBaseBackendUpdateHandler;
 import org.apache.shardingsphere.proxy.backend.hbase.result.HBaseSupportedSQLStatement;
 import org.apache.shardingsphere.proxy.backend.response.header.update.UpdateResponseHeader;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 import org.junit.jupiter.api.Test;
 
+import java.sql.SQLException;
 import java.util.Collections;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -36,33 +37,30 @@ import static org.mockito.Mockito.when;
 class HBaseBackendUpdateHandlerTest {
     
     @Test
-    void assertExecuteDeleteStatement() {
+    void assertExecuteDeleteStatement() throws SQLException {
         HBaseDeleteUpdater updater = mock(HBaseDeleteUpdater.class);
-        when(updater.executeUpdate(any())).thenReturn(Collections.singletonList(new UpdateResult(1, 0)));
+        when(updater.executeUpdate(any())).thenReturn(Collections.singletonList(new UpdateResult(1, 0L)));
         SQLStatement sqlStatement = HBaseSupportedSQLStatement.parseSQLStatement(HBaseSupportedSQLStatement.getDeleteStatement());
         HBaseBackendUpdateHandler handler = new HBaseBackendUpdateHandler(sqlStatement, updater);
-        UpdateResponseHeader result = handler.execute();
-        assertUpdateResponseHeader(sqlStatement, result);
+        assertUpdateResponseHeader(sqlStatement, handler.execute());
     }
     
     @Test
-    void assertExecuteUpdateStatement() {
+    void assertExecuteUpdateStatement() throws SQLException {
         HBaseUpdateUpdater updater = mock(HBaseUpdateUpdater.class);
-        when(updater.executeUpdate(any())).thenReturn(Collections.singletonList(new UpdateResult(1, 0)));
+        when(updater.executeUpdate(any())).thenReturn(Collections.singletonList(new UpdateResult(1, 0L)));
         SQLStatement sqlStatement = HBaseSupportedSQLStatement.parseSQLStatement(HBaseSupportedSQLStatement.getUpdateStatement());
         HBaseBackendUpdateHandler handler = new HBaseBackendUpdateHandler(sqlStatement, updater);
-        UpdateResponseHeader result = handler.execute();
-        assertUpdateResponseHeader(sqlStatement, result);
+        assertUpdateResponseHeader(sqlStatement, handler.execute());
     }
     
     @Test
-    void assertFlushTableStatement() {
+    void assertFlushTableStatement() throws SQLException {
         HBaseRegionReloadUpdater updater = mock(HBaseRegionReloadUpdater.class);
-        when(updater.executeUpdate(any())).thenReturn(Collections.singletonList(new UpdateResult(1, 0)));
+        when(updater.executeUpdate(any())).thenReturn(Collections.singletonList(new UpdateResult(1, 0L)));
         SQLStatement sqlStatement = HBaseSupportedSQLStatement.parseSQLStatement(HBaseSupportedSQLStatement.getFlushTablesStatement());
         HBaseBackendUpdateHandler handler = new HBaseBackendUpdateHandler(sqlStatement, updater);
-        UpdateResponseHeader result = handler.execute();
-        assertUpdateResponseHeader(sqlStatement, result);
+        assertUpdateResponseHeader(sqlStatement, handler.execute());
     }
     
     private void assertUpdateResponseHeader(final SQLStatement sqlStatement, final UpdateResponseHeader responseHeader) {

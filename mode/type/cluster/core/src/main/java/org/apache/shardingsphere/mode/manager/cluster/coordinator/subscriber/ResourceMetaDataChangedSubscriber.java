@@ -18,46 +18,28 @@
 package org.apache.shardingsphere.mode.manager.cluster.coordinator.subscriber;
 
 import com.google.common.eventbus.Subscribe;
+import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereView;
+import org.apache.shardingsphere.infra.util.eventbus.EventSubscriber;
+import org.apache.shardingsphere.mode.event.schema.table.CreateOrAlterTableEvent;
+import org.apache.shardingsphere.mode.event.schema.table.DropTableEvent;
+import org.apache.shardingsphere.mode.event.schema.view.CreateOrAlterViewEvent;
+import org.apache.shardingsphere.mode.event.schema.view.DropViewEvent;
 import org.apache.shardingsphere.mode.manager.ContextManager;
-import org.apache.shardingsphere.mode.event.schema.TableMetaDataChangedEvent;
-import org.apache.shardingsphere.mode.event.schema.ViewMetaDataChangedEvent;
-import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.metadata.event.DatabaseAddedEvent;
-import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.metadata.event.DatabaseDeletedEvent;
 import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.metadata.event.SchemaAddedEvent;
 import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.metadata.event.SchemaDeletedEvent;
+
+import java.util.Map;
 
 /**
  * Resource meta data changed subscriber.
  */
-@SuppressWarnings("UnstableApiUsage")
-public final class ResourceMetaDataChangedSubscriber {
+@RequiredArgsConstructor
+@SuppressWarnings("unused")
+public final class ResourceMetaDataChangedSubscriber implements EventSubscriber {
     
     private final ContextManager contextManager;
-    
-    public ResourceMetaDataChangedSubscriber(final ContextManager contextManager) {
-        this.contextManager = contextManager;
-        contextManager.getInstanceContext().getEventBusContext().register(this);
-    }
-    
-    /**
-     * Renew to persist meta data.
-     *
-     * @param event database added event
-     */
-    @Subscribe
-    public synchronized void renew(final DatabaseAddedEvent event) {
-        contextManager.getResourceMetaDataContextManager().addDatabase(event.getDatabaseName());
-    }
-    
-    /**
-     * Renew to delete database.
-     *
-     * @param event database delete event
-     */
-    @Subscribe
-    public synchronized void renew(final DatabaseDeletedEvent event) {
-        contextManager.getResourceMetaDataContextManager().dropDatabase(event.getDatabaseName());
-    }
     
     /**
      * Renew to added schema.
@@ -66,7 +48,7 @@ public final class ResourceMetaDataChangedSubscriber {
      */
     @Subscribe
     public synchronized void renew(final SchemaAddedEvent event) {
-        contextManager.getResourceMetaDataContextManager().addSchema(event.getDatabaseName(), event.getSchemaName());
+        contextManager.getMetaDataContextManager().getResourceMetaDataManager().addSchema(event.getDatabaseName(), event.getSchemaName());
     }
     
     /**
@@ -76,28 +58,60 @@ public final class ResourceMetaDataChangedSubscriber {
      */
     @Subscribe
     public synchronized void renew(final SchemaDeletedEvent event) {
-        contextManager.getResourceMetaDataContextManager().dropSchema(event.getDatabaseName(), event.getSchemaName());
+        contextManager.getMetaDataContextManager().getResourceMetaDataManager().dropSchema(event.getDatabaseName(), event.getSchemaName());
     }
     
     /**
-     * Renew meta data of the table.
+     * Renew table.
      *
-     * @param event table meta data changed event
+     * @param event create or alter table event
      */
     @Subscribe
-    public synchronized void renew(final TableMetaDataChangedEvent event) {
-        contextManager.getResourceMetaDataContextManager().alterSchema(event.getDatabaseName(), event.getSchemaName(), event.getChangedTableMetaData(), null);
-        contextManager.getResourceMetaDataContextManager().alterSchema(event.getDatabaseName(), event.getSchemaName(), event.getDeletedTable(), null);
+    public synchronized void renew(final CreateOrAlterTableEvent event) {
+        if (!event.getActiveVersion().equals(contextManager.getPersistServiceFacade().getMetaDataPersistService().getMetaDataVersionPersistService()
+                .getActiveVersionByFullPath(event.getActiveVersionKey()))) {
+            return;
+        }
+        Map<String, ShardingSphereTable> tables = contextManager.getPersistServiceFacade().getMetaDataPersistService().getDatabaseMetaDataService()
+                .getTableMetaDataPersistService().load(event.getDatabaseName(), event.getSchemaName(), event.getTableName());
+        contextManager.getMetaDataContextManager().getResourceMetaDataManager().alterSchema(event.getDatabaseName(), event.getSchemaName(),
+                tables.values().iterator().next(), null);
     }
     
     /**
-     * Renew meta data of the view.
+     * Renew table.
      *
-     * @param event view meta data changed event
+     * @param event drop table event
      */
     @Subscribe
-    public synchronized void renew(final ViewMetaDataChangedEvent event) {
-        contextManager.getResourceMetaDataContextManager().alterSchema(event.getDatabaseName(), event.getSchemaName(), null, event.getChangedViewMetaData());
-        contextManager.getResourceMetaDataContextManager().alterSchema(event.getDatabaseName(), event.getSchemaName(), null, event.getDeletedView());
+    public synchronized void renew(final DropTableEvent event) {
+        contextManager.getMetaDataContextManager().getResourceMetaDataManager().alterSchema(event.getDatabaseName(), event.getSchemaName(), event.getTableName(), null);
+    }
+    
+    /**
+     * Renew view.
+     *
+     * @param event create or alter view event
+     */
+    @Subscribe
+    public synchronized void renew(final CreateOrAlterViewEvent event) {
+        if (!event.getActiveVersion().equals(contextManager.getPersistServiceFacade().getMetaDataPersistService().getMetaDataVersionPersistService()
+                .getActiveVersionByFullPath(event.getActiveVersionKey()))) {
+            return;
+        }
+        Map<String, ShardingSphereView> views = contextManager.getPersistServiceFacade().getMetaDataPersistService().getDatabaseMetaDataService()
+                .getViewMetaDataPersistService().load(event.getDatabaseName(), event.getSchemaName(), event.getViewName());
+        contextManager.getMetaDataContextManager().getResourceMetaDataManager().alterSchema(event.getDatabaseName(), event.getSchemaName(),
+                null, views.values().iterator().next());
+    }
+    
+    /**
+     * Renew view.
+     *
+     * @param event drop view event
+     */
+    @Subscribe
+    public synchronized void renew(final DropViewEvent event) {
+        contextManager.getMetaDataContextManager().getResourceMetaDataManager().alterSchema(event.getDatabaseName(), event.getSchemaName(), null, event.getViewName());
     }
 }

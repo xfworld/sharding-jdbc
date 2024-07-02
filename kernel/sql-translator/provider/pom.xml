@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-sql-translator</artifactId>
-        <version>5.4.1-SNAPSHOT</version>
+        <version>5.5.1-SNAPSHOT</version>
     </parent>
     <artifactId>shardingsphere-sql-translator-provider</artifactId>
     <packaging>pom</packaging>
@@ -29,6 +29,5 @@
     
     <modules>
         <module>native</module>
-        <module>jooq</module>
     </modules>
 </project>

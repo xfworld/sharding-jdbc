@@ -18,6 +18,8 @@
 package org.apache.shardingsphere.mode.manager.cluster.coordinator.subscriber;
 
 import com.google.common.eventbus.Subscribe;
+import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.infra.util.eventbus.EventSubscriber;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.data.event.DatabaseDataAddedEvent;
 import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.data.event.DatabaseDataDeletedEvent;
@@ -30,15 +32,11 @@ import org.apache.shardingsphere.mode.manager.cluster.coordinator.registry.data.
 /**
  * Database changed subscriber.
  */
-@SuppressWarnings("UnstableApiUsage")
-public final class DatabaseChangedSubscriber {
+@RequiredArgsConstructor
+@SuppressWarnings("unused")
+public final class DatabaseChangedSubscriber implements EventSubscriber {
     
     private final ContextManager contextManager;
-    
-    public DatabaseChangedSubscriber(final ContextManager contextManager) {
-        this.contextManager = contextManager;
-        contextManager.getInstanceContext().getEventBusContext().register(this);
-    }
     
     /**
      * Renew to persist ShardingSphere database data.
@@ -47,7 +45,7 @@ public final class DatabaseChangedSubscriber {
      */
     @Subscribe
     public synchronized void renew(final DatabaseDataAddedEvent event) {
-        contextManager.getShardingSphereDatabaseContextManager().addShardingSphereDatabaseData(event.getDatabaseName());
+        contextManager.getMetaDataContextManager().getDatabaseManager().addShardingSphereDatabaseData(event.getDatabaseName());
     }
     
     /**
@@ -57,7 +55,7 @@ public final class DatabaseChangedSubscriber {
      */
     @Subscribe
     public synchronized void renew(final DatabaseDataDeletedEvent event) {
-        contextManager.getShardingSphereDatabaseContextManager().dropShardingSphereDatabaseData(event.getDatabaseName());
+        contextManager.getMetaDataContextManager().getDatabaseManager().dropShardingSphereDatabaseData(event.getDatabaseName());
     }
     
     /**
@@ -67,7 +65,7 @@ public final class DatabaseChangedSubscriber {
      */
     @Subscribe
     public synchronized void renew(final SchemaDataAddedEvent event) {
-        contextManager.getShardingSphereDatabaseContextManager().addShardingSphereSchemaData(event.getDatabaseName(), event.getSchemaName());
+        contextManager.getMetaDataContextManager().getDatabaseManager().addShardingSphereSchemaData(event.getDatabaseName(), event.getSchemaName());
     }
     
     /**
@@ -77,7 +75,7 @@ public final class DatabaseChangedSubscriber {
      */
     @Subscribe
     public synchronized void renew(final SchemaDataDeletedEvent event) {
-        contextManager.getShardingSphereDatabaseContextManager().dropShardingSphereSchemaData(event.getDatabaseName(), event.getSchemaName());
+        contextManager.getMetaDataContextManager().getDatabaseManager().dropShardingSphereSchemaData(event.getDatabaseName(), event.getSchemaName());
     }
     
     /**
@@ -88,10 +86,10 @@ public final class DatabaseChangedSubscriber {
     @Subscribe
     public synchronized void renew(final TableDataChangedEvent event) {
         if (null != event.getAddedTable()) {
-            contextManager.getShardingSphereDatabaseContextManager().addShardingSphereTableData(event.getDatabaseName(), event.getSchemaName(), event.getAddedTable());
+            contextManager.getMetaDataContextManager().getDatabaseManager().addShardingSphereTableData(event.getDatabaseName(), event.getSchemaName(), event.getAddedTable());
         }
         if (null != event.getDeletedTable()) {
-            contextManager.getShardingSphereDatabaseContextManager().dropShardingSphereTableData(event.getDatabaseName(), event.getSchemaName(), event.getDeletedTable());
+            contextManager.getMetaDataContextManager().getDatabaseManager().dropShardingSphereTableData(event.getDatabaseName(), event.getSchemaName(), event.getDeletedTable());
         }
     }
     
@@ -102,7 +100,7 @@ public final class DatabaseChangedSubscriber {
      */
     @Subscribe
     public synchronized void renew(final ShardingSphereRowDataChangedEvent event) {
-        contextManager.getShardingSphereDatabaseContextManager().alterShardingSphereRowData(event.getDatabaseName(), event.getSchemaName(), event.getTableName(), event.getYamlRowData());
+        contextManager.getMetaDataContextManager().getDatabaseManager().alterShardingSphereRowData(event.getDatabaseName(), event.getSchemaName(), event.getTableName(), event.getYamlRowData());
     }
     
     /**
@@ -112,6 +110,6 @@ public final class DatabaseChangedSubscriber {
      */
     @Subscribe
     public synchronized void renew(final ShardingSphereRowDataDeletedEvent event) {
-        contextManager.getShardingSphereDatabaseContextManager().deleteShardingSphereRowData(event.getDatabaseName(), event.getSchemaName(), event.getTableName(), event.getUniqueKey());
+        contextManager.getMetaDataContextManager().getDatabaseManager().deleteShardingSphereRowData(event.getDatabaseName(), event.getSchemaName(), event.getTableName(), event.getUniqueKey());
     }
 }

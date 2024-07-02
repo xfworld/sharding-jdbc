@@ -22,7 +22,9 @@ import org.apache.shardingsphere.infra.executor.sql.execute.result.update.Update
 import org.apache.shardingsphere.proxy.backend.hbase.converter.operation.HBaseDeleteOperation;
 import org.apache.shardingsphere.proxy.backend.hbase.bean.HBaseOperation;
 import org.apache.shardingsphere.proxy.backend.hbase.executor.HBaseExecutor;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLDeleteStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLDeleteStatement;
+
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -32,14 +34,14 @@ import java.util.Collections;
 public final class HBaseDeleteUpdater implements HBaseUpdater {
     
     @Override
-    public Collection<UpdateResult> executeUpdate(final HBaseOperation operation) {
+    public Collection<UpdateResult> executeUpdate(final HBaseOperation operation) throws SQLException {
         if (operation.getOperation() instanceof HBaseDeleteOperation) {
             int deleteAffectedSize = ((HBaseDeleteOperation) operation.getOperation()).getDeletes().size();
             HBaseExecutor.executeUpdate(operation.getTableName(), table -> table.delete(((HBaseDeleteOperation) operation.getOperation()).getDeletes()));
-            return Collections.singleton(new UpdateResult(deleteAffectedSize, 0));
+            return Collections.singleton(new UpdateResult(deleteAffectedSize, 0L));
         }
         HBaseExecutor.executeUpdate(operation.getTableName(), table -> table.delete((Delete) operation.getOperation()));
-        return Collections.singleton(new UpdateResult(1, 0));
+        return Collections.singleton(new UpdateResult(1, 0L));
     }
     
     @Override

@@ -26,8 +26,8 @@ import org.apache.shardingsphere.infra.executor.sql.execute.engine.driver.jdbc.J
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.driver.jdbc.JDBCExecutorCallback;
 import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +40,8 @@ import java.sql.Statement;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -73,7 +75,7 @@ class JDBCExecutorCallbackTest {
                     
                     @Override
                     protected Object executeSQL(final String sql, final Statement statement, final ConnectionMode connectionMode, final DatabaseType storageType) throws SQLException {
-                        throw new SQLException();
+                        throw new SQLException("");
                     }
                     
                     @Override
@@ -81,8 +83,9 @@ class JDBCExecutorCallbackTest {
                         return Optional.of(saneResult);
                     }
                 };
-        assertThat(callback.execute(units, true), is(Collections.singletonList(saneResult)));
-        assertThat(callback.execute(units, false), is(Collections.emptyList()));
+        String processId = new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong()).toString().replace("-", "");
+        assertThat(callback.execute(units, true, processId), is(Collections.singletonList(saneResult)));
+        assertThat(callback.execute(units, false, processId), is(Collections.emptyList()));
     }
     
     @Test
@@ -94,7 +97,7 @@ class JDBCExecutorCallbackTest {
                     
                     @Override
                     protected Object executeSQL(final String sql, final Statement statement, final ConnectionMode connectionMode, final DatabaseType storageType) throws SQLException {
-                        throw new SQLException();
+                        throw new SQLException("");
                     }
                     
                     @Override
@@ -102,6 +105,7 @@ class JDBCExecutorCallbackTest {
                         return Optional.empty();
                     }
                 };
-        assertThrows(SQLException.class, () -> callback.execute(units, true));
+        String processId = new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong()).toString().replace("-", "");
+        assertThrows(SQLException.class, () -> callback.execute(units, true, processId));
     }
 }
