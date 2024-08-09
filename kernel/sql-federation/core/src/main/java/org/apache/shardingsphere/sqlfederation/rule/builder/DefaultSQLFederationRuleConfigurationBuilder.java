@@ -19,7 +19,7 @@ package org.apache.shardingsphere.sqlfederation.rule.builder;
 
 import org.apache.shardingsphere.infra.rule.builder.global.DefaultGlobalRuleConfigurationBuilder;
 import org.apache.shardingsphere.sql.parser.api.CacheOption;
-import org.apache.shardingsphere.sqlfederation.api.config.SQLFederationRuleConfiguration;
+import org.apache.shardingsphere.sqlfederation.config.SQLFederationRuleConfiguration;
 import org.apache.shardingsphere.sqlfederation.constant.SQLFederationOrder;
 
 /**
@@ -31,7 +31,7 @@ public final class DefaultSQLFederationRuleConfigurationBuilder implements Defau
     
     @Override
     public SQLFederationRuleConfiguration build() {
-        return new SQLFederationRuleConfiguration(false, DEFAULT_EXECUTION_PLAN_CACHE_OPTION);
+        return new SQLFederationRuleConfiguration(false, false, DEFAULT_EXECUTION_PLAN_CACHE_OPTION);
     }
     
     @Override

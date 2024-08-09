@@ -19,6 +19,7 @@ package org.apache.shardingsphere.mode.repository.cluster.etcd;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.etcd.jetcd.ByteSequence;
 import io.etcd.jetcd.Client;
 import io.etcd.jetcd.KeyValue;
@@ -33,24 +34,32 @@ import io.etcd.jetcd.support.Util;
 import io.etcd.jetcd.watch.WatchEvent;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
+import org.apache.shardingsphere.mode.event.DataChangedEvent;
+import org.apache.shardingsphere.mode.event.DataChangedEvent.Type;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepository;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepositoryConfiguration;
 import org.apache.shardingsphere.mode.repository.cluster.etcd.props.EtcdProperties;
 import org.apache.shardingsphere.mode.repository.cluster.etcd.props.EtcdPropertyKey;
-import org.apache.shardingsphere.mode.event.DataChangedEvent;
-import org.apache.shardingsphere.mode.event.DataChangedEvent.Type;
 import org.apache.shardingsphere.mode.repository.cluster.listener.DataChangedEventListener;
 import org.apache.shardingsphere.mode.repository.cluster.lock.holder.DistributedLockHolder;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
  * Registry repository of ETCD.
  */
+@Slf4j
 public final class EtcdRepository implements ClusterPersistRepository {
+    
+    private static final ExecutorService EVENT_LISTENER_EXECUTOR = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("Etcd-EventListener-%d").build());
     
     private Client client;
     
@@ -60,7 +69,7 @@ public final class EtcdRepository implements ClusterPersistRepository {
     private DistributedLockHolder distributedLockHolder;
     
     @Override
-    public void init(final ClusterPersistRepositoryConfiguration config) {
+    public void init(final ClusterPersistRepositoryConfiguration config, final ComputeNodeInstanceContext computeNodeInstanceContext) {
         etcdProps = new EtcdProperties(config.getProps());
         client = Client.builder().endpoints(Util.toURIs(Splitter.on(",").trimResults().splitToList(config.getServerLists())))
                 .namespace(ByteSequence.from(config.getNamespace(), StandardCharsets.UTF_8))
@@ -71,7 +80,7 @@ public final class EtcdRepository implements ClusterPersistRepository {
     
     @SneakyThrows({InterruptedException.class, ExecutionException.class})
     @Override
-    public String getDirectly(final String key) {
+    public String query(final String key) {
         List<KeyValue> keyValues = client.getKVClient().get(ByteSequence.from(key, StandardCharsets.UTF_8)).get().getKvs();
         return keyValues.isEmpty() ? null : keyValues.iterator().next().getValue().toString(StandardCharsets.UTF_8);
     }
@@ -119,8 +128,9 @@ public final class EtcdRepository implements ClusterPersistRepository {
     }
     
     @Override
-    public void persistExclusiveEphemeral(final String key, final String value) {
+    public boolean persistExclusiveEphemeral(final String key, final String value) {
         persistEphemeral(key, value);
+        return true;
     }
     
     private void buildParentPath(final String key) throws ExecutionException, InterruptedException {
@@ -148,8 +158,7 @@ public final class EtcdRepository implements ClusterPersistRepository {
             for (WatchEvent each : response.getEvents()) {
                 Type type = getEventChangedType(each);
                 if (Type.IGNORED != type) {
-                    dataChangedEventListener.onChange(new DataChangedEvent(each.getKeyValue().getKey().toString(StandardCharsets.UTF_8),
-                            each.getKeyValue().getValue().toString(StandardCharsets.UTF_8), type));
+                    dispatchEvent(dataChangedEventListener, each, type);
                 }
             }
         });
@@ -157,6 +166,11 @@ public final class EtcdRepository implements ClusterPersistRepository {
         Preconditions.checkNotNull(prefix, "prefix should not be null");
         client.getWatchClient().watch(prefix,
                 WatchOption.newBuilder().withRange(OptionsUtil.prefixEndOf(prefix)).build(), listener);
+    }
+    
+    @Override
+    public void removeDataListener(final String key) {
+        // TODO
     }
     
     private Type getEventChangedType(final WatchEvent event) {
@@ -173,9 +187,19 @@ public final class EtcdRepository implements ClusterPersistRepository {
         }
     }
     
+    private void dispatchEvent(final DataChangedEventListener dataChangedEventListener, final WatchEvent event, final Type type) {
+        CompletableFuture.runAsync(() -> dataChangedEventListener.onChange(new DataChangedEvent(event.getKeyValue().getKey().toString(StandardCharsets.UTF_8),
+                event.getKeyValue().getValue().toString(StandardCharsets.UTF_8), type)), EVENT_LISTENER_EXECUTOR).whenComplete((unused, throwable) -> {
+                    if (null != throwable) {
+                        log.error("Dispatch event failed", throwable);
+                    }
+                });
+    }
+    
     @Override
     public void close() {
         client.close();
+        EVENT_LISTENER_EXECUTOR.shutdown();
     }
     
     @Override

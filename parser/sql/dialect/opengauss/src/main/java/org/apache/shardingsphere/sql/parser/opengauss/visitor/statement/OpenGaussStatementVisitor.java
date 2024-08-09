@@ -67,6 +67,7 @@ import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.Ins
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.InsertContext;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.InsertRestContext;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.InsertTargetContext;
+import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.IntoClauseContext;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.JoinQualContext;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.JoinedTableContext;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.LimitClauseContext;
@@ -110,90 +111,90 @@ import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.Whe
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.WhereOrCurrentClauseContext;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.WindowClauseContext;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.WindowDefinitionContext;
-import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.WindowSpecificationContext;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.AggregationType;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.CombineType;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.JoinType;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.OrderDirection;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.ParameterMarkerType;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.SubqueryType;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.ConstraintSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.ReturningSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.AssignmentSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.ColumnAssignmentSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.InsertValuesSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.SetAssignmentSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.InsertColumnsSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.OnDuplicateKeyColumnsSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.combine.CombineSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BetweenExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BinaryOperationExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.CaseWhenExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExistsSubqueryExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExtractArgExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.FunctionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.InExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ListExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.TypeCastExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.complex.CommonExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.LiteralExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.subquery.SubqueryExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.subquery.SubquerySegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.AggregationDistinctProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.AggregationProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ColumnProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ExpressionProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionsSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ShorthandProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.SubqueryProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.GroupBySegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.OrderBySegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.ColumnOrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.ExpressionOrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.IndexOrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.OrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.limit.LimitSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.limit.LimitValueSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.limit.NumberLiteralLimitValueSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.limit.ParameterMarkerLimitValueSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.HavingSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.LockSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.WhereSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.AliasAvailable;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.AliasSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DataTypeLengthSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DataTypeSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.NameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OwnerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.ParameterMarkerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.WindowSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.JoinTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SubqueryTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.util.SQLUtils;
-import org.apache.shardingsphere.sql.parser.sql.common.value.collection.CollectionValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.keyword.KeywordValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.LiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.BooleanLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.NullLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.NumberLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.OtherLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.StringLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.parametermarker.ParameterMarkerValue;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussExecuteStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dml.OpenGaussDeleteStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dml.OpenGaussInsertStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dml.OpenGaussSelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dml.OpenGaussUpdateStatement;
+import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.WindowDefinitionListContext;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.AggregationType;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.CombineType;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.JoinType;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.OrderDirection;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.ParameterMarkerType;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.SubqueryType;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.ReturningSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.ColumnAssignmentSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.InsertValuesSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.SetAssignmentSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.InsertColumnsSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.OnDuplicateKeyColumnsSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.combine.CombineSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BetweenExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BinaryOperationExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.CaseWhenExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExistsSubqueryExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExtractArgExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.FunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.InExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ListExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.TypeCastExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.complex.CommonExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.LiteralExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubqueryExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubquerySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationDistinctProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ColumnProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ExpressionProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionsSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ShorthandProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.SubqueryProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.GroupBySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.OrderBySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.ColumnOrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.ExpressionOrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.IndexOrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.OrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.limit.LimitSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.limit.LimitValueSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.limit.NumberLiteralLimitValueSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.limit.ParameterMarkerLimitValueSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.HavingSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.LockSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.WhereSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.AliasAvailable;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.AliasSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DataTypeLengthSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DataTypeSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.NameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OwnerSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.ParameterMarkerSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.WindowItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.WindowSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.JoinTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SubqueryTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.util.SQLUtils;
+import org.apache.shardingsphere.sql.parser.statement.core.value.collection.CollectionValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.keyword.KeywordValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.LiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.BooleanLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.NullLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.NumberLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.OtherLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.StringLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.parametermarker.ParameterMarkerValue;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussExecuteStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dml.OpenGaussDeleteStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dml.OpenGaussInsertStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dml.OpenGaussSelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dml.OpenGaussUpdateStatement;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -415,7 +416,7 @@ public abstract class OpenGaussStatementVisitor extends OpenGaussStatementBaseVi
         SubquerySegment subquerySegment = new SubquerySegment(ctx.selectWithParens().getStart().getStartIndex(),
                 ctx.selectWithParens().getStop().getStopIndex(), (OpenGaussSelectStatement) visit(ctx.selectWithParens()), getOriginalText(ctx.selectWithParens()));
         if (null != ctx.EXISTS()) {
-            subquerySegment.setSubqueryType(SubqueryType.EXISTS_SUBQUERY);
+            subquerySegment.setSubqueryType(SubqueryType.EXISTS);
             return new ExistsSubqueryExpression(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), subquerySegment);
         }
         return new SubqueryExpressionSegment(subquerySegment);
@@ -774,9 +775,9 @@ public abstract class OpenGaussStatementVisitor extends OpenGaussStatementBaseVi
         if (null != ctx.NOTHING()) {
             return new OnDuplicateKeyColumnsSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), Collections.emptyList());
         }
-        Collection<AssignmentSegment> columns = new LinkedList<>();
+        Collection<ColumnAssignmentSegment> columns = new LinkedList<>();
         for (AssignmentContext each : ctx.assignment()) {
-            columns.add((AssignmentSegment) visit(each));
+            columns.add((ColumnAssignmentSegment) visit(each));
         }
         return new OnDuplicateKeyColumnsSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), columns);
     }
@@ -841,13 +842,13 @@ public abstract class OpenGaussStatementVisitor extends OpenGaussStatementBaseVi
         return result;
     }
     
-    private Collection<AssignmentSegment> generateAssignmentSegments(final SetClauseListContext ctx) {
-        Collection<AssignmentSegment> result = new LinkedList<>();
+    private Collection<ColumnAssignmentSegment> generateAssignmentSegments(final SetClauseListContext ctx) {
+        Collection<ColumnAssignmentSegment> result = new LinkedList<>();
         if (null != ctx.setClauseList()) {
-            Collection<AssignmentSegment> tmpResult = generateAssignmentSegments(ctx.setClauseList());
+            Collection<ColumnAssignmentSegment> tmpResult = generateAssignmentSegments(ctx.setClauseList());
             result.addAll(tmpResult);
         }
-        AssignmentSegment assignmentSegment = (AssignmentSegment) visit(ctx.setClause());
+        ColumnAssignmentSegment assignmentSegment = (ColumnAssignmentSegment) visit(ctx.setClause());
         result.add(assignmentSegment);
         return result;
     }
@@ -898,7 +899,7 @@ public abstract class OpenGaussStatementVisitor extends OpenGaussStatementBaseVi
     
     @Override
     public ASTNode visitSetClauseList(final SetClauseListContext ctx) {
-        Collection<AssignmentSegment> assignments = generateAssignmentSegments(ctx);
+        Collection<ColumnAssignmentSegment> assignments = generateAssignmentSegments(ctx);
         return new SetAssignmentSegment(ctx.start.getStartIndex() - 4, ctx.stop.getStopIndex(), assignments);
     }
     
@@ -967,13 +968,17 @@ public abstract class OpenGaussStatementVisitor extends OpenGaussStatementBaseVi
             OpenGaussSelectStatement result = new OpenGaussSelectStatement();
             OpenGaussSelectStatement left = (OpenGaussSelectStatement) visit(ctx.selectClauseN(0));
             result.setProjections(left.getProjections());
-            result.setFrom(left.getFrom());
-            CombineSegment combineSegment = new CombineSegment(((TerminalNode) ctx.getChild(1)).getSymbol().getStartIndex(), ctx.getStop().getStopIndex(), left, getCombineType(ctx),
-                    (OpenGaussSelectStatement) visit(ctx.selectClauseN(1)));
+            left.getFrom().ifPresent(result::setFrom);
+            CombineSegment combineSegment = new CombineSegment(((TerminalNode) ctx.getChild(1)).getSymbol().getStartIndex(), ctx.getStop().getStopIndex(),
+                    createSubquerySegment(ctx.selectClauseN(0), left), getCombineType(ctx), createSubquerySegment(ctx.selectClauseN(1), (OpenGaussSelectStatement) visit(ctx.selectClauseN(1))));
             result.setCombine(combineSegment);
             return result;
         }
         return visit(ctx.selectWithParens());
+    }
+    
+    private SubquerySegment createSubquerySegment(final SelectClauseNContext ctx, final OpenGaussSelectStatement selectStatement) {
+        return new SubquerySegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), selectStatement, getOriginalText(ctx));
     }
     
     private CombineType getCombineType(final SelectClauseNContext ctx) {
@@ -1002,6 +1007,9 @@ public abstract class OpenGaussStatementVisitor extends OpenGaussStatementBaseVi
         } else {
             result.setProjections(new ProjectionsSegment(-1, -1));
         }
+        if (null != ctx.intoClause()) {
+            result.setIntoSegment((TableSegment) visit(ctx.intoClause()));
+        }
         if (null != ctx.fromClause()) {
             TableSegment tableSegment = (TableSegment) visit(ctx.fromClause());
             result.setFrom(tableSegment);
@@ -1022,6 +1030,11 @@ public abstract class OpenGaussStatementVisitor extends OpenGaussStatementBaseVi
     }
     
     @Override
+    public ASTNode visitIntoClause(final IntoClauseContext ctx) {
+        return visit(ctx.optTempTableName().qualifiedName());
+    }
+    
+    @Override
     public ASTNode visitHavingClause(final HavingClauseContext ctx) {
         ExpressionSegment expr = (ExpressionSegment) visit(ctx.aExpr());
         return new HavingSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), expr);
@@ -1029,19 +1042,38 @@ public abstract class OpenGaussStatementVisitor extends OpenGaussStatementBaseVi
     
     @Override
     public ASTNode visitWindowClause(final WindowClauseContext ctx) {
+        WindowSegment result = new WindowSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex());
+        appendWindowItems(ctx.windowDefinitionList(), result.getItemSegments());
+        return result;
+    }
+    
+    private void appendWindowItems(final WindowDefinitionListContext ctx, final Collection<WindowItemSegment> windowItems) {
         if (null != ctx.windowDefinitionList()) {
-            return new WindowSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), getWindowItem(ctx.windowDefinitionList().windowDefinition()),
-                    getWindowSpecification(ctx.windowDefinitionList().windowDefinition().windowSpecification()));
+            appendWindowItems(ctx.windowDefinitionList(), windowItems);
+            windowItems.add((WindowItemSegment) visit(ctx.windowDefinition()));
+            return;
         }
-        return new WindowSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex());
+        windowItems.add((WindowItemSegment) visit(ctx.windowDefinition()));
     }
     
-    private IdentifierValue getWindowItem(final WindowDefinitionContext ctx) {
-        return new IdentifierValue(ctx.colId().identifier().getText());
-    }
-    
-    private Collection<ExpressionSegment> getWindowSpecification(final WindowSpecificationContext ctx) {
-        return createInsertValuesSegments(ctx.partitionClause().exprList());
+    @SuppressWarnings("unchecked")
+    @Override
+    public ASTNode visitWindowDefinition(final WindowDefinitionContext ctx) {
+        WindowItemSegment result = new WindowItemSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex());
+        result.setWindowName(new IdentifierValue(ctx.colId().getText()));
+        if (null != ctx.windowSpecification().partitionClause()) {
+            CollectionValue<ExpressionSegment> value = (CollectionValue<ExpressionSegment>) visit(ctx.windowSpecification().partitionClause().exprList());
+            result.setPartitionListSegments(value.getValue());
+        }
+        if (null != ctx.windowSpecification().sortClause()) {
+            OrderBySegment orderBySegment = (OrderBySegment) visit(ctx.windowSpecification().sortClause());
+            result.setOrderBySegment(orderBySegment);
+        }
+        if (null != ctx.windowSpecification().frameClause()) {
+            result.setFrameClause(new CommonExpressionSegment(ctx.windowSpecification().frameClause().start.getStartIndex(), ctx.windowSpecification().frameClause().stop.getStopIndex(),
+                    ctx.windowSpecification().frameClause().getText()));
+        }
+        return result;
     }
     
     @Override
@@ -1175,7 +1207,7 @@ public abstract class OpenGaussStatementVisitor extends OpenGaussStatementBaseVi
     private SubqueryTableSegment getSubqueryTableSegment(final TableReferenceContext ctx) {
         OpenGaussSelectStatement select = (OpenGaussSelectStatement) visit(ctx.selectWithParens());
         SubquerySegment subquery = new SubquerySegment(ctx.selectWithParens().start.getStartIndex(), ctx.selectWithParens().stop.getStopIndex(), select, getOriginalText(ctx.selectWithParens()));
-        SubqueryTableSegment result = new SubqueryTableSegment(subquery);
+        SubqueryTableSegment result = new SubqueryTableSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), subquery);
         if (null != ctx.aliasClause()) {
             result.setAlias((AliasSegment) visit(ctx.aliasClause()));
         }

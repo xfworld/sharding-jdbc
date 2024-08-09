@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-proxy-backend</artifactId>
-        <version>5.4.1-SNAPSHOT</version>
+        <version>5.5.1-SNAPSHOT</version>
     </parent>
     <artifactId>shardingsphere-proxy-backend-core</artifactId>
     <name>${project.artifactId}</name>
@@ -119,11 +119,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-traffic-distsql-handler</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-transaction-distsql-handler</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -210,6 +205,11 @@
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-logging-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-schedule-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

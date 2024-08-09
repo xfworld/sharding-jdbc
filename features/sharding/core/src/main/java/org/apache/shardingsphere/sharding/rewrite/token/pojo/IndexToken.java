@@ -22,12 +22,12 @@ import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementCont
 import org.apache.shardingsphere.infra.binder.context.statement.ddl.CreateIndexStatementContext;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.util.IndexMetaDataUtils;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.RouteUnitAware;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.SQLToken;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.Substitutable;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.RouteUnitAware;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.Substitutable;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.Map;
 import java.util.Optional;
@@ -69,9 +69,12 @@ public final class IndexToken extends SQLToken implements Substitutable, RouteUn
     }
     
     private String getIndexValue(final RouteUnit routeUnit) {
+        Optional<String> logicTableName = findLogicTableNameFromMetaData(identifier.getValue());
+        if (logicTableName.isPresent() && !shardingRule.isShardingTable(logicTableName.get())) {
+            return identifier.getValue();
+        }
         Map<String, String> logicAndActualTables = TokenUtils.getLogicAndActualTableMap(routeUnit, sqlStatementContext, shardingRule);
-        String actualTableName = findLogicTableNameFromMetaData(identifier.getValue()).map(logicAndActualTables::get)
-                .orElseGet(() -> logicAndActualTables.values().stream().findFirst().orElse(null));
+        String actualTableName = logicTableName.map(logicAndActualTables::get).orElseGet(() -> logicAndActualTables.isEmpty() ? null : logicAndActualTables.values().iterator().next());
         return IndexMetaDataUtils.getActualIndexName(identifier.getValue(), actualTableName);
     }
     

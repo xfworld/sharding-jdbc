@@ -31,6 +31,7 @@ import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.proxy.backend.handler.ProxyBackendHandler;
 import org.apache.shardingsphere.proxy.backend.handler.ProxyBackendHandlerFactory;
+import org.apache.shardingsphere.proxy.backend.handler.ProxySQLComQueryParser;
 import org.apache.shardingsphere.proxy.backend.response.header.ResponseHeader;
 import org.apache.shardingsphere.proxy.backend.response.header.query.QueryHeader;
 import org.apache.shardingsphere.proxy.backend.response.header.query.QueryResponseHeader;
@@ -40,13 +41,13 @@ import org.apache.shardingsphere.proxy.frontend.command.executor.QueryCommandExe
 import org.apache.shardingsphere.proxy.frontend.command.executor.ResponseType;
 import org.apache.shardingsphere.proxy.frontend.postgresql.command.PortalContext;
 import org.apache.shardingsphere.proxy.frontend.postgresql.command.query.PostgreSQLCommand;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableAssignSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.EmptyStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.SetStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.CommitStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.RollbackStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.VariableAssignSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.EmptyStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.SetStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.CommitStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.RollbackStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -66,10 +67,11 @@ public final class OpenGaussComQueryExecutor implements QueryCommandExecutor {
     @Getter
     private volatile ResponseType responseType;
     
-    public OpenGaussComQueryExecutor(final PortalContext portalContext, final PostgreSQLComQueryPacket comQueryPacket, final ConnectionSession connectionSession) throws SQLException {
+    public OpenGaussComQueryExecutor(final PortalContext portalContext, final PostgreSQLComQueryPacket packet, final ConnectionSession connectionSession) throws SQLException {
         this.portalContext = portalContext;
-        proxyBackendHandler = ProxyBackendHandlerFactory.newInstance(TypedSPILoader.getService(DatabaseType.class, "openGauss"), comQueryPacket.getSQL(), connectionSession,
-                comQueryPacket.getHintValueContext());
+        DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "openGauss");
+        SQLStatement sqlStatement = ProxySQLComQueryParser.parse(packet.getSQL(), databaseType, connectionSession);
+        proxyBackendHandler = ProxyBackendHandlerFactory.newInstance(databaseType, packet.getSQL(), sqlStatement, connectionSession, packet.getHintValueContext());
     }
     
     @Override
@@ -110,7 +112,7 @@ public final class OpenGaussComQueryExecutor implements QueryCommandExecutor {
     
     private Collection<DatabasePacket> createParameterStatusResponse(final SetStatement sqlStatement) {
         Collection<DatabasePacket> result = new ArrayList<>(2);
-        result.add(new PostgreSQLCommandCompletePacket("SET", 0));
+        result.add(new PostgreSQLCommandCompletePacket("SET", 0L));
         for (VariableAssignSegment each : sqlStatement.getVariableAssigns()) {
             result.add(new PostgreSQLParameterStatusPacket(each.getVariable().getVariable(), IdentifierValue.getQuotedContent(each.getAssignValue())));
         }

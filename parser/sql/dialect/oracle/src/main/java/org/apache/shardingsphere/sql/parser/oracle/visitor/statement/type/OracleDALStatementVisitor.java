@@ -22,10 +22,14 @@ import org.apache.shardingsphere.sql.parser.api.visitor.statement.type.DALStatem
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.AlterResourceCostContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.ExecuteContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.ExplainContext;
+import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.ShowContext;
+import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.SpoolContext;
 import org.apache.shardingsphere.sql.parser.oracle.visitor.statement.OracleStatementVisitor;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.oracle.dal.OracleAlterResourceCostStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.oracle.dal.OracleExplainStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.oracle.dal.OracleAlterResourceCostStatement;
+import org.apache.shardingsphere.sql.parser.statement.oracle.dal.OracleExplainStatement;
+import org.apache.shardingsphere.sql.parser.statement.oracle.dal.OracleShowStatement;
+import org.apache.shardingsphere.sql.parser.statement.oracle.dal.OracleSpoolStatement;
 
 /**
  * DAL statement visitor for Oracle.
@@ -44,15 +48,30 @@ public final class OracleDALStatementVisitor extends OracleStatementVisitor impl
         getGlobalParameterMarkerSegments().addAll(visitor.getGlobalParameterMarkerSegments());
         getStatementParameterMarkerSegments().addAll(visitor.getStatementParameterMarkerSegments());
         if (null != ctx.insert()) {
-            result.setStatement((SQLStatement) visitor.visit(ctx.insert()));
+            result.setSqlStatement((SQLStatement) visitor.visit(ctx.insert()));
         } else if (null != ctx.delete()) {
-            result.setStatement((SQLStatement) visitor.visit(ctx.delete()));
+            result.setSqlStatement((SQLStatement) visitor.visit(ctx.delete()));
         } else if (null != ctx.update()) {
-            result.setStatement((SQLStatement) visitor.visit(ctx.update()));
+            result.setSqlStatement((SQLStatement) visitor.visit(ctx.update()));
         } else if (null != ctx.select()) {
-            result.setStatement((SQLStatement) visitor.visit(ctx.select()));
+            result.setSqlStatement((SQLStatement) visitor.visit(ctx.select()));
         }
         result.addParameterMarkerSegments(ctx.getParent() instanceof ExecuteContext ? getGlobalParameterMarkerSegments() : popAllStatementParameterMarkerSegments());
+        result.getVariableNames().addAll(getVariableNames());
+        return result;
+    }
+    
+    @Override
+    public ASTNode visitShow(final ShowContext ctx) {
+        return new OracleShowStatement();
+    }
+    
+    @Override
+    public ASTNode visitSpool(final SpoolContext ctx) {
+        OracleSpoolStatement result = new OracleSpoolStatement();
+        if (null != ctx.spoolFileName()) {
+            result.setFileName(ctx.spoolFileName().getText());
+        }
         return result;
     }
 }

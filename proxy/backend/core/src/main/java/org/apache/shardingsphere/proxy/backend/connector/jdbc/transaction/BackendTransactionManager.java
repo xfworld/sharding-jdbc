@@ -22,11 +22,12 @@ import org.apache.shardingsphere.infra.spi.ShardingSphereServiceLoader;
 import org.apache.shardingsphere.proxy.backend.connector.ProxyDatabaseConnectionManager;
 import org.apache.shardingsphere.proxy.backend.connector.TransactionManager;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
+import org.apache.shardingsphere.proxy.backend.util.TransactionUtils;
 import org.apache.shardingsphere.transaction.ConnectionSavepointManager;
 import org.apache.shardingsphere.transaction.ShardingSphereTransactionManagerEngine;
 import org.apache.shardingsphere.transaction.api.TransactionType;
 import org.apache.shardingsphere.transaction.rule.TransactionRule;
-import org.apache.shardingsphere.transaction.spi.ShardingSphereTransactionManager;
+import org.apache.shardingsphere.transaction.spi.ShardingSphereDistributionTransactionManager;
 import org.apache.shardingsphere.transaction.spi.TransactionHook;
 
 import java.sql.Connection;
@@ -46,17 +47,17 @@ public final class BackendTransactionManager implements TransactionManager {
     
     private final LocalTransactionManager localTransactionManager;
     
-    private final ShardingSphereTransactionManager shardingSphereTransactionManager;
+    private final ShardingSphereDistributionTransactionManager distributionTransactionManager;
     
     private final Collection<TransactionHook> transactionHooks;
     
     public BackendTransactionManager(final ProxyDatabaseConnectionManager databaseConnectionManager) {
         connection = databaseConnectionManager;
-        transactionType = connection.getConnectionSession().getTransactionStatus().getTransactionType();
         localTransactionManager = new LocalTransactionManager(databaseConnectionManager);
         TransactionRule transactionRule = ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getGlobalRuleMetaData().getSingleRule(TransactionRule.class);
+        transactionType = transactionRule.getDefaultType();
         ShardingSphereTransactionManagerEngine engine = transactionRule.getResource();
-        shardingSphereTransactionManager = null == engine ? null : engine.getTransactionManager(transactionType);
+        distributionTransactionManager = null == engine ? null : engine.getTransactionManager(transactionType);
         transactionHooks = ShardingSphereServiceLoader.getServiceInstances(TransactionHook.class);
     }
     
@@ -64,17 +65,17 @@ public final class BackendTransactionManager implements TransactionManager {
     public void begin() {
         if (!connection.getConnectionSession().getTransactionStatus().isInTransaction()) {
             connection.getConnectionSession().getTransactionStatus().setInTransaction(true);
-            getTransactionContext().setInTransaction(true);
+            getTransactionContext().beginTransaction(String.valueOf(transactionType));
             connection.closeHandlers(true);
             connection.closeConnections(false);
         }
         for (TransactionHook each : transactionHooks) {
             each.beforeBegin(getTransactionContext());
         }
-        if (TransactionType.LOCAL == transactionType || null == shardingSphereTransactionManager) {
+        if (TransactionType.LOCAL == transactionType || null == distributionTransactionManager) {
             localTransactionManager.begin();
         } else {
-            shardingSphereTransactionManager.begin();
+            distributionTransactionManager.begin();
         }
         for (TransactionHook each : transactionHooks) {
             each.afterBegin(getTransactionContext());
@@ -84,23 +85,25 @@ public final class BackendTransactionManager implements TransactionManager {
     @Override
     public void commit() throws SQLException {
         for (TransactionHook each : transactionHooks) {
-            each.beforeCommit(connection.getCachedConnections().values(), getTransactionContext(), ProxyContext.getInstance().getContextManager().getInstanceContext().getLockContext());
+            each.beforeCommit(connection.getCachedConnections().values(), getTransactionContext(), ProxyContext.getInstance().getContextManager().getComputeNodeInstanceContext().getLockContext());
         }
         if (connection.getConnectionSession().getTransactionStatus().isInTransaction()) {
             try {
-                if (TransactionType.LOCAL == transactionType || null == shardingSphereTransactionManager) {
+                if (TransactionType.LOCAL == TransactionUtils.getTransactionType(getTransactionContext()) || null == distributionTransactionManager) {
                     localTransactionManager.commit();
                 } else {
-                    shardingSphereTransactionManager.commit(connection.getConnectionSession().getTransactionStatus().isExceptionOccur());
+                    distributionTransactionManager.commit(getTransactionContext().isExceptionOccur());
                 }
             } finally {
                 for (TransactionHook each : transactionHooks) {
-                    each.afterCommit(connection.getCachedConnections().values(), getTransactionContext(), ProxyContext.getInstance().getContextManager().getInstanceContext().getLockContext());
+                    each.afterCommit(connection.getCachedConnections().values(),
+                            getTransactionContext(), ProxyContext.getInstance().getContextManager().getComputeNodeInstanceContext().getLockContext());
+                }
+                for (Connection each : connection.getCachedConnections().values()) {
+                    ConnectionSavepointManager.getInstance().transactionFinished(each);
                 }
                 connection.getConnectionSession().getTransactionStatus().setInTransaction(false);
-                connection.getConnectionSession().getTransactionStatus().setExceptionOccur(false);
-                connection.getConnectionSession().getConnectionContext().clearTransactionConnectionContext();
-                connection.getConnectionSession().getConnectionContext().clearCursorConnectionContext();
+                connection.getConnectionSession().getConnectionContext().close();
             }
         }
     }
@@ -112,19 +115,20 @@ public final class BackendTransactionManager implements TransactionManager {
         }
         if (connection.getConnectionSession().getTransactionStatus().isInTransaction()) {
             try {
-                if (TransactionType.LOCAL == transactionType || null == shardingSphereTransactionManager) {
+                if (TransactionType.LOCAL == TransactionUtils.getTransactionType(getTransactionContext()) || null == distributionTransactionManager) {
                     localTransactionManager.rollback();
                 } else {
-                    shardingSphereTransactionManager.rollback();
+                    distributionTransactionManager.rollback();
                 }
             } finally {
                 for (TransactionHook each : transactionHooks) {
                     each.afterRollback(connection.getCachedConnections().values(), getTransactionContext());
                 }
+                for (Connection each : connection.getCachedConnections().values()) {
+                    ConnectionSavepointManager.getInstance().transactionFinished(each);
+                }
                 connection.getConnectionSession().getTransactionStatus().setInTransaction(false);
-                connection.getConnectionSession().getTransactionStatus().setExceptionOccur(false);
-                connection.getConnectionSession().getConnectionContext().clearTransactionConnectionContext();
-                connection.getConnectionSession().getConnectionContext().clearCursorConnectionContext();
+                connection.getConnectionSession().getConnectionContext().close();
             }
         }
     }
@@ -151,8 +155,8 @@ public final class BackendTransactionManager implements TransactionManager {
                 result.add(ex);
             }
         }
-        if (result.isEmpty() && connection.getConnectionSession().getTransactionStatus().isExceptionOccur()) {
-            connection.getConnectionSession().getTransactionStatus().setExceptionOccur(false);
+        if (result.isEmpty() && getTransactionContext().isExceptionOccur()) {
+            getTransactionContext().setExceptionOccur(false);
         }
         throwSQLExceptionIfNecessary(result);
     }

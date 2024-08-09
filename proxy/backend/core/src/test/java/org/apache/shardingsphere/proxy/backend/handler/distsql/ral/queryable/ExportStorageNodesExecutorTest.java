@@ -20,8 +20,8 @@ package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.queryable;
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.authority.rule.AuthorityRule;
 import org.apache.shardingsphere.authority.rule.builder.DefaultAuthorityRuleConfigurationBuilder;
-import org.apache.shardingsphere.distsql.parser.statement.ral.queryable.ExportStorageNodesStatement;
-import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
+import org.apache.shardingsphere.distsql.statement.ral.queryable.export.ExportStorageNodesStatement;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
@@ -35,6 +35,7 @@ import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
+import org.apache.shardingsphere.mode.metadata.MetaDataContextsFactory;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
@@ -60,8 +61,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -88,22 +87,12 @@ class ExportStorageNodesExecutorTest {
     }
     
     @Test
-    void assertGetColumns() {
-        Collection<String> columns = new ExportStorageNodesExecutor().getColumnNames();
-        assertThat(columns.size(), is(3));
-        Iterator<String> columnIterator = columns.iterator();
-        assertThat(columnIterator.next(), is("id"));
-        assertThat(columnIterator.next(), is("create_time"));
-        assertThat(columnIterator.next(), is("storage_nodes"));
-    }
-    
-    @Test
     void assertExecuteWithWrongDatabaseName() {
         ContextManager contextManager = mockEmptyContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
         when(ProxyContext.getInstance().getAllDatabaseNames()).thenReturn(Collections.singleton("empty_metadata"));
         ExportStorageNodesStatement sqlStatement = new ExportStorageNodesStatement("foo", null);
-        assertThrows(IllegalArgumentException.class, () -> new ExportStorageNodesExecutor().getRows(contextManager.getMetaDataContexts().getMetaData(), sqlStatement));
+        assertThrows(IllegalArgumentException.class, () -> new ExportStorageNodesExecutor().getRows(sqlStatement, contextManager));
     }
     
     @Test
@@ -112,7 +101,7 @@ class ExportStorageNodesExecutorTest {
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
         when(ProxyContext.getInstance().getAllDatabaseNames()).thenReturn(Collections.singleton("empty_metadata"));
         ExportStorageNodesStatement sqlStatement = new ExportStorageNodesStatement(null, null);
-        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(contextManager.getMetaDataContexts().getMetaData(), sqlStatement);
+        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(sqlStatement, contextManager);
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(3), is("{\"storage_nodes\":{}}"));
@@ -120,7 +109,7 @@ class ExportStorageNodesExecutorTest {
     
     private ContextManager mockEmptyContextManager() {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
-        MetaDataContexts metaDataContexts = new MetaDataContexts(mock(MetaDataPersistService.class), new ShardingSphereMetaData(new HashMap<>(),
+        MetaDataContexts metaDataContexts = MetaDataContextsFactory.create(mock(MetaDataPersistService.class), new ShardingSphereMetaData(Collections.emptyMap(),
                 new ResourceMetaData(Collections.emptyMap()), new RuleMetaData(Collections.emptyList()), new ConfigurationProperties(new Properties())));
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
         return result;
@@ -134,7 +123,7 @@ class ExportStorageNodesExecutorTest {
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.singleton(createShardingRuleConfiguration()));
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
-        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(contextManager.getMetaDataContexts().getMetaData(), new ExportStorageNodesStatement(null, null));
+        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(new ExportStorageNodesStatement(null, null), contextManager);
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(3), is(loadExpectedRow()));
@@ -148,7 +137,7 @@ class ExportStorageNodesExecutorTest {
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.singleton(createShardingRuleConfiguration()));
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
-        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(contextManager.getMetaDataContexts().getMetaData(), new ExportStorageNodesStatement("normal_db", null));
+        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(new ExportStorageNodesStatement("normal_db", null), contextManager);
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(3), is(loadExpectedRow()));
@@ -156,7 +145,7 @@ class ExportStorageNodesExecutorTest {
     
     private ContextManager mockContextManager() {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
-        MetaDataContexts metaDataContexts = new MetaDataContexts(mock(MetaDataPersistService.class), new ShardingSphereMetaData(Collections.singletonMap(database.getName(), database),
+        MetaDataContexts metaDataContexts = MetaDataContextsFactory.create(mock(MetaDataPersistService.class), new ShardingSphereMetaData(Collections.singletonMap(database.getName(), database),
                 new ResourceMetaData(Collections.emptyMap()),
                 new RuleMetaData(Collections.singleton(new AuthorityRule(new DefaultAuthorityRuleConfigurationBuilder().build()))),
                 new ConfigurationProperties(PropertiesBuilder.build(new Property(ConfigurationPropertyKey.SQL_SHOW.getKey(), "true")))));

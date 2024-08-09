@@ -24,21 +24,19 @@ import org.apache.shardingsphere.parser.rule.SQLParserRule;
 import org.apache.shardingsphere.sql.parser.api.CacheOption;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Properties;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SQLParserRuleBuilderTest {
     
     @Test
     void assertBuild() {
-        SQLParserRuleConfiguration ruleConfig = new SQLParserRuleConfiguration(true, new CacheOption(2, 5), new CacheOption(4, 7));
-        SQLParserRule actualResult = new SQLParserRuleBuilder().build(ruleConfig, new HashMap<>(), new ConfigurationProperties(new Properties()));
+        SQLParserRuleConfiguration ruleConfig = new SQLParserRuleConfiguration(new CacheOption(2, 5L), new CacheOption(4, 7L));
+        SQLParserRule actualResult = new SQLParserRuleBuilder().build(ruleConfig, Collections.emptyMap(), new ConfigurationProperties(new Properties()));
         assertThat(actualResult.getConfiguration(), is(ruleConfig));
-        assertTrue(actualResult.isSqlCommentParseEnabled());
         assertThat(actualResult.getSqlStatementCache().getInitialCapacity(), is(4));
         assertThat(actualResult.getSqlStatementCache().getMaximumSize(), is(7L));
         assertThat(actualResult.getParseTreeCache().getInitialCapacity(), is(2));

@@ -18,11 +18,10 @@
 package org.apache.shardingsphere.transaction;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.shardingsphere.infra.session.connection.transaction.TransactionConnectionContext;
 import org.apache.shardingsphere.transaction.api.TransactionType;
 import org.apache.shardingsphere.transaction.rule.TransactionRule;
-import org.apache.shardingsphere.transaction.spi.ShardingSphereTransactionManager;
+import org.apache.shardingsphere.transaction.spi.ShardingSphereDistributionTransactionManager;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -36,29 +35,24 @@ public final class ConnectionTransaction {
     @Getter
     private final TransactionType transactionType;
     
-    @Setter
-    @Getter
-    private volatile boolean rollbackOnly;
+    private final ShardingSphereDistributionTransactionManager distributionTransactionManager;
     
-    private final ShardingSphereTransactionManager transactionManager;
+    private final TransactionConnectionContext transactionContext;
     
-    public ConnectionTransaction(final TransactionRule rule) {
-        this(rule.getDefaultType(), rule);
-    }
-    
-    public ConnectionTransaction(final TransactionType transactionType, final TransactionRule rule) {
-        this.transactionType = transactionType;
-        transactionManager = rule.getResource().getTransactionManager(transactionType);
+    public ConnectionTransaction(final TransactionRule rule, final TransactionConnectionContext transactionContext) {
+        transactionType = transactionContext.getTransactionType().isPresent() ? TransactionType.valueOf(transactionContext.getTransactionType().get()) : rule.getDefaultType();
+        this.transactionContext = transactionContext;
+        distributionTransactionManager = TransactionType.LOCAL == transactionType ? null : rule.getResource().getTransactionManager(rule.getDefaultType());
     }
     
     /**
      * Whether in transaction.
-     * 
-     * @param transactionConnectionContext transaction connection context
+     *
+     * @param transactionContext transaction connection context
      * @return in transaction or not
      */
-    public boolean isInTransaction(final TransactionConnectionContext transactionConnectionContext) {
-        return transactionConnectionContext.isInTransaction() && null != transactionManager && transactionManager.isInTransaction();
+    public boolean isInTransaction(final TransactionConnectionContext transactionContext) {
+        return transactionContext.isInTransaction() && null != distributionTransactionManager && distributionTransactionManager.isInTransaction();
     }
     
     /**
@@ -67,12 +61,12 @@ public final class ConnectionTransaction {
      * @return in transaction or not
      */
     public boolean isInTransaction() {
-        return null != transactionManager && transactionManager.isInTransaction();
+        return null != distributionTransactionManager && distributionTransactionManager.isInTransaction();
     }
     
     /**
      * Judge is local transaction or not.
-     * 
+     *
      * @return is local transaction or not
      */
     public boolean isLocalTransaction() {
@@ -99,41 +93,41 @@ public final class ConnectionTransaction {
      * @throws SQLException SQL exception
      */
     public Optional<Connection> getConnection(final String databaseName, final String dataSourceName, final TransactionConnectionContext transactionConnectionContext) throws SQLException {
-        return isInTransaction(transactionConnectionContext) ? Optional.of(transactionManager.getConnection(databaseName, dataSourceName)) : Optional.empty();
+        return isInTransaction(transactionConnectionContext) ? Optional.of(distributionTransactionManager.getConnection(databaseName, dataSourceName)) : Optional.empty();
     }
     
     /**
      * Begin transaction.
      */
     public void begin() {
-        transactionManager.begin();
+        distributionTransactionManager.begin();
     }
     
     /**
      * Commit transaction.
      */
     public void commit() {
-        transactionManager.commit(rollbackOnly);
+        distributionTransactionManager.commit(transactionContext.isExceptionOccur());
     }
     
     /**
      * Rollback transaction.
      */
     public void rollback() {
-        transactionManager.rollback();
+        distributionTransactionManager.rollback();
     }
     
     /**
      * Get distributed transaction operation type.
-     * 
+     *
      * @param autoCommit is auto commit
      * @return distributed transaction operation type
      */
     public DistributedTransactionOperationType getDistributedTransactionOperationType(final boolean autoCommit) {
-        if (!autoCommit && !transactionManager.isInTransaction()) {
+        if (!autoCommit && !distributionTransactionManager.isInTransaction()) {
             return DistributedTransactionOperationType.BEGIN;
         }
-        if (autoCommit && transactionManager.isInTransaction()) {
+        if (autoCommit && distributionTransactionManager.isInTransaction()) {
             return DistributedTransactionOperationType.COMMIT;
         }
         return DistributedTransactionOperationType.IGNORE;

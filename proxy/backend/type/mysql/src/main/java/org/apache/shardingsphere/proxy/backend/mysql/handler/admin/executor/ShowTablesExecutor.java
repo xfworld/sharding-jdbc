@@ -30,15 +30,16 @@ import org.apache.shardingsphere.infra.executor.sql.execute.result.query.type.me
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.infra.merge.result.impl.transparent.TransparentMergedResult;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
+import org.apache.shardingsphere.infra.util.regex.RegexUtils;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.DatabaseAdminQueryExecutor;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.common.util.SQLUtils;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowTablesStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ShowTablesStatement;
 
 import java.sql.Types;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -51,9 +52,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public final class ShowTablesExecutor implements DatabaseAdminQueryExecutor {
     
-    private static final String TABLE_TYPE = "BASE TABLE";
-    
-    private final MySQLShowTablesStatement showTablesStatement;
+    private final ShowTablesStatement showTablesStatement;
     
     private final DatabaseType databaseType;
     
@@ -65,7 +64,7 @@ public final class ShowTablesExecutor implements DatabaseAdminQueryExecutor {
     
     @Override
     public void execute(final ConnectionSession connectionSession) {
-        String databaseName = showTablesStatement.getFromSchema().map(schema -> schema.getSchema().getIdentifier().getValue()).orElseGet(connectionSession::getDatabaseName);
+        String databaseName = showTablesStatement.getFromDatabase().map(schema -> schema.getDatabase().getIdentifier().getValue()).orElseGet(connectionSession::getUsedDatabaseName);
         queryResultMetaData = createQueryResultMetaData(databaseName);
         mergedResult = new TransparentMergedResult(getQueryResult(databaseName));
     }
@@ -82,27 +81,36 @@ public final class ShowTablesExecutor implements DatabaseAdminQueryExecutor {
     
     private QueryResult getQueryResult(final String databaseName) {
         SystemDatabase systemDatabase = new SystemDatabase(databaseType);
-        if (!systemDatabase.getSystemSchemas().contains(databaseName) && !ProxyContext.getInstance().getDatabase(databaseName).isComplete()) {
+        if (!systemDatabase.getSystemSchemas().contains(databaseName) && !ProxyContext.getInstance().getContextManager().getDatabase(databaseName).isComplete()) {
             return new RawMemoryQueryResult(queryResultMetaData, Collections.emptyList());
         }
-        List<MemoryQueryResultDataRow> rows = getAllTableNames(databaseName).stream().map(each -> {
+        List<MemoryQueryResultDataRow> rows = getTables(databaseName).stream().map(each -> {
             List<Object> rowValues = new LinkedList<>();
-            rowValues.add(each);
+            rowValues.add(each.getName());
             if (showTablesStatement.isContainsFull()) {
-                rowValues.add(TABLE_TYPE);
+                rowValues.add(each.getType());
             }
             return new MemoryQueryResultDataRow(rowValues);
         }).collect(Collectors.toList());
         return new RawMemoryQueryResult(queryResultMetaData, rows);
     }
     
-    private Collection<String> getAllTableNames(final String databaseName) {
-        Collection<String> result = ProxyContext.getInstance()
-                .getDatabase(databaseName).getSchema(databaseName).getTables().values().stream().map(ShardingSphereTable::getName).collect(Collectors.toList());
+    private Collection<ShardingSphereTable> getTables(final String databaseName) {
+        Collection<ShardingSphereTable> tables = ProxyContext.getInstance().getContextManager().getDatabase(databaseName).getSchema(databaseName).getTables().values();
+        Collection<ShardingSphereTable> filteredTables = filterByLike(tables);
+        return filteredTables.stream().sorted(Comparator.comparing(ShardingSphereTable::getName)).collect(Collectors.toList());
+    }
+    
+    private Collection<ShardingSphereTable> filterByLike(final Collection<ShardingSphereTable> tables) {
+        Optional<Pattern> likePattern = getLikePattern();
+        return likePattern.isPresent() ? tables.stream().filter(each -> likePattern.get().matcher(each.getName()).matches()).collect(Collectors.toList()) : tables;
+    }
+    
+    private Optional<Pattern> getLikePattern() {
         if (!showTablesStatement.getFilter().isPresent()) {
-            return result;
+            return Optional.empty();
         }
-        Optional<String> pattern = showTablesStatement.getFilter().get().getLike().map(optional -> SQLUtils.convertLikePatternToRegex(optional.getPattern()));
-        return pattern.isPresent() ? result.stream().filter(each -> Pattern.compile(pattern.get(), Pattern.CASE_INSENSITIVE).matcher(each).matches()).collect(Collectors.toList()) : result;
+        Optional<String> pattern = showTablesStatement.getFilter().get().getLike().map(optional -> RegexUtils.convertLikePatternToRegex(optional.getPattern()));
+        return pattern.map(optional -> Pattern.compile(RegexUtils.convertLikePatternToRegex(optional), Pattern.CASE_INSENSITIVE));
     }
 }

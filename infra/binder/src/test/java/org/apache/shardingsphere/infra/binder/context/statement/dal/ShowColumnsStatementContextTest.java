@@ -18,39 +18,38 @@
 package org.apache.shardingsphere.infra.binder.context.statement.dal;
 
 import org.apache.shardingsphere.infra.binder.context.statement.CommonSQLStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.FromSchemaSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DatabaseSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowColumnsStatement;
+import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.FromDatabaseSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLShowColumnsStatement;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class ShowColumnsStatementContextTest {
     
     @Test
     void assertNewInstance() {
-        MySQLShowColumnsStatement showColumnsStatement = mock(MySQLShowColumnsStatement.class);
+        MySQLShowColumnsStatement sqlStatement = new MySQLShowColumnsStatement();
         String tableName = "tbl_1";
         String databaseName = "sharding_db";
         SimpleTableSegment table = new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue(tableName)));
-        FromSchemaSegment fromSchema = new FromSchemaSegment(0, 0, new DatabaseSegment(0, 0, new IdentifierValue(databaseName)));
-        when(showColumnsStatement.getTable()).thenReturn(table);
-        when(showColumnsStatement.getFromSchema()).thenReturn(Optional.of(fromSchema));
-        ShowColumnsStatementContext actual = new ShowColumnsStatementContext(showColumnsStatement);
+        FromDatabaseSegment fromDatabase = new FromDatabaseSegment(0, 0, new DatabaseSegment(0, 0, new IdentifierValue(databaseName)));
+        sqlStatement.setTable(table);
+        sqlStatement.setFromDatabase(fromDatabase);
+        ShowColumnsStatementContext actual = new ShowColumnsStatementContext(sqlStatement, DefaultDatabase.LOGIC_NAME);
         assertThat(actual, instanceOf(CommonSQLStatementContext.class));
-        assertThat(actual.getSqlStatement(), is(showColumnsStatement));
-        assertThat(actual.getAllTables().stream().map(each -> each.getTableName().getIdentifier().getValue()).collect(Collectors.toList()), is(Collections.singletonList(tableName)));
-        assertThat(actual.getRemoveSegments(), is(Collections.singletonList(fromSchema)));
+        assertThat(actual.getSqlStatement(), is(sqlStatement));
+        assertThat(actual.getTablesContext().getSimpleTables().stream().map(each -> each.getTableName().getIdentifier().getValue()).collect(Collectors.toList()),
+                is(Collections.singletonList(tableName)));
+        assertThat(actual.getRemoveSegments(), is(Collections.singletonList(fromDatabase)));
     }
 }

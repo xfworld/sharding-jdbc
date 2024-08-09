@@ -41,8 +41,14 @@ public final class ExpectedColumnDefinition extends AbstractExpectedSQLSegment {
     @XmlAttribute(name = "primary-key")
     private boolean primaryKey;
     
+    @XmlAttribute(name = "auto-increment")
+    private boolean autoIncrement;
+    
     @XmlElement
     private ExpectedColumn column;
+    
+    @XmlAttribute(name = "not-null")
+    private boolean notNull;
     
     @XmlElement(name = "referenced-table")
     private final List<ExpectedSimpleTable> referencedTables = new LinkedList<>();

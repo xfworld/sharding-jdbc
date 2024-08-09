@@ -18,17 +18,17 @@
 package org.apache.shardingsphere.infra.binder.context.statement.ddl;
 
 import lombok.Getter;
-import org.apache.shardingsphere.infra.binder.context.aware.CursorDefinitionAware;
+import org.apache.shardingsphere.infra.binder.context.aware.CursorAware;
 import org.apache.shardingsphere.infra.binder.context.segment.table.TablesContext;
 import org.apache.shardingsphere.infra.binder.context.statement.CommonSQLStatementContext;
 import org.apache.shardingsphere.infra.binder.context.type.CursorAvailable;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.binder.context.type.WhereAvailable;
-import org.apache.shardingsphere.sql.parser.sql.common.extractor.TableExtractor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.cursor.CursorNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BinaryOperationExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.WhereSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.FetchStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.cursor.CursorNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BinaryOperationExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.WhereSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.FetchStatement;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -38,15 +38,15 @@ import java.util.Optional;
  * Fetch statement context.
  */
 @Getter
-public final class FetchStatementContext extends CommonSQLStatementContext implements CursorAvailable, WhereAvailable, CursorDefinitionAware {
+public final class FetchStatementContext extends CommonSQLStatementContext implements CursorAvailable, TableAvailable, WhereAvailable, CursorAware {
     
     private CursorStatementContext cursorStatementContext;
     
     private TablesContext tablesContext;
     
-    public FetchStatementContext(final FetchStatement sqlStatement) {
+    public FetchStatementContext(final FetchStatement sqlStatement, final String currentDatabaseName) {
         super(sqlStatement);
-        tablesContext = new TablesContext(Collections.emptyList(), getDatabaseType());
+        tablesContext = new TablesContext(Collections.emptyList(), getDatabaseType(), currentDatabaseName);
     }
     
     @Override
@@ -60,11 +60,9 @@ public final class FetchStatementContext extends CommonSQLStatementContext imple
     }
     
     @Override
-    public void setUpCursorDefinition(final CursorStatementContext cursorStatementContext) {
+    public void setCursorStatementContext(final CursorStatementContext cursorStatementContext) {
         this.cursorStatementContext = cursorStatementContext;
-        TableExtractor tableExtractor = new TableExtractor();
-        tableExtractor.extractTablesFromSelect(cursorStatementContext.getSqlStatement().getSelect());
-        tablesContext = new TablesContext(tableExtractor.getRewriteTables(), getDatabaseType());
+        tablesContext = cursorStatementContext.getTablesContext();
     }
     
     @Override

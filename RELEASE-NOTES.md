@@ -1,70 +1,165 @@
+## Release 5.5.0
+
+### API Change
+1. Proxy: Remove the outdated schemaName configuration of the Proxy
+2. Kernel: Remove the sqlCommentParseEnabled configuration in SQL Parser Rule to reduce code complexity
+3. SQL Parser: Consider removing sqlCommentParseEnabled config in SQLParser rule
+4. Federation: Add allQueryUseSQLFederation config for sql federation
+
+### New Feature
+1. DistSQL: New syntax for query plugin (SPI) implementation
+1. DistSQL: New syntax for managing SQL_TRANSLATOR rule
+
+### Enhancement
+1. Pipeline: Improve CDC stability and performance
+1. Pipeline: MemoryPipelineChannel supports configurable zero queue size for less memory consumption
+1. Pipeline: Show dedicated error when mode type is not Cluster
+1. Authority: Add isSuper option for user
+1. Pipeline: Ignore error message in status DistSQL result on job cancelling
+1. DistSQL: Use JSON format to output props in RQL
+1. DistSQL: Optimize REFRESH DATABASE METADATA logic
+1. DistSQL: SHOW COMPUTE NODES supports JDBC nodes
+1. DistSQL: Optimize syntax of REFRESH DATABASE METADATA
+1. DistSQL: Optimize the output of SHOW TABLE METADATA
+1. Proxy: Add MySQL precompiled parameter verification to avoid turning on rewriteBatchedStatements=true when BenchmarkSQL connects to Proxy, causing an ArrayIndexOutOfBoundsException exception when the Proxy parameterCount exceeds 65535.
+1. SQL Parser: Add EOF to throw exception when parse distsql rollback migration statement
+1. SQL Parser: Support more plsql statement parse and add plsql parse assert logic
+1. SQL Parser: Support parse index hint
+1. SQL Parser: Support mysql intersect combine operation sql parse
+1. SQL Parser: Supoort parse chinese white space for oracle
+1. SQL Parser: Fix mysql TimeStampDiff function parse
+1. SQL Parser: Fix sqlServer unqualified shorthand parsing
+1. SQL Parser: Support sqlServer SEARCH unreserved word parsing
+1. SQL Parser: Add sql server MEMBER unreserved word
+1. Binder: Add ParameterMarkerSegmentBinder logic for Oracle MergeStatementBinder
+1. Federation: Support mysql cross join statement for sql federation
+1. Transaction: Add advice message in XATransactionCheckPrivilegeFailedException
+1. Sharding: Validate duplicate sharding actual data nodes
+1. Sharding: Support null condition value routing
+1. Proxy: Fix mysql client multi statements option in protocol
+
+### Bug Fix
+1. Pipeline: Fix commit/rollback migration job doesn't drop related consistency check job when check job is not completed
+1. Pipeline: Fix show consistency check status stop_time display
+1. Proxy: Restore original databaseName in connectionSession after unicast
+1. Proxy: Fix show tables can be executed without use database
+1. Proxy: Fix the incorrect current database after unicast routing
+1. Proxy: Fix the problem that show tables can be executed before use database
+1. Readwrite-splitting: Fix check exception when using shadow data source
+1. Governance: Fix thread blocking problem when create logic database for Etcd register center
+1. Governance：Fix register storage units and create feature rules failure when use Standalone mode
+1. MetaData: Fix database system schema is not built when create database
+1. Metadata: Fix NPE of system schema builder rule
+1. SQL Parser: Fix PostgreSQL NPE when parse columnRef
+1. SQL Parser: Fix npe cause by parse MySQL select window statement
+1. Sharding: Fix routing error when joining tables in uppercase
+1. Sharding: Fix drop sharding table exception when table name is uppercase
+1. Sharding: Fix generated key with upper case column name
+1. Federation: Fix Object 'DUAL' not found exception when execute select 1 from dual with sql federation
+1. Transaction: Fix xa auto commit in executeQuery
+1. Proxy: Fix multi statements with specified database name
+
+### Change Log
+
+1. [MILESTONE](https://github.com/apache/shardingsphere/milestone/28)
+
+
+## Release 5.4.1
+
+### New Feature
+1. Proxy: Supports dbcp and c3p0 connection pools
+1. Metadata: Standalone mode adapts to metadata new structure
+1. Governance: Governance supports register instance level data source
+
+### Enhancement
+1. Mode: Improve Standalone mode JDBC type impl reset data on initialization
+1. Scaling: Isolate ShardingSphereDataSource Standalone repository in pipeline
+1. Scaling: Disable system-schema-metadata-enabled in pipeline
+1. JDBC: Move jdbc core META-INF/services/java.sql.Driver from test to main
+1. Scaling: Add algorithm columns in SHOW MIGRATION CHECK ALGORITHMS DistSQL result
+1. Scaling: Add type_aliaes column in SHOW MIGRATION CHECK ALGORITHMS DistSQL result
+1. Encrypt: Add duplicate name check for derived columns and logical columns
+1. Encrypt: Deny DDL for cipher columns in Proxy
+1. Encrypt: Add the default type for derived columns to varchar(4000)
+
+### Bug Fix
+1. Scaling: Fix get inventory position not correctly on breakpoint resuming when table names are similar
+1. Scaling: Fix CDC importer not start on breakpoint resuming when first inventory task is finished
+1. Single Table: Fix not switched active version when CREATE/DROP table modifies the Single rule configuration
+1. JDBC: Fix JDBC memory leak with MySQL in the 5.4.0 version
+
+### Change Log
+
+1. [MILESTONE](https://github.com/apache/shardingsphere/milestone/27)
+
+
 ## Release 5.4.0
 
 ### API Changes
-Metadata: Change sharding broadcast tables to global broadcast tables
-JDBC: Remove exclamation mark (!) for global rules
-DistSQL: Simplify keywords ASSISTED_QUERY, LIKE_QUERY in encrypt DistSQL
-DistSQL: Optimize SQL_PARSER rule syntax
-Encrypt: Adjust encryption yaml API to distinguish between encrypt, like, and assisted query configurations
-Encrypt: Remove plain column and queryWithCipherColumn configuration in encrypt feature
-Readwrite-splitting: Refactor read/write splitting api
-Proxy: Remove property proxy-instance-type configuration
-Proxy: Remove property proxy-backend-executor-suitable
-Proxy: Remove property proxy-mysql-default-version
-Scaling: Refactor commit rollback streaming to drop streaming
-Sharding: Merge ShardingCacheRule into ShardingRule (Experimental)
+1. Metadata: Change sharding broadcast tables to global broadcast tables
+1. JDBC: Remove exclamation mark (!) for global rules
+1. DistSQL: Simplify keywords ASSISTED_QUERY, LIKE_QUERY in encrypt DistSQL
+1. DistSQL: Optimize SQL_PARSER rule syntax
+1. Encrypt: Adjust encryption yaml API to distinguish between encrypt, like, and assisted query configurations
+1. Encrypt: Remove plain column and queryWithCipherColumn configuration in encrypt feature
+1. Readwrite-splitting: Refactor read/write splitting api
+1. Proxy: Remove property proxy-instance-type configuration
+1. Proxy: Remove property proxy-backend-executor-suitable
+1. Proxy: Remove property proxy-mysql-default-version
+1. Scaling: Refactor commit rollback streaming to drop streaming
+1. Sharding: Merge ShardingCacheRule into ShardingRule (Experimental)
 
 ### New Features
-DistSQL: New syntax to manage SQL_FEDERATION rule
-Proxy: Support Unix Domain Socket
+1. DistSQL: New syntax to manage SQL_FEDERATION rule
+1. Proxy: Support Unix Domain Socket
 
 ### Enhancements
-Scaling: CDC supports pure incremental mode
-Scaling: CDC supports exporting data by transaction
-Scaling: CDC supports MySQL and PostgreSQL
-Scaling: CDC supports single table
-Scaling: CDC supports all openGauss data types
-Scaling: CDC supports replication reconnection
-Scaling: Remove DataConsistencyCalculateAlgorithmChooser
-Scaling: Improve performance of integer unique key table inventory data splitting
-Scaling: Adjust process configuration default value to reduce resource consumption
-Scaling: Auto refresh table metadata for migration
-Scaling: Compatible with openGauss existing replication slot reuse when database not existing
-Scaling: Show data consistency check status result should be empty when it's not completed
-Scaling: Enable concurrent CRC32 match on source and target
-Scaling: Pipeline job compatible with sharding rule audit strategy
-Metadata: Refactor metadata persistence structure
-Metadata: Optimize the process of loading single table metadata
-Metadata: Support MySQL/PostgreSQL/openGauss system tables empty query
-DistSQL: Add support for transactionalReadQueryStrategy for read/write splitting rule
-DistSQL: Enhanced algorithm properties check
-Transaction: Add privilege check
-Transaction: Remove the TransactionTypeHolder and only create the current transaction manager
-Parser: Support MySQL LOAD DATA and LOAD XML statement with single table or broadcast table
-Parser: Improve the parsing support of high-priority SQL statements in the test results of the MySQL test program
-Parser: Oracle dialect parser now supports Chinese comma
-Encrypt: Support query of encrypt column in projection subquery when use encrypt feature
-Kernel: Adds table existence metadata check for INSERT, DELETE, UPDATE and SELECT statements
-JDBC: Implement batch execution for ShardingSphereStatement
-Proxy: Frontend supports SSL/TLS
-Proxy: Support Flush message for PostgreSQL/openGauss Proxy
-Proxy: Support data type bit, bool for PostgreSQL Proxy
+1. Scaling: CDC supports pure incremental mode
+1. Scaling: CDC supports exporting data by transaction
+1. Scaling: CDC supports MySQL and PostgreSQL
+1. Scaling: CDC supports single table
+1. Scaling: CDC supports all openGauss data types
+1. Scaling: CDC supports replication reconnection
+1. Scaling: Remove DataConsistencyCalculateAlgorithmChooser
+1. Scaling: Improve performance of integer unique key table inventory data splitting
+1. Scaling: Adjust process configuration default value to reduce resource consumption
+1. Scaling: Auto refresh table metadata for migration
+1. Scaling: Compatible with openGauss existing replication slot reuse when database not existing
+1. Scaling: Show data consistency check status result should be empty when it's not completed
+1. Scaling: Enable concurrent CRC32 match on source and target
+1. Scaling: Pipeline job compatible with sharding rule audit strategy
+1. Metadata: Refactor metadata persistence structure
+1. Metadata: Optimize the process of loading single table metadata
+1. Metadata: Support MySQL/PostgreSQL/openGauss system tables empty query
+1. DistSQL: Add support for transactionalReadQueryStrategy for read/write splitting rule
+1. DistSQL: Enhanced algorithm properties check
+1. Transaction: Add privilege check
+1. Transaction: Remove the TransactionTypeHolder and only create the current transaction manager
+1. Parser: Support MySQL LOAD DATA and LOAD XML statement with single table or broadcast table
+1. Parser: Improve the parsing support of high-priority SQL statements in the test results of the MySQL test program
+1. Parser: Oracle dialect parser now supports Chinese comma
+1. Encrypt: Support query of encrypt column in projection subquery when use encrypt feature
+1. Kernel: Adds table existence metadata check for INSERT, DELETE, UPDATE and SELECT statements
+1. JDBC: Implement batch execution for ShardingSphereStatement
+1. Proxy: Frontend supports SSL/TLS
+1. Proxy: Support Flush message for PostgreSQL/openGauss Proxy
+1. Proxy: Support data type bit, bool for PostgreSQL Proxy
 
 ### Bug Fixes
-Scaling: Fix pipeline job failure status persistence and usage
-Scaling: Fix CDC DELETE event Record.beforeList is null
-Scaling: Fix openGauss mppdb decoding plugin single quote issue
-Scaling: Fix execute engine not closed after job stopping
-Scaling: Fix stop job before task starting
-Metadata: Fix case sensitive issue when loading schema meta data with H2 database
-Metadata: Fix "object not found" exception when config PostgreSQL/openGauss schema name as database name
-DistSQL: Fix wrong result of check_table_metadata_enabled when execute SHOW DIST VARIABLE
-Encrypt: Fix SQL rewrite exception when use PostgreSQL/openGauss encrypt like feature
-Sharding: Support null sharding condition pass to sharding algorithm to allow user control null value route
-Parser: Support BETWEEN AND expression parsing in MySQL Projection
-Mask: Fix wrong mask result when config same value of from-x and to-y with KEEP_FROM_X_TO_Y
-Infra: Fix ClassNotFoundException may occur when missing pgjdbc
-Proxy: Fix MySQL packet out of order when client sending pipelining requests
+1. Scaling: Fix pipeline job failure status persistence and usage
+1. Scaling: Fix CDC DELETE event Record.beforeList is null
+1. Scaling: Fix openGauss mppdb decoding plugin single quote issue
+1. Scaling: Fix execute engine not closed after job stopping
+1. Scaling: Fix stop job before task starting
+1. Metadata: Fix case sensitive issue when loading schema meta data with H2 database
+1. Metadata: Fix "object not found" exception when config PostgreSQL/openGauss schema name as database name
+1. DistSQL: Fix wrong result of check_table_metadata_enabled when execute SHOW DIST VARIABLE
+1. Encrypt: Fix SQL rewrite exception when use PostgreSQL/openGauss encrypt like feature
+1. Sharding: Support null sharding condition pass to sharding algorithm to allow user control null value route
+1. Parser: Support BETWEEN AND expression parsing in MySQL Projection
+1. Mask: Fix wrong mask result when config same value of from-x and to-y with KEEP_FROM_X_TO_Y
+1. Infra: Fix ClassNotFoundException may occur when missing pgjdbc
+1. Proxy: Fix MySQL packet out of order when client sending pipelining requests
 
 ### Change Log
 
@@ -163,7 +258,7 @@ Proxy: Fix MySQL packet out of order when client sending pipelining requests
 1. Kernel:  Fix use Consul in cluster mode start up failure
 1. DB Discovery: Close heartbeat job when drop discovery rule
 1. Kernel: Fix wrong decide result when execute same sharding condition subquery with SQL federation
-1. Kernel:  Fix priority problem of UNION, INTERSECT, EXCEPT set operation in SQL Federation for PostgreSQL and openGuass dialect
+1. Kernel:  Fix priority problem of UNION, INTERSECT, EXCEPT set operation in SQL Federation for PostgreSQL and openGauss dialect
 1. Kernel:  Fix create view index out of range exception when view contains set operator
 1. Kernel: Add XA resource exceeds length check
 1. Kernel:  Fix transaction support for spring requires_new
@@ -436,7 +531,7 @@ Proxy: Fix MySQL packet out of order when client sending pipelining requests
 1. Support parsing ALTER OPERATOR in PostgreSQL
 1. Add PostgreSQL Copy Statement
 1. Add PostgreSQL Comment Statement
-1. Support listen statement in postgreSQL
+1. Support listen statement in PostgreSQL
 1. Support DECLARE cursor statement
 1. Add default serverConfig in helm charts
 1. Assemble openGauss JDBC Driver into Proxy distribution

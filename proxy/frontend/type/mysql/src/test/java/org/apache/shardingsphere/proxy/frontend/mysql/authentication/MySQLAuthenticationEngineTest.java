@@ -23,7 +23,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.util.Attribute;
 import lombok.SneakyThrows;
-import org.apache.shardingsphere.authority.provider.simple.model.privilege.AllPrivilegesPermittedShardingSpherePrivileges;
+import org.apache.shardingsphere.authority.model.ShardingSpherePrivileges;
 import org.apache.shardingsphere.authority.rule.AuthorityRule;
 import org.apache.shardingsphere.db.protocol.constant.CommonConstants;
 import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLCapabilityFlag;
@@ -51,10 +51,11 @@ import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
 import org.apache.shardingsphere.metadata.persist.data.ShardingSphereDataPersistService;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
+import org.apache.shardingsphere.mode.metadata.MetaDataContextsFactory;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
-import org.apache.shardingsphere.proxy.frontend.authentication.AuthenticationResultBuilder;
-import org.apache.shardingsphere.proxy.frontend.authentication.Authenticator;
-import org.apache.shardingsphere.proxy.frontend.authentication.AuthenticatorFactory;
+import org.apache.shardingsphere.authentication.result.AuthenticationResultBuilder;
+import org.apache.shardingsphere.authentication.Authenticator;
+import org.apache.shardingsphere.authentication.AuthenticatorFactory;
 import org.apache.shardingsphere.proxy.frontend.mysql.ssl.MySQLSSLRequestHandler;
 import org.apache.shardingsphere.proxy.frontend.ssl.ProxySSLContext;
 import org.apache.shardingsphere.test.mock.AutoMockExtension;
@@ -81,6 +82,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
@@ -147,6 +149,7 @@ class MySQLAuthenticationEngineTest {
         when(channel.remoteAddress()).thenReturn(new InetSocketAddress("localhost", 3307));
         when(channel.attr(CommonConstants.CHARSET_ATTRIBUTE_KEY)).thenReturn(mock(Attribute.class));
         when(channel.attr(MySQLConstants.MYSQL_CHARACTER_SET_ATTRIBUTE_KEY)).thenReturn(mock(Attribute.class));
+        when(channel.attr(MySQLConstants.MYSQL_OPTION_MULTI_STATEMENTS)).thenReturn(mock(Attribute.class));
         when(channelHandlerContext.channel()).thenReturn(channel);
         when(payload.readInt1()).thenReturn(1);
         when(payload.readInt4()).thenReturn(MySQLCapabilityFlag.CLIENT_PLUGIN_AUTH.getValue());
@@ -170,7 +173,8 @@ class MySQLAuthenticationEngineTest {
         AuthorityRule rule = mock(AuthorityRule.class);
         ShardingSphereUser user = new ShardingSphereUser("root", "", "127.0.0.1");
         when(rule.findUser(user.getGrantee())).thenReturn(Optional.of(user));
-        when(rule.findPrivileges(user.getGrantee())).thenReturn(Optional.of(new AllPrivilegesPermittedShardingSpherePrivileges()));
+        ShardingSpherePrivileges privileges = mockPrivileges();
+        when(rule.findPrivileges(user.getGrantee())).thenReturn(Optional.of(privileges));
         when(rule.getAuthenticatorType(any())).thenReturn("");
         ContextManager contextManager = mockContextManager(rule);
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
@@ -181,6 +185,12 @@ class MySQLAuthenticationEngineTest {
     @SneakyThrows(ReflectiveOperationException.class)
     private void setAuthenticationResult() {
         Plugins.getMemberAccessor().set(MySQLAuthenticationEngine.class.getDeclaredField("currentAuthResult"), authenticationEngine, AuthenticationResultBuilder.continued("root", "", "foo_db"));
+    }
+    
+    private ShardingSpherePrivileges mockPrivileges() {
+        ShardingSpherePrivileges result = mock(ShardingSpherePrivileges.class);
+        when(result.hasPrivileges(anyString())).thenReturn(true);
+        return result;
     }
     
     @Test
@@ -285,7 +295,7 @@ class MySQLAuthenticationEngineTest {
         ShardingSphereDataPersistService shardingSphereDataPersistService = mock(ShardingSphereDataPersistService.class);
         when(shardingSphereDataPersistService.load(any())).thenReturn(Optional.empty());
         when(metaDataPersistService.getShardingSphereDataPersistService()).thenReturn(shardingSphereDataPersistService);
-        MetaDataContexts metaDataContexts = new MetaDataContexts(metaDataPersistService, new ShardingSphereMetaData(databases,
+        MetaDataContexts metaDataContexts = MetaDataContextsFactory.create(metaDataPersistService, new ShardingSphereMetaData(databases,
                 mock(ResourceMetaData.class), new RuleMetaData(Collections.singleton(rule)), new ConfigurationProperties(new Properties())));
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
         return result;
@@ -313,6 +323,7 @@ class MySQLAuthenticationEngineTest {
         when(result.attr(CommonConstants.CHARSET_ATTRIBUTE_KEY)).thenReturn(mock(Attribute.class));
         when(result.attr(MySQLConstants.MYSQL_CHARACTER_SET_ATTRIBUTE_KEY)).thenReturn(mock(Attribute.class));
         when(result.attr(MySQLConstants.MYSQL_SEQUENCE_ID)).thenReturn(mock(Attribute.class));
+        when(result.attr(MySQLConstants.MYSQL_OPTION_MULTI_STATEMENTS)).thenReturn(mock(Attribute.class));
         return result;
     }
     

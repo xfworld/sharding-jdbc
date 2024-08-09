@@ -37,7 +37,7 @@ import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.response.header.ResponseHeader;
 import org.apache.shardingsphere.proxy.backend.response.header.update.UpdateResponseHeader;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLUpdateStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLUpdateStatement;
 import org.apache.shardingsphere.sqltranslator.rule.SQLTranslatorRule;
 import org.apache.shardingsphere.sqltranslator.rule.builder.DefaultSQLTranslatorRuleConfigurationBuilder;
 import org.apache.shardingsphere.test.mock.AutoMockExtension;
@@ -85,16 +85,31 @@ class MySQLMultiStatementsHandlerTest {
         assertThat(actualHeader.getSqlStatement(), is(expectedStatement));
     }
     
+    @Test
+    void assertExecuteWithSpecifiedDatabaseName() throws SQLException {
+        String sql = "update foo_db.t set v=v+1 where id=1;update foo_db.t set v=v+1 where id=2;update foo_db.t set v=v+1 where id=3";
+        ConnectionSession connectionSession = mockConnectionSession();
+        MySQLUpdateStatement expectedStatement = mock(MySQLUpdateStatement.class);
+        ContextManager contextManager = mockContextManager();
+        when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
+        ResponseHeader actual = new MySQLMultiStatementsHandler(connectionSession, expectedStatement, sql).execute();
+        assertThat(actual, instanceOf(UpdateResponseHeader.class));
+        UpdateResponseHeader actualHeader = (UpdateResponseHeader) actual;
+        assertThat(actualHeader.getUpdateCount(), is(3L));
+        assertThat(actualHeader.getLastInsertId(), is(0L));
+        assertThat(actualHeader.getSqlStatement(), is(expectedStatement));
+    }
+    
     private ConnectionSession mockConnectionSession() throws SQLException {
         ConnectionSession result = mock(ConnectionSession.class, RETURNS_DEEP_STUBS);
-        when(result.getDatabaseName()).thenReturn("foo_db");
+        when(result.getUsedDatabaseName()).thenReturn("foo_db");
         Connection connection = mock(Connection.class, RETURNS_DEEP_STUBS);
         when(connection.getMetaData().getURL()).thenReturn("jdbc:mysql://127.0.0.1/db");
         Statement statement = mock(Statement.class);
         when(statement.getConnection()).thenReturn(connection);
         when(statement.executeBatch()).thenReturn(new int[]{1, 1, 1});
         ProxyDatabaseConnectionManager databaseConnectionManager = mock(ProxyDatabaseConnectionManager.class);
-        when(databaseConnectionManager.getConnections(nullable(String.class), anyInt(), anyInt(), any(ConnectionMode.class))).thenReturn(Collections.singletonList(connection));
+        when(databaseConnectionManager.getConnections(any(), nullable(String.class), anyInt(), anyInt(), any(ConnectionMode.class))).thenReturn(Collections.singletonList(connection));
         when(result.getDatabaseConnectionManager()).thenReturn(databaseConnectionManager);
         JDBCBackendStatement backendStatement = mock(JDBCBackendStatement.class);
         when(backendStatement.createStorageResource(eq(connection), any(ConnectionMode.class), any(StatementOption.class), nullable(DatabaseType.class))).thenReturn(statement);

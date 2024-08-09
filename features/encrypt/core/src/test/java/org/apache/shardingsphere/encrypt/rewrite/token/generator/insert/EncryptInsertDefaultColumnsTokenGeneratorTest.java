@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.encrypt.rewrite.token.generator.insert;
 
 import org.apache.shardingsphere.encrypt.rewrite.token.generator.fixture.EncryptGeneratorFixtureBuilder;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,11 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class EncryptInsertDefaultColumnsTokenGeneratorTest {
     
-    private final EncryptInsertDefaultColumnsTokenGenerator generator = new EncryptInsertDefaultColumnsTokenGenerator();
+    private EncryptInsertDefaultColumnsTokenGenerator generator;
     
     @BeforeEach
     void setup() {
-        generator.setEncryptRule(EncryptGeneratorFixtureBuilder.createEncryptRule());
+        generator = new EncryptInsertDefaultColumnsTokenGenerator(EncryptGeneratorFixtureBuilder.createEncryptRule());
     }
     
     @Test

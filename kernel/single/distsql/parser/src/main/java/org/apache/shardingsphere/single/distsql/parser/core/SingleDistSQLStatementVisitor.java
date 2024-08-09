@@ -35,18 +35,18 @@ import org.apache.shardingsphere.distsql.parser.autogen.SingleDistSQLStatementPa
 import org.apache.shardingsphere.distsql.parser.autogen.SingleDistSQLStatementParser.TableFromStorageUnitContext;
 import org.apache.shardingsphere.distsql.parser.autogen.SingleDistSQLStatementParser.TableIdentifierContext;
 import org.apache.shardingsphere.distsql.parser.autogen.SingleDistSQLStatementParser.UnloadSingleTableContext;
+import org.apache.shardingsphere.distsql.statement.rql.rule.database.CountRuleStatement;
 import org.apache.shardingsphere.single.distsql.segment.SingleTableSegment;
 import org.apache.shardingsphere.single.distsql.statement.rdl.LoadSingleTableStatement;
 import org.apache.shardingsphere.single.distsql.statement.rdl.SetDefaultSingleTableStorageUnitStatement;
 import org.apache.shardingsphere.single.distsql.statement.rdl.UnloadSingleTableStatement;
-import org.apache.shardingsphere.single.distsql.statement.rql.CountSingleTableStatement;
 import org.apache.shardingsphere.single.distsql.statement.rql.ShowDefaultSingleTableStorageUnitStatement;
 import org.apache.shardingsphere.single.distsql.statement.rql.ShowSingleTableStatement;
 import org.apache.shardingsphere.single.distsql.statement.rql.ShowUnloadedSingleTableStatement;
 import org.apache.shardingsphere.sql.parser.api.ASTNode;
 import org.apache.shardingsphere.sql.parser.api.visitor.SQLVisitor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DatabaseSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -59,7 +59,7 @@ public final class SingleDistSQLStatementVisitor extends SingleDistSQLStatementB
     
     @Override
     public ASTNode visitCountSingleTable(final CountSingleTableContext ctx) {
-        return new CountSingleTableStatement(null == ctx.databaseName() ? null : (DatabaseSegment) visit(ctx.databaseName()));
+        return new CountRuleStatement(null == ctx.databaseName() ? null : (DatabaseSegment) visit(ctx.databaseName()), "SINGLE");
     }
     
     @Override

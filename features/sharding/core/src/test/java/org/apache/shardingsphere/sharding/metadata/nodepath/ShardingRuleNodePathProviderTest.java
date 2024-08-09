@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.sharding.metadata.nodepath;
 
-import org.apache.shardingsphere.mode.path.RuleNodePath;
+import org.apache.shardingsphere.mode.path.rule.RuleNodePath;
 import org.apache.shardingsphere.mode.spi.RuleNodePathProvider;
 import org.hamcrest.collection.IsIterableContainingInAnyOrder;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ class ShardingRuleNodePathProviderTest {
         RuleNodePath actualRuleNodePath = ruleNodePathProvider.getRuleNodePath();
         assertThat(actualRuleNodePath.getNamedItems().size(), is(6));
         List<String> namedRuleItems = Arrays.asList(ShardingRuleNodePathProvider.TABLES, ShardingRuleNodePathProvider.AUTO_TABLES, ShardingRuleNodePathProvider.BINDING_TABLES,
-                ShardingRuleNodePathProvider.ALGORITHMS, ShardingRuleNodePathProvider.KEY_GENERATORS, ShardingRuleNodePathProvider.AUDITORS);
+                ShardingRuleNodePathProvider.SHARDING_ALGORITHMS, ShardingRuleNodePathProvider.KEY_GENERATORS, ShardingRuleNodePathProvider.AUDITORS);
         assertThat("Named rule items equality without order", actualRuleNodePath.getNamedItems().keySet(), IsIterableContainingInAnyOrder.containsInAnyOrder(namedRuleItems.toArray()));
         assertThat(actualRuleNodePath.getUniqueItems().size(), is(6));
         List<String> uniqueRuleItems = Arrays.asList(ShardingRuleNodePathProvider.DEFAULT_DATABASE_STRATEGY, ShardingRuleNodePathProvider.DEFAULT_TABLE_STRATEGY,

@@ -5,6 +5,7 @@
 [![GitHub release](https://img.shields.io/github/release/apache/shardingsphere.svg)](https://github.com/apache/shardingsphere/releases)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=apache_shardingsphere&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=apache_shardingsphere)
 
+[![CI](https://github.com/apache/shardingsphere/actions/workflows/ci.yml/badge.svg)](https://github.com/apache/shardingsphere/actions/workflows/ci.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=apache_shardingsphere&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=apache_shardingsphere)
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=apache_shardingsphere&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=apache_shardingsphere)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=apache_shardingsphere&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=apache_shardingsphere)
@@ -82,13 +83,13 @@ ShardingSphere 已于 2020 年 4 月 16 日成为 [Apache 软件基金会](https
 
 <hr>
 
-:white_check_mark: Version 5.4.0: 已发布 :tada:
+:white_check_mark: Version 5.5.0: 已发布 :tada:
 
 🔗 请访问 [发布说明](https://github.com/apache/shardingsphere/blob/master/RELEASE-NOTES.md) 获得更详细的信息.
 
-:soon: Version 5.4.1
+:soon: Version 5.5.1
 
-我们目前正在开发 5.4.1 里程碑。
+我们目前正在开发 5.5.1 里程碑。
 请访问[里程碑](https://github.com/apache/shardingsphere/milestones) 获取最新信息。
 
 ##
@@ -183,7 +184,7 @@ Apache ShardingSphere 是多接入端共同组成的生态圈。
 
 <p align="center">
 <br/><br/>
-<img src="https://landscape.cncf.io/images/left-logo.svg" width="150"/>&nbsp;&nbsp;<img src="https://landscape.cncf.io/images/right-logo.svg" width="200"/>
+<img src="https://landscape.cncf.io/images/cncf-landscape-horizontal-color.svg" width="165"/>&nbsp;&nbsp;<img src="https://www.cncf.io/wp-content/uploads/2023/04/cncf-main-site-logo.svg" width="200"/>
 <br/><br/>
 ShardingSphere 进入了<a href="https://landscape.cncf.io/?category=app-definition-and-development&grouping=category">CNCF 云原生全景图</a>。
 </p>

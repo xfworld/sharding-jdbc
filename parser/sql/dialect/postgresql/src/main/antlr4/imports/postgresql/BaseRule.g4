@@ -441,6 +441,8 @@ unreservedWord
     | JSON
     | PARAM
     | TABLE
+    | CONSTRAINT
+    | COLLATION
     ;
 
 typeFuncNameKeyword
@@ -547,7 +549,7 @@ patternMatchingOperator
     ;
 
 cursorName
-    : name
+    : name | hostVariable
     ;
 
 aExpr
@@ -1931,4 +1933,8 @@ ifExists
 
 booleanValue
     : TRUE | ON | FALSE | OFF | NUMBER_
+    ;
+
+hostVariable
+    : (COLON_)? identifier
     ;

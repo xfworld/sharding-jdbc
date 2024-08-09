@@ -21,7 +21,8 @@ import com.google.common.base.Strings;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Quote character.
@@ -42,13 +43,24 @@ public enum QuoteCharacter {
     
     NONE("", "");
     
+    private static final Map<Character, QuoteCharacter> BY_FIRST_CHAR = new HashMap<>(values().length - 1, 1F);
+    
+    static {
+        for (QuoteCharacter each : values()) {
+            if (NONE == each) {
+                continue;
+            }
+            BY_FIRST_CHAR.put(each.startDelimiter.charAt(0), each);
+        }
+    }
+    
     private final String startDelimiter;
     
     private final String endDelimiter;
     
     /**
      * Get quote character.
-     * 
+     *
      * @param value value to be get quote character
      * @return value of quote character
      */
@@ -56,12 +68,12 @@ public enum QuoteCharacter {
         if (Strings.isNullOrEmpty(value)) {
             return NONE;
         }
-        return Arrays.stream(values()).filter(each -> NONE != each && each.startDelimiter.charAt(0) == value.charAt(0)).findFirst().orElse(NONE);
+        return BY_FIRST_CHAR.getOrDefault(value.charAt(0), NONE);
     }
     
     /**
      * Wrap value with quote character.
-     * 
+     *
      * @param value value to be wrapped
      * @return wrapped value
      */
@@ -81,7 +93,7 @@ public enum QuoteCharacter {
     
     /**
      * Is wrapped by quote character.
-     * 
+     *
      * @param value value to be judged
      * @return is wrapped or not
      */
