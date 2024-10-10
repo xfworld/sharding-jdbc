@@ -18,24 +18,24 @@
 package org.apache.shardingsphere.infra.route.engine;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.session.query.QueryContext;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
-import org.apache.shardingsphere.infra.route.engine.impl.AllSQLRouteExecutor;
-import org.apache.shardingsphere.infra.route.engine.impl.PartialSQLRouteExecutor;
+import org.apache.shardingsphere.infra.route.engine.type.AllSQLRouteExecutor;
+import org.apache.shardingsphere.infra.route.engine.type.PartialSQLRouteExecutor;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowTableStatusStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowTablesStatement;
+import org.apache.shardingsphere.infra.session.query.QueryContext;
+import org.apache.shardingsphere.infra.spi.ShardingSphereServiceLoader;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
 import java.util.Collection;
 
 /**
  * SQL route engine.
  */
+@HighFrequencyInvocation
 @RequiredArgsConstructor
 public final class SQLRouteEngine {
     
@@ -46,19 +46,22 @@ public final class SQLRouteEngine {
     /**
      * Route SQL.
      *
-     * @param connectionContext connection context
      * @param queryContext query context
      * @param globalRuleMetaData global rule meta data
      * @param database database
      * @return route context
      */
-    public RouteContext route(final ConnectionContext connectionContext, final QueryContext queryContext, final RuleMetaData globalRuleMetaData, final ShardingSphereDatabase database) {
-        SQLRouteExecutor executor = isNeedAllSchemas(queryContext.getSqlStatementContext().getSqlStatement()) ? new AllSQLRouteExecutor() : new PartialSQLRouteExecutor(rules, props);
-        return executor.route(connectionContext, queryContext, globalRuleMetaData, database);
+    public RouteContext route(final QueryContext queryContext, final RuleMetaData globalRuleMetaData, final ShardingSphereDatabase database) {
+        SQLRouteExecutor executor = isNeedRouteAll(queryContext.getSqlStatementContext().getSqlStatement()) ? new AllSQLRouteExecutor() : new PartialSQLRouteExecutor(rules, props);
+        return executor.route(queryContext, globalRuleMetaData, database);
     }
     
-    // TODO use dynamic config to judge unconfigured schema
-    private boolean isNeedAllSchemas(final SQLStatement sqlStatement) {
-        return sqlStatement instanceof MySQLShowTablesStatement || sqlStatement instanceof MySQLShowTableStatusStatement;
+    private boolean isNeedRouteAll(final SQLStatement sqlStatement) {
+        for (SQLRouteExecutorDecider each : ShardingSphereServiceLoader.getServiceInstances(SQLRouteExecutorDecider.class)) {
+            if (each.isNeedRouteAll(sqlStatement)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

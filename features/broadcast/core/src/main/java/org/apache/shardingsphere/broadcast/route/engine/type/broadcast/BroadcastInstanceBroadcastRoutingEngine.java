@@ -31,14 +31,14 @@ import java.util.Collections;
  * Broadcast routing engine for database instance.
  */
 @RequiredArgsConstructor
-public class BroadcastInstanceBroadcastRoutingEngine implements BroadcastRouteEngine {
+public final class BroadcastInstanceBroadcastRoutingEngine implements BroadcastRouteEngine {
     
     private final ResourceMetaData resourceMetaData;
     
     @Override
     public RouteContext route(final RouteContext routeContext, final BroadcastRule broadcastRule) {
         RouteContext result = new RouteContext();
-        for (String each : broadcastRule.getAvailableDataSourceNames()) {
+        for (String each : broadcastRule.getDataSourceNames()) {
             if (resourceMetaData.getAllInstanceDataSourceNames().contains(each)) {
                 result.getRouteUnits().add(new RouteUnit(new RouteMapper(each, each), Collections.emptyList()));
             }

@@ -17,11 +17,12 @@
 
 package org.apache.shardingsphere.single.route.engine;
 
+import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.AlterSchemaStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.CreateSchemaStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.DropSchemaStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.AlterSchemaStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CreateSchemaStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.DropSchemaStatement;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -34,26 +35,26 @@ class SingleRouteEngineFactoryTest {
     
     @Test
     void assertNewInstanceWithNotEmptySingleTables() {
-        assertTrue(SingleRouteEngineFactory.newInstance(Collections.singleton(new QualifiedTable("demo_ds", "t_order")), mock(SQLStatement.class)).isPresent());
+        assertTrue(SingleRouteEngineFactory.newInstance(Collections.singleton(new QualifiedTable("demo_ds", "t_order")), mock(SQLStatement.class), mock(HintValueContext.class)).isPresent());
     }
     
     @Test
     void assertNewInstanceWithEmptySingleTableNameAndCreateSchemaStatement() {
-        assertTrue(SingleRouteEngineFactory.newInstance(Collections.emptyList(), mock(CreateSchemaStatement.class)).isPresent());
+        assertTrue(SingleRouteEngineFactory.newInstance(Collections.emptyList(), mock(CreateSchemaStatement.class), mock(HintValueContext.class)).isPresent());
     }
     
     @Test
     void assertNewInstanceWithEmptySingleTableNameAndAlterSchemaStatement() {
-        assertTrue(SingleRouteEngineFactory.newInstance(Collections.emptyList(), mock(AlterSchemaStatement.class)).isPresent());
+        assertTrue(SingleRouteEngineFactory.newInstance(Collections.emptyList(), mock(AlterSchemaStatement.class), mock(HintValueContext.class)).isPresent());
     }
     
     @Test
     void assertNewInstanceWithEmptySingleTableNameAndDropSchemaStatement() {
-        assertTrue(SingleRouteEngineFactory.newInstance(Collections.emptyList(), mock(DropSchemaStatement.class)).isPresent());
+        assertTrue(SingleRouteEngineFactory.newInstance(Collections.emptyList(), mock(DropSchemaStatement.class), mock(HintValueContext.class)).isPresent());
     }
     
     @Test
     void assertNewInstanceWithEmptySingleTableNameAndOtherStatement() {
-        assertFalse(SingleRouteEngineFactory.newInstance(Collections.emptyList(), mock(SQLStatement.class)).isPresent());
+        assertFalse(SingleRouteEngineFactory.newInstance(Collections.emptyList(), mock(SQLStatement.class), mock(HintValueContext.class)).isPresent());
     }
 }

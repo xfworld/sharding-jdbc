@@ -17,67 +17,36 @@
 
 package org.apache.shardingsphere.broadcast.distsql.handler.query;
 
-import org.apache.shardingsphere.broadcast.api.config.BroadcastRuleConfiguration;
-import org.apache.shardingsphere.broadcast.distsql.parser.statement.ShowBroadcastTableRulesStatement;
 import org.apache.shardingsphere.broadcast.rule.BroadcastRule;
-import org.apache.shardingsphere.distsql.handler.query.RQLExecutor;
+import org.apache.shardingsphere.distsql.statement.DistSQLStatement;
+import org.apache.shardingsphere.infra.config.rule.scope.DatabaseRuleConfiguration;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
-import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
-import org.junit.jupiter.api.Test;
+import org.apache.shardingsphere.test.it.distsql.handler.engine.query.DistSQLDatabaseRuleQueryExecutorAssert;
+import org.apache.shardingsphere.test.it.distsql.handler.engine.query.DistSQLRuleQueryExecutorSettings;
+import org.apache.shardingsphere.test.it.distsql.handler.engine.query.DistSQLRuleQueryExecutorTestCaseArgumentsProvider;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@DistSQLRuleQueryExecutorSettings("cases/show-broadcast-table-rules.xml")
 class ShowBroadcastTableRuleExecutorTest {
     
-    @Test
-    void assertGetRowData() {
-        ShardingSphereDatabase database = mockDatabase();
-        RQLExecutor<ShowBroadcastTableRulesStatement> executor = new ShowBroadcastTableRuleExecutor();
-        Collection<LocalDataQueryResultRow> actual = executor.getRows(database, mock(ShowBroadcastTableRulesStatement.class));
-        assertThat(actual.size(), is(1));
-        Iterator<LocalDataQueryResultRow> iterator = actual.iterator();
-        LocalDataQueryResultRow row = iterator.next();
-        assertThat(row.getCell(1), is("t_address"));
+    @ParameterizedTest(name = "DistSQL -> {0}")
+    @ArgumentsSource(DistSQLRuleQueryExecutorTestCaseArgumentsProvider.class)
+    void assertExecuteQuery(@SuppressWarnings("unused") final String distSQL, final DistSQLStatement sqlStatement,
+                            final DatabaseRuleConfiguration currentRuleConfig, final Collection<LocalDataQueryResultRow> expected) throws SQLException {
+        new DistSQLDatabaseRuleQueryExecutorAssert(mockRule()).assertQueryResultRows(currentRuleConfig, sqlStatement, expected);
     }
     
-    @Test
-    void assertGetRowDataWithoutMaskRule() {
-        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
-        Collection<LocalDataQueryResultRow> actual = new ShowBroadcastTableRuleExecutor().getRows(database, mock(ShowBroadcastTableRulesStatement.class));
-        assertTrue(actual.isEmpty());
-    }
-    
-    @Test
-    void assertGetColumnNames() {
-        RQLExecutor<ShowBroadcastTableRulesStatement> executor = new ShowBroadcastTableRuleExecutor();
-        Collection<String> columns = executor.getColumnNames();
-        assertThat(columns.size(), is(1));
-        Iterator<String> iterator = columns.iterator();
-        assertThat(iterator.next(), is("broadcast_table"));
-    }
-    
-    private ShardingSphereDatabase mockDatabase() {
-        ShardingSphereDatabase result = mock(ShardingSphereDatabase.class);
-        RuleMetaData ruleMetaData = new RuleMetaData(Collections.singleton(mockBroadcastRule()));
-        when(result.getRuleMetaData()).thenReturn(ruleMetaData);
-        return result;
-    }
-    
-    private BroadcastRule mockBroadcastRule() {
+    private BroadcastRule mockRule() {
         BroadcastRule result = mock(BroadcastRule.class);
-        BroadcastRuleConfiguration config = mock(BroadcastRuleConfiguration.class);
-        when(config.getTables()).thenReturn(Collections.singleton("t_address"));
-        when(result.getConfiguration()).thenReturn(config);
+        when(result.getTables()).thenReturn(Collections.singleton("t_address"));
         return result;
     }
 }

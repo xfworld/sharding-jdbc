@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.infra.database.core.connector.url;
 
+import org.apache.shardingsphere.infra.database.core.exception.UnrecognizedDatabaseURLException;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -37,14 +38,13 @@ class StandardJdbcUrlParserTest {
     
     @Test
     void assertParseMySQLJdbcUrl() {
-        JdbcUrl actual = new StandardJdbcUrlParser().parse("jdbc:mysql://127.0.0.1:3306/demo_ds?serverTimezone=UTC&useSSL=false&sessionVariables=group_concat_max_len=204800,SQL_SAFE_UPDATES=0");
+        JdbcUrl actual = new StandardJdbcUrlParser().parse("jdbc:mysql://127.0.0.1:3306/demo_ds?useSSL=false&sessionVariables=group_concat_max_len=204800,SQL_SAFE_UPDATES=0");
         assertThat(actual.getHostname(), is("127.0.0.1"));
         assertThat(actual.getPort(), is(3306));
         assertThat(actual.getDatabase(), is("demo_ds"));
-        assertThat(actual.getQueryProperties().size(), is(3));
-        assertThat(actual.getQueryProperties().get("serverTimezone"), is("UTC"));
-        assertThat(actual.getQueryProperties().get("useSSL"), is(Boolean.FALSE.toString()));
-        assertThat(actual.getQueryProperties().get("sessionVariables"), is("group_concat_max_len=204800,SQL_SAFE_UPDATES=0"));
+        assertThat(actual.getQueryProperties().size(), is(2));
+        assertThat(actual.getQueryProperties().getProperty("useSSL"), is(Boolean.FALSE.toString()));
+        assertThat(actual.getQueryProperties().getProperty("sessionVariables"), is("group_concat_max_len=204800,SQL_SAFE_UPDATES=0"));
     }
     
     @Test
@@ -54,7 +54,7 @@ class StandardJdbcUrlParserTest {
         assertThat(actual.getPort(), is(3306));
         assertThat(actual.getDatabase(), is("demo_ds"));
         assertThat(actual.getQueryProperties().size(), is(1));
-        assertThat(actual.getQueryProperties().get("useUnicode"), is(Boolean.TRUE.toString()));
+        assertThat(actual.getQueryProperties().getProperty("useUnicode"), is(Boolean.TRUE.toString()));
     }
     
     @Test
@@ -64,8 +64,8 @@ class StandardJdbcUrlParserTest {
         assertThat(actual.getPort(), is(5432));
         assertThat(actual.getDatabase(), is("demo_ds"));
         assertThat(actual.getQueryProperties().size(), is(2));
-        assertThat(actual.getQueryProperties().get("prepareThreshold"), is("1"));
-        assertThat(actual.getQueryProperties().get("preferQueryMode"), is("extendedForPrepared"));
+        assertThat(actual.getQueryProperties().getProperty("prepareThreshold"), is("1"));
+        assertThat(actual.getQueryProperties().getProperty("preferQueryMode"), is("extendedForPrepared"));
     }
     
     @Test
@@ -92,12 +92,12 @@ class StandardJdbcUrlParserTest {
         assertThat(new StandardJdbcUrlParser().parse("jdbc:tc:cockroach:v21.2.3:///demo_ds").getDatabase(), is("demo_ds"));
         assertThat(new StandardJdbcUrlParser().parse("jdbc:tc:tidb:v6.1.0:///demo_ds").getDatabase(), is("demo_ds"));
         assertThat(new StandardJdbcUrlParser().parse("jdbc:tc:mysql:5.7.34:///demo_ds?TC_INITSCRIPT=somepath/init_mysql.sql")
-                .getQueryProperties().get("TC_INITSCRIPT"), is("somepath/init_mysql.sql"));
+                .getQueryProperties().getProperty("TC_INITSCRIPT"), is("somepath/init_mysql.sql"));
         assertThat(new StandardJdbcUrlParser().parse("jdbc:tc:mysql:5.7.34:///demo_ds?TC_INITSCRIPT=file:src/main/resources/init_mysql.sql")
-                .getQueryProperties().get("TC_INITSCRIPT"), is("file:src/main/resources/init_mysql.sql"));
+                .getQueryProperties().getProperty("TC_INITSCRIPT"), is("file:src/main/resources/init_mysql.sql"));
         assertThat(new StandardJdbcUrlParser().parse("jdbc:tc:mysql:5.7.34:///demo_ds?TC_INITFUNCTION=org.testcontainers.jdbc.JDBCDriverTest::sampleInitFunction")
-                .getQueryProperties().get("TC_INITFUNCTION"), is("org.testcontainers.jdbc.JDBCDriverTest::sampleInitFunction"));
-        assertThat(new StandardJdbcUrlParser().parse("jdbc:tc:mysql:5.7.34:///demo_ds?TC_DAEMON=true").getQueryProperties().get("TC_DAEMON"), is("true"));
-        assertThat(new StandardJdbcUrlParser().parse("jdbc:tc:postgresql:9.6.8:///demo_ds?TC_TMPFS=/testtmpfs:rw").getQueryProperties().get("TC_TMPFS"), is("/testtmpfs:rw"));
+                .getQueryProperties().getProperty("TC_INITFUNCTION"), is("org.testcontainers.jdbc.JDBCDriverTest::sampleInitFunction"));
+        assertThat(new StandardJdbcUrlParser().parse("jdbc:tc:mysql:5.7.34:///demo_ds?TC_DAEMON=true").getQueryProperties().getProperty("TC_DAEMON"), is("true"));
+        assertThat(new StandardJdbcUrlParser().parse("jdbc:tc:postgresql:9.6.8:///demo_ds?TC_TMPFS=/testtmpfs:rw").getQueryProperties().getProperty("TC_TMPFS"), is("/testtmpfs:rw"));
     }
 }

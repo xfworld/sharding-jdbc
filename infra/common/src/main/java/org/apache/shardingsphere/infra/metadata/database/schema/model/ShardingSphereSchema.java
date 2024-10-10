@@ -32,17 +32,21 @@ import java.util.concurrent.ConcurrentHashMap;
 @Getter
 public final class ShardingSphereSchema {
     
+    private final String name;
+    
     private final Map<String, ShardingSphereTable> tables;
     
     private final Map<String, ShardingSphereView> views;
     
     @SuppressWarnings("CollectionWithoutInitialCapacity")
-    public ShardingSphereSchema() {
+    public ShardingSphereSchema(final String name) {
+        this.name = name;
         tables = new ConcurrentHashMap<>();
         views = new ConcurrentHashMap<>();
     }
     
-    public ShardingSphereSchema(final Map<String, ShardingSphereTable> tables, final Map<String, ShardingSphereView> views) {
+    public ShardingSphereSchema(final String name, final Map<String, ShardingSphereTable> tables, final Map<String, ShardingSphereView> views) {
+        this.name = name;
         this.tables = new ConcurrentHashMap<>(tables.size(), 1F);
         this.views = new ConcurrentHashMap<>(views.size(), 1F);
         tables.forEach((key, value) -> this.tables.put(key.toLowerCase(), value));
@@ -69,7 +73,7 @@ public final class ShardingSphereSchema {
     
     /**
      * Get table meta data via table name.
-     * 
+     *
      * @param tableName tableName table name
      * @return table meta data
      */
@@ -89,7 +93,7 @@ public final class ShardingSphereSchema {
     
     /**
      * Add table.
-     * 
+     *
      * @param tableName table name
      * @param table table
      */
@@ -196,5 +200,23 @@ public final class ShardingSphereSchema {
      */
     public List<String> getVisibleColumnNames(final String tableName) {
         return containsTable(tableName) ? getTable(tableName).getVisibleColumns() : Collections.emptyList();
+    }
+    
+    /**
+     * Get visible column names and indexes via table.
+     *
+     * @param tableName table name
+     * @return visible column names and indexes
+     */
+    public Map<String, Integer> getVisibleColumnNamesAndIndexes(final String tableName) {
+        return containsTable(tableName) ? getTable(tableName).getVisibleColumnsAndIndexes() : Collections.emptyMap();
+    }
+    
+    /**
+     *  Schema is empty or not.
+     * @return true if tables and views are all empty, else false
+     */
+    public boolean isEmpty() {
+        return tables.isEmpty() && views.isEmpty();
     }
 }

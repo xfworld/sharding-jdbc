@@ -19,10 +19,10 @@ package org.apache.shardingsphere.test.e2e.framework.param.array;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.test.e2e.cases.SQLCommandType;
+import org.apache.shardingsphere.test.e2e.framework.type.SQLCommandType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.enums.AdapterType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.enums.AdapterMode;
-import org.apache.shardingsphere.test.e2e.env.runtime.IntegrationTestEnvironment;
+import org.apache.shardingsphere.test.e2e.env.runtime.E2ETestEnvironment;
 import org.apache.shardingsphere.test.e2e.framework.param.model.AssertionTestParameter;
 import org.apache.shardingsphere.test.e2e.framework.param.model.E2ETestParameter;
 
@@ -37,7 +37,7 @@ public final class JdbcStandaloneTestParameterGenerator {
     
     private static final Collection<String> ADAPTERS = Collections.singleton(AdapterType.JDBC.getValue());
     
-    private static final IntegrationTestEnvironment ENV = IntegrationTestEnvironment.getInstance();
+    private static final E2ETestEnvironment ENV = E2ETestEnvironment.getInstance();
     
     /**
      * Get assertion test parameter.
@@ -46,7 +46,8 @@ public final class JdbcStandaloneTestParameterGenerator {
      * @return assertion test parameter
      */
     public static Collection<AssertionTestParameter> getAssertionTestParameter(final SQLCommandType sqlCommandType) {
-        return new E2ETestParameterGenerator(ADAPTERS, ENV.getScenarios(), AdapterMode.STANDALONE.getValue(), ENV.getClusterEnvironment().getDatabaseTypes()).getAssertionTestParameter(sqlCommandType);
+        return new E2ETestParameterGenerator(ADAPTERS, ENV.getScenarios(), AdapterMode.STANDALONE.getValue(), ENV.getClusterEnvironment().getDatabaseTypes(), ENV.isSmoke())
+                .getAssertionTestParameter(sqlCommandType);
     }
     
     /**
@@ -56,6 +57,7 @@ public final class JdbcStandaloneTestParameterGenerator {
      * @return case test parameter
      */
     public static Collection<E2ETestParameter> getCaseTestParameter(final SQLCommandType sqlCommandType) {
-        return new E2ETestParameterGenerator(ADAPTERS, ENV.getScenarios(), AdapterMode.STANDALONE.getValue(), ENV.getClusterEnvironment().getDatabaseTypes()).getCaseTestParameter(sqlCommandType);
+        return new E2ETestParameterGenerator(ADAPTERS, ENV.getScenarios(), AdapterMode.STANDALONE.getValue(), ENV.getClusterEnvironment().getDatabaseTypes(), ENV.isSmoke())
+                .getCaseTestParameter(sqlCommandType);
     }
 }

@@ -17,10 +17,14 @@
 
 package org.apache.shardingsphere.data.pipeline.opengauss.sqlbuilder;
 
-import org.apache.shardingsphere.data.pipeline.api.ingest.record.Column;
-import org.apache.shardingsphere.data.pipeline.api.ingest.record.DataRecord;
-import org.apache.shardingsphere.data.pipeline.common.ingest.IngestDataChangeType;
-import org.apache.shardingsphere.data.pipeline.common.ingest.position.PlaceholderPosition;
+import org.apache.shardingsphere.data.pipeline.core.constant.PipelineSQLOperationType;
+import org.apache.shardingsphere.data.pipeline.core.ingest.position.type.placeholder.IngestPlaceholderPosition;
+import org.apache.shardingsphere.data.pipeline.core.ingest.record.Column;
+import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
+import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.dialect.DialectPipelineSQLBuilder;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -28,7 +32,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 class OpenGaussPipelineSQLBuilderTest {
     
-    private final OpenGaussPipelineSQLBuilder sqlBuilder = new OpenGaussPipelineSQLBuilder();
+    private final DialectPipelineSQLBuilder sqlBuilder = DatabaseTypedSPILoader.getService(DialectPipelineSQLBuilder.class, TypedSPILoader.getService(DatabaseType.class, "openGauss"));
     
     @Test
     void assertBuildInsertOnDuplicateClause() {
@@ -37,7 +41,7 @@ class OpenGaussPipelineSQLBuilderTest {
     }
     
     private DataRecord mockDataRecord() {
-        DataRecord result = new DataRecord(IngestDataChangeType.INSERT, "t1", new PlaceholderPosition(), 4);
+        DataRecord result = new DataRecord(PipelineSQLOperationType.INSERT, "t1", new IngestPlaceholderPosition(), 4);
         result.addColumn(new Column("id", "", false, true));
         result.addColumn(new Column("c0", "", false, false));
         result.addColumn(new Column("c1", "", true, false));

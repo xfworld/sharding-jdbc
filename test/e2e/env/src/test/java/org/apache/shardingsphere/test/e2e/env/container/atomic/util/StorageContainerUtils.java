@@ -21,7 +21,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeFactory;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.test.e2e.env.runtime.DataSourceEnvironment;
 
 import javax.sql.DataSource;
@@ -54,14 +53,29 @@ public final class StorageContainerUtils {
      * @return data source
      */
     public static DataSource generateDataSource(final String jdbcUrl, final String username, final String password, final int maximumPoolSize) {
-        DatabaseType databaseType = DatabaseTypeFactory.get(jdbcUrl);
+        String driverClassName = DataSourceEnvironment.getDriverClassName(DatabaseTypeFactory.get(jdbcUrl));
+        return generateDataSource(jdbcUrl, username, password, maximumPoolSize, driverClassName);
+    }
+    
+    /**
+     * Generate datasource.
+     *
+     * @param jdbcUrl JDBC URL for generating datasource
+     * @param username username
+     * @param password password
+     * @param maximumPoolSize maximum pool size
+     * @param driverClassName driver class name
+     * @return data source
+     */
+    public static DataSource generateDataSource(final String jdbcUrl, final String username, final String password, final int maximumPoolSize, final String driverClassName) {
         HikariDataSource result = new HikariDataSource();
-        result.setDriverClassName(DataSourceEnvironment.getDriverClassName(databaseType));
+        result.setDriverClassName(driverClassName);
         result.setJdbcUrl(jdbcUrl);
         result.setUsername(username);
         result.setPassword(password);
         result.setMaximumPoolSize(maximumPoolSize);
         result.setTransactionIsolation("TRANSACTION_READ_COMMITTED");
+        result.setLeakDetectionThreshold(10000L);
         return result;
     }
 }

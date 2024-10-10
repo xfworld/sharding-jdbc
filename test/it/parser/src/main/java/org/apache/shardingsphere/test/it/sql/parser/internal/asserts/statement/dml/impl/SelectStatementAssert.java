@@ -19,16 +19,16 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.combine.CombineSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.limit.LimitSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.LockSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.ModelSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.WindowSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.WithSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.handler.dml.SelectStatementHandler;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLSelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.combine.CombineSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.limit.LimitSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.LockSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.ModelSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.WindowSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.WithSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLSelectStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.SQLSegmentAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.groupby.GroupByClauseAssert;
@@ -40,6 +40,7 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.ord
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.projection.ProjectionAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.table.TableAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.where.WhereClauseAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.window.WindowClauseAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.with.WithClauseAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.dml.SelectStatementTestCase;
 
@@ -48,7 +49,6 @@ import java.util.Optional;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -59,7 +59,7 @@ public final class SelectStatementAssert {
     
     /**
      * Assert select statement is correct with expected parser result.
-     * 
+     *
      * @param assertContext assert context
      * @param actual actual select statement
      * @param expected expected select statement test case
@@ -77,15 +77,16 @@ public final class SelectStatementAssert {
         assertWithClause(assertContext, actual, expected);
         assertCombineClause(assertContext, actual, expected);
         assertModelClause(assertContext, actual, expected);
+        assertIntoClause(assertContext, actual, expected);
     }
     
     private static void assertWindowClause(final SQLCaseAssertContext assertContext, final SelectStatement actual, final SelectStatementTestCase expected) {
-        Optional<WindowSegment> windowSegment = SelectStatementHandler.getWindowSegment(actual);
+        Optional<WindowSegment> windowSegment = actual.getWindow();
         if (null == expected.getWindowClause()) {
             assertFalse(windowSegment.isPresent(), assertContext.getText("Actual window segment should not exist."));
         } else {
             assertTrue(windowSegment.isPresent(), assertContext.getText("Actual window segment should exist."));
-            SQLSegmentAssert.assertIs(assertContext, windowSegment.get(), expected.getWindowClause());
+            WindowClauseAssert.assertIs(assertContext, windowSegment.get(), expected.getWindowClause());
         }
     }
     
@@ -107,15 +108,17 @@ public final class SelectStatementAssert {
     
     private static void assertTable(final SQLCaseAssertContext assertContext, final SelectStatement actual, final SelectStatementTestCase expected) {
         if (null == expected.getFrom()) {
-            assertNull(actual.getFrom(), assertContext.getText("Actual simple-table should not exist."));
+            assertFalse(actual.getFrom().isPresent(), assertContext.getText("Actual simple-table should not exist."));
         } else {
-            TableAssert.assertIs(assertContext, actual.getFrom(), expected.getFrom());
+            assertTrue(actual.getFrom().isPresent(), assertContext.getText("Actual from segment should exist."));
+            TableAssert.assertIs(assertContext, actual.getFrom().get(), expected.getFrom());
         }
         if (actual instanceof MySQLSelectStatement) {
             if (null == expected.getSimpleTable()) {
                 assertFalse(((MySQLSelectStatement) actual).getTable().isPresent(), assertContext.getText("Actual simple-table should not exist."));
             } else {
                 Optional<SimpleTableSegment> table = ((MySQLSelectStatement) actual).getTable();
+                assertTrue(table.isPresent(), assertContext.getText("Actual table segment should exist."));
                 TableAssert.assertIs(assertContext, table.orElse(null), expected.getSimpleTable());
             }
         }
@@ -149,7 +152,7 @@ public final class SelectStatementAssert {
     }
     
     private static void assertLimitClause(final SQLCaseAssertContext assertContext, final SelectStatement actual, final SelectStatementTestCase expected) {
-        Optional<LimitSegment> limitSegment = SelectStatementHandler.getLimitSegment(actual);
+        Optional<LimitSegment> limitSegment = actual.getLimit();
         if (null == expected.getLimitClause()) {
             assertFalse(limitSegment.isPresent(), assertContext.getText("Actual limit segment should not exist."));
         } else {
@@ -161,7 +164,7 @@ public final class SelectStatementAssert {
     }
     
     private static void assertLockClause(final SQLCaseAssertContext assertContext, final SelectStatement actual, final SelectStatementTestCase expected) {
-        Optional<LockSegment> actualLock = SelectStatementHandler.getLockSegment(actual);
+        Optional<LockSegment> actualLock = actual.getLock();
         if (null == expected.getLockClause()) {
             assertFalse(actualLock.isPresent(), assertContext.getText("Actual lock segment should not exist."));
         } else {
@@ -171,7 +174,7 @@ public final class SelectStatementAssert {
     }
     
     private static void assertWithClause(final SQLCaseAssertContext assertContext, final SelectStatement actual, final SelectStatementTestCase expected) {
-        Optional<WithSegment> withSegment = SelectStatementHandler.getWithSegment(actual);
+        Optional<WithSegment> withSegment = actual.getWithSegment();
         if (null == expected.getWithClause()) {
             assertFalse(withSegment.isPresent(), assertContext.getText("Actual with segment should not exist."));
         } else {
@@ -188,18 +191,28 @@ public final class SelectStatementAssert {
             assertTrue(combineSegment.isPresent(), assertContext.getText("Actual combine segment should exist."));
             assertThat(assertContext.getText("Combine type assertion error: "), combineSegment.get().getCombineType().name(), is(expected.getCombineClause().getCombineType()));
             SQLSegmentAssert.assertIs(assertContext, combineSegment.get(), expected.getCombineClause());
-            assertIs(assertContext, combineSegment.get().getLeft(), expected.getCombineClause().getLeft());
-            assertIs(assertContext, combineSegment.get().getRight(), expected.getCombineClause().getRight());
+            assertIs(assertContext, combineSegment.get().getLeft().getSelect(), expected.getCombineClause().getLeft());
+            assertIs(assertContext, combineSegment.get().getRight().getSelect(), expected.getCombineClause().getRight());
         }
     }
     
     private static void assertModelClause(final SQLCaseAssertContext assertContext, final SelectStatement actual, final SelectStatementTestCase expected) {
-        Optional<ModelSegment> modelSegment = SelectStatementHandler.getModelSegment(actual);
+        Optional<ModelSegment> modelSegment = actual.getModelSegment();
         if (null == expected.getModelClause()) {
             assertFalse(modelSegment.isPresent(), assertContext.getText("Actual model segment should not exist."));
         } else {
             assertTrue(modelSegment.isPresent(), assertContext.getText("Actual model segment should exist."));
             ModelClauseAssert.assertIs(assertContext, modelSegment.get(), expected.getModelClause());
+        }
+    }
+    
+    private static void assertIntoClause(final SQLCaseAssertContext assertContext, final SelectStatement actual, final SelectStatementTestCase expected) {
+        Optional<TableSegment> intoSegment = actual.getIntoSegment();
+        if (null == expected.getIntoClause()) {
+            assertFalse(intoSegment.isPresent(), assertContext.getText("Actual into segment should not exist."));
+        } else {
+            assertTrue(intoSegment.isPresent(), assertContext.getText("Actual into segment should exist."));
+            TableAssert.assertIs(assertContext, intoSegment.get(), expected.getIntoClause());
         }
     }
 }

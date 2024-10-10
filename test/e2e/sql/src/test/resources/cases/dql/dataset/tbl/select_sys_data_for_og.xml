@@ -21,11 +21,9 @@
         <column name="Name" />
         <column name="Type" />
         <column name="Owner" />
-        <column name="Storage" assertion="false" />
+        <column name="Storage" ignore-assert-data="true" />
     </metadata>
-    <row values="public | t_broadcast_table | table | mock user" />
     <row values="public | t_order | table | mock user" />
     <row values="public | t_order_item | table | mock user" />
     <row values="public | t_product | table | mock user" />
-    <row values="public | t_single_table | table | mock user" />
 </dataset>

@@ -17,79 +17,56 @@
 
 package org.apache.shardingsphere.mask.distsql.handler.query;
 
-import org.apache.shardingsphere.distsql.handler.query.RQLExecutor;
-import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
-import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.distsql.statement.DistSQLStatement;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
+import org.apache.shardingsphere.infra.config.rule.scope.DatabaseRuleConfiguration;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
-import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
-import org.apache.shardingsphere.mask.api.config.MaskRuleConfiguration;
-import org.apache.shardingsphere.mask.api.config.rule.MaskColumnRuleConfiguration;
-import org.apache.shardingsphere.mask.api.config.rule.MaskTableRuleConfiguration;
-import org.apache.shardingsphere.mask.distsql.parser.statement.ShowMaskRulesStatement;
+import org.apache.shardingsphere.mask.config.MaskRuleConfiguration;
+import org.apache.shardingsphere.mask.config.rule.MaskColumnRuleConfiguration;
+import org.apache.shardingsphere.mask.config.rule.MaskTableRuleConfiguration;
+import org.apache.shardingsphere.mask.distsql.statement.ShowMaskRulesStatement;
 import org.apache.shardingsphere.mask.rule.MaskRule;
-import org.junit.jupiter.api.Test;
+import org.apache.shardingsphere.test.it.distsql.handler.engine.query.DistSQLDatabaseRuleQueryExecutorTest;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Properties;
+import java.util.stream.Stream;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-class ShowMaskRuleExecutorTest {
+class ShowMaskRuleExecutorTest extends DistSQLDatabaseRuleQueryExecutorTest {
     
-    @Test
-    void assertGetRowData() {
-        ShardingSphereDatabase database = mockDatabase();
-        RQLExecutor<ShowMaskRulesStatement> executor = new ShowMaskRuleExecutor();
-        Collection<LocalDataQueryResultRow> actual = executor.getRows(database, mock(ShowMaskRulesStatement.class));
-        assertThat(actual.size(), is(1));
-        Iterator<LocalDataQueryResultRow> iterator = actual.iterator();
-        LocalDataQueryResultRow row = iterator.next();
-        assertThat(row.getCell(1), is("t_mask"));
-        assertThat(row.getCell(2), is("user_id"));
-        assertThat(row.getCell(3), is("md5"));
-        assertThat(row.getCell(4), is(""));
+    ShowMaskRuleExecutorTest() {
+        super(mock(MaskRule.class));
     }
     
-    @Test
-    void assertGetRowDataWithoutMaskRule() {
-        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
-        RQLExecutor<ShowMaskRulesStatement> executor = new ShowMaskRuleExecutor();
-        Collection<LocalDataQueryResultRow> actual = executor.getRows(database, mock(ShowMaskRulesStatement.class));
-        assertTrue(actual.isEmpty());
+    @ParameterizedTest(name = "{0}")
+    @ArgumentsSource(TestCaseArgumentsProvider.class)
+    void assertExecuteQuery(final String name, final DatabaseRuleConfiguration ruleConfig, final DistSQLStatement sqlStatement,
+                            final Collection<LocalDataQueryResultRow> expected) throws SQLException {
+        assertQueryResultRows(ruleConfig, sqlStatement, expected);
     }
     
-    @Test
-    void assertGetColumnNames() {
-        RQLExecutor<ShowMaskRulesStatement> executor = new ShowMaskRuleExecutor();
-        Collection<String> columns = executor.getColumnNames();
-        assertThat(columns.size(), is(4));
-        Iterator<String> iterator = columns.iterator();
-        assertThat(iterator.next(), is("table"));
-        assertThat(iterator.next(), is("column"));
-        assertThat(iterator.next(), is("algorithm_type"));
-        assertThat(iterator.next(), is("algorithm_props"));
-    }
-    
-    private ShardingSphereDatabase mockDatabase() {
-        ShardingSphereDatabase result = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
-        MaskRule rule = mock(MaskRule.class);
-        when(rule.getConfiguration()).thenReturn(getRuleConfiguration());
-        when(result.getRuleMetaData()).thenReturn(new RuleMetaData(Collections.singleton(rule)));
-        return result;
-    }
-    
-    private RuleConfiguration getRuleConfiguration() {
-        MaskColumnRuleConfiguration maskColumnRuleConfig = new MaskColumnRuleConfiguration("user_id", "t_mask_user_id_md5");
-        MaskTableRuleConfiguration maskTableRuleConfig = new MaskTableRuleConfiguration("t_mask", Collections.singleton(maskColumnRuleConfig));
-        AlgorithmConfiguration algorithmConfig = new AlgorithmConfiguration("md5", new Properties());
-        return new MaskRuleConfiguration(Collections.singleton(maskTableRuleConfig), Collections.singletonMap("t_mask_user_id_md5", algorithmConfig));
+    private static class TestCaseArgumentsProvider implements ArgumentsProvider {
+        
+        @Override
+        public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
+            return Stream.of(Arguments.arguments("normal", createRuleConfiguration(), new ShowMaskRulesStatement("T_MASK", null),
+                    Collections.singleton(new LocalDataQueryResultRow("t_mask", "user_id", "md5", ""))));
+        }
+        
+        private MaskRuleConfiguration createRuleConfiguration() {
+            MaskColumnRuleConfiguration maskColumnRuleConfig = new MaskColumnRuleConfiguration("user_id", "t_mask_user_id_md5");
+            MaskTableRuleConfiguration maskTableRuleConfig = new MaskTableRuleConfiguration("t_mask", Collections.singleton(maskColumnRuleConfig));
+            AlgorithmConfiguration algorithmConfig = new AlgorithmConfiguration("md5", new Properties());
+            return new MaskRuleConfiguration(Collections.singleton(maskTableRuleConfig), Collections.singletonMap("t_mask_user_id_md5", algorithmConfig));
+        }
     }
 }

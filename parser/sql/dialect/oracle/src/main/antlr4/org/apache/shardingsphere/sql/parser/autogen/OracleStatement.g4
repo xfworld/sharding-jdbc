@@ -17,7 +17,7 @@
 
 grammar OracleStatement;
 
-import DMLStatement, DDLStatement, TCLStatement, DCLStatement, DALStatement, PLSQL;
+import DMLStatement, DCLStatement, DDLStatement, TCLStatement, DALStatement, PLSQL;
 
 execute
     : (select
@@ -29,7 +29,7 @@ execute
     | alterTable
     | dropTable
     | truncateTable
-    | lockTable
+    | lock
     | createIndex
     | dropIndex
     | alterIndex
@@ -85,6 +85,7 @@ execute
     | dropEdition
     | dropTableSpace
     | dropOutline
+    | dropDatabase
     | alterOutline
     | alterAnalyticView
     | alterAttributeDimension
@@ -154,5 +155,14 @@ execute
     | createType
     | createCluster
     | createJava
-    ) SEMI_?
+    | plsqlBlock
+    | createLibrary
+    | switch
+    | createProfile
+    | createTrigger
+    | show
+    | spool
+    | createOperator
+    | createOutline
+    ) SEMI_? SLASH_? EOF
     ;
