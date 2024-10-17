@@ -19,15 +19,19 @@ package org.apache.shardingsphere.authority.rule;
 
 import lombok.Getter;
 import org.apache.shardingsphere.authority.config.AuthorityRuleConfiguration;
-import org.apache.shardingsphere.authority.model.AuthorityRegistry;
 import org.apache.shardingsphere.authority.model.ShardingSpherePrivileges;
-import org.apache.shardingsphere.authority.spi.AuthorityRegistryProvider;
+import org.apache.shardingsphere.authority.spi.PrivilegeProvider;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.metadata.user.Grantee;
 import org.apache.shardingsphere.infra.metadata.user.ShardingSphereUser;
-import org.apache.shardingsphere.infra.rule.identifier.scope.GlobalRule;
+import org.apache.shardingsphere.infra.rule.scope.GlobalRule;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Authority rule.
@@ -37,12 +41,16 @@ public final class AuthorityRule implements GlobalRule {
     @Getter
     private final AuthorityRuleConfiguration configuration;
     
-    private final AuthorityRegistry authorityRegistry;
+    private final Map<ShardingSphereUser, ShardingSpherePrivileges> privileges;
     
     public AuthorityRule(final AuthorityRuleConfiguration ruleConfig) {
         configuration = ruleConfig;
-        AuthorityRegistryProvider provider = TypedSPILoader.getService(AuthorityRegistryProvider.class, ruleConfig.getAuthorityProvider().getType(), ruleConfig.getAuthorityProvider().getProps());
-        authorityRegistry = provider.build(ruleConfig.getUsers());
+        Collection<ShardingSphereUser> users = ruleConfig.getUsers().stream()
+                .map(each -> new ShardingSphereUser(each.getUsername(), each.getPassword(), each.getHostname(), each.getAuthenticationMethodName(), each.isAdmin())).collect(Collectors.toList());
+        privileges = users.stream().collect(Collectors.toMap(each -> each,
+                each -> TypedSPILoader.getService(PrivilegeProvider.class, ruleConfig.getPrivilegeProvider().getType(), ruleConfig.getPrivilegeProvider().getProps())
+                        .build(ruleConfig, each.getGrantee()),
+                (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
     }
     
     /**
@@ -52,19 +60,38 @@ public final class AuthorityRule implements GlobalRule {
      * @return authenticator type
      */
     public String getAuthenticatorType(final ShardingSphereUser user) {
-        return configuration.getAuthenticators().containsKey(user.getAuthenticationMethodName())
-                ? configuration.getAuthenticators().get(user.getAuthenticationMethodName()).getType()
-                : Optional.ofNullable(configuration.getDefaultAuthenticator()).orElse("");
+        if (configuration.getAuthenticators().containsKey(user.getAuthenticationMethodName())) {
+            return configuration.getAuthenticators().get(user.getAuthenticationMethodName()).getType();
+        }
+        if (configuration.getAuthenticators().containsKey(configuration.getDefaultAuthenticator())) {
+            return configuration.getAuthenticators().get(configuration.getDefaultAuthenticator()).getType();
+        }
+        return "";
+    }
+    
+    /**
+     * Get grantees.
+     *
+     * @return grantees
+     */
+    public Collection<Grantee> getGrantees() {
+        return privileges.keySet().stream().map(ShardingSphereUser::getGrantee).collect(Collectors.toList());
     }
     
     /**
      * Find user.
      *
      * @param grantee grantee user
-     * @return user
+     * @return found user
      */
+    @HighFrequencyInvocation
     public Optional<ShardingSphereUser> findUser(final Grantee grantee) {
-        return configuration.getUsers().stream().filter(each -> each.getGrantee().equals(grantee)).findFirst();
+        for (ShardingSphereUser each : privileges.keySet()) {
+            if (each.getGrantee().accept(grantee)) {
+                return Optional.of(each);
+            }
+        }
+        return Optional.empty();
     }
     
     /**
@@ -73,7 +100,13 @@ public final class AuthorityRule implements GlobalRule {
      * @param grantee grantee
      * @return found privileges
      */
+    @HighFrequencyInvocation
     public Optional<ShardingSpherePrivileges> findPrivileges(final Grantee grantee) {
-        return authorityRegistry.findPrivileges(grantee);
+        for (ShardingSphereUser each : privileges.keySet()) {
+            if (each.getGrantee().accept(grantee)) {
+                return Optional.of(each).map(privileges::get);
+            }
+        }
+        return Optional.empty();
     }
 }

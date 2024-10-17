@@ -17,10 +17,10 @@
 
 package org.apache.shardingsphere.mask.distsql.handler.converter;
 
-import org.apache.shardingsphere.distsql.parser.segment.AlgorithmSegment;
-import org.apache.shardingsphere.mask.api.config.MaskRuleConfiguration;
-import org.apache.shardingsphere.mask.distsql.parser.segment.MaskColumnSegment;
-import org.apache.shardingsphere.mask.distsql.parser.segment.MaskRuleSegment;
+import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
+import org.apache.shardingsphere.mask.config.MaskRuleConfiguration;
+import org.apache.shardingsphere.mask.distsql.segment.MaskColumnSegment;
+import org.apache.shardingsphere.mask.distsql.segment.MaskRuleSegment;
 import org.apache.shardingsphere.test.util.PropertiesBuilder;
 import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.Test;
@@ -40,8 +40,7 @@ class MaskRuleStatementConverterTest {
         assertThat(actual.getTables().iterator().next().getName(), is("t_mask"));
         assertThat(actual.getTables().iterator().next().getColumns().iterator().next().getLogicColumn(), is("user_id"));
         assertThat(actual.getTables().iterator().next().getColumns().iterator().next().getMaskAlgorithm(), is("t_mask_user_id_md5"));
-        assertThat(actual.getMaskAlgorithms().keySet().iterator().next(), is("t_mask_user_id_md5"));
-        assertTrue(actual.getMaskAlgorithms().values().iterator().next().getType().contains("MD5"));
+        assertTrue(actual.getMaskAlgorithms().get("t_mask_user_id_md5").getType().contains("MD5"));
     }
     
     private Collection<MaskColumnSegment> createColumns() {

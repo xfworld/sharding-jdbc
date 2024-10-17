@@ -18,6 +18,7 @@
 package org.apache.shardingsphere.data.pipeline.cdc.util;
 
 import org.apache.shardingsphere.data.pipeline.cdc.protocol.request.StreamDataRequestBody.SchemaTable;
+import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
@@ -42,25 +43,24 @@ class CDCSchemaTableUtilsTest {
     
     @Test
     void assertParseTableExpression() {
-        Map<String, ShardingSphereSchema> schemas = new HashMap<>();
+        Map<String, ShardingSphereSchema> schemas = new HashMap<>(2, 1F);
         schemas.put("public", mockedPublicSchema());
         schemas.put("test", mockedTestSchema());
         ShardingSphereDatabase database = new ShardingSphereDatabase("sharding_db", TypedSPILoader.getService(DatabaseType.class, "openGauss"), null, null, schemas);
         List<SchemaTable> schemaTables = Arrays.asList(SchemaTable.newBuilder().setSchema("public").setTable("t_order").build(),
                 SchemaTable.newBuilder().setSchema("test").setTable("*").build());
-        Map<String, Set<String>> expected = new HashMap<>();
+        Map<String, Set<String>> expected = new HashMap<>(2, 1F);
         expected.put("test", new HashSet<>(Arrays.asList("t_order_item", "t_order_item2")));
         expected.put("public", Collections.singleton("t_order"));
         Map<String, Set<String>> actual = CDCSchemaTableUtils.parseTableExpressionWithSchema(database, schemaTables);
         assertThat(actual, is(expected));
         schemaTables = Collections.singletonList(SchemaTable.newBuilder().setTable("t_order").build());
         actual = CDCSchemaTableUtils.parseTableExpressionWithSchema(database, schemaTables);
-        expected = Collections.singletonMap("", Collections.singleton("t_order"));
+        expected = Collections.singletonMap("public", Collections.singleton("t_order"));
         assertThat(actual, is(expected));
         schemaTables = Collections.singletonList(SchemaTable.newBuilder().setSchema("*").setTable("t_order").build());
         actual = CDCSchemaTableUtils.parseTableExpressionWithSchema(database, schemaTables);
-        expected = new HashMap<>();
-        expected.put("public", Collections.singleton("t_order"));
+        expected = Collections.singletonMap("public", Collections.singleton("t_order"));
         assertThat(actual, is(expected));
     }
     
@@ -68,14 +68,14 @@ class CDCSchemaTableUtilsTest {
         Map<String, ShardingSphereTable> tables = new HashMap<>(2, 1F);
         tables.put("t_order", mock(ShardingSphereTable.class));
         tables.put("t_order2", mock(ShardingSphereTable.class));
-        return new ShardingSphereSchema(tables, Collections.emptyMap());
+        return new ShardingSphereSchema(DefaultDatabase.LOGIC_NAME, tables, Collections.emptyMap());
     }
     
     private ShardingSphereSchema mockedTestSchema() {
         Map<String, ShardingSphereTable> tables = new HashMap<>(2, 1F);
         tables.put("t_order_item", mock(ShardingSphereTable.class));
         tables.put("t_order_item2", mock(ShardingSphereTable.class));
-        return new ShardingSphereSchema(tables, Collections.emptyMap());
+        return new ShardingSphereSchema(DefaultDatabase.LOGIC_NAME, tables, Collections.emptyMap());
     }
     
     @Test

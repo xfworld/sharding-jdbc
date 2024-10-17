@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.encrypt.metadata;
 
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
-import org.apache.shardingsphere.encrypt.rule.EncryptTable;
+import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
 import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.ColumnMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
@@ -37,6 +37,7 @@ import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -57,7 +58,7 @@ class EncryptMetaDataReviseEngineTest {
     }
     
     private EncryptRule mockEncryptRule() {
-        EncryptRule result = mock(EncryptRule.class);
+        EncryptRule result = mock(EncryptRule.class, RETURNS_DEEP_STUBS);
         EncryptTable encryptTable = mock(EncryptTable.class);
         when(result.findEncryptTable(TABLE_NAME)).thenReturn(Optional.of(encryptTable));
         when(encryptTable.isCipherColumn("pwd_cipher")).thenReturn(true);

@@ -20,8 +20,9 @@ package org.apache.shardingsphere.sharding.metadata.reviser.index;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.IndexMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.index.IndexReviser;
+import org.apache.shardingsphere.infra.metadata.database.schema.util.IndexMetaDataUtils;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sharding.rule.TableRule;
+import org.apache.shardingsphere.sharding.rule.ShardingTable;
 
 import java.util.Optional;
 
@@ -31,21 +32,16 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public final class ShardingIndexReviser implements IndexReviser<ShardingRule> {
     
-    private final TableRule tableRule;
+    private final ShardingTable shardingTable;
     
     @Override
     public Optional<IndexMetaData> revise(final String tableName, final IndexMetaData originalMetaData, final ShardingRule rule) {
-        if (tableRule.getActualDataNodes().isEmpty()) {
+        if (shardingTable.getActualDataNodes().isEmpty()) {
             return Optional.empty();
         }
-        IndexMetaData result = new IndexMetaData(getLogicIndex(originalMetaData.getName(), tableRule.getActualDataNodes().iterator().next().getTableName()));
+        IndexMetaData result = new IndexMetaData(IndexMetaDataUtils.getLogicIndexName(originalMetaData.getName(), shardingTable.getActualDataNodes().iterator().next().getTableName()));
         result.getColumns().addAll(originalMetaData.getColumns());
         result.setUnique(originalMetaData.isUnique());
         return Optional.of(result);
-    }
-    
-    private String getLogicIndex(final String actualIndexName, final String actualTableName) {
-        String indexNameSuffix = "_" + actualTableName;
-        return actualIndexName.endsWith(indexNameSuffix) ? actualIndexName.replace(indexNameSuffix, "") : actualIndexName;
     }
 }

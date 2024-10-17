@@ -19,21 +19,21 @@ package org.apache.shardingsphere.shadow.route.engine;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.DeleteStatementContext;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.UpdateStatementContext;
+import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.shadow.route.engine.dml.ShadowDeleteStatementRoutingEngine;
 import org.apache.shardingsphere.shadow.route.engine.dml.ShadowInsertStatementRoutingEngine;
 import org.apache.shardingsphere.shadow.route.engine.dml.ShadowSelectStatementRoutingEngine;
 import org.apache.shardingsphere.shadow.route.engine.dml.ShadowUpdateStatementRoutingEngine;
 import org.apache.shardingsphere.shadow.route.engine.impl.ShadowNonDMLStatementRoutingEngine;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DeleteStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.InsertStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.UpdateStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.DeleteStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.UpdateStatement;
 
 /**
  * Shadow routing engine factory.
@@ -65,22 +65,22 @@ public final class ShadowRouteEngineFactory {
     }
     
     private static ShadowRouteEngine createShadowNonMDLStatementRoutingEngine(final QueryContext queryContext) {
-        return new ShadowNonDMLStatementRoutingEngine(queryContext.getSqlStatementContext());
+        return new ShadowNonDMLStatementRoutingEngine(queryContext.getHintValueContext());
     }
     
     private static ShadowRouteEngine createShadowSelectStatementRoutingEngine(final QueryContext queryContext) {
-        return new ShadowSelectStatementRoutingEngine((SelectStatementContext) queryContext.getSqlStatementContext(), queryContext.getParameters());
+        return new ShadowSelectStatementRoutingEngine((SelectStatementContext) queryContext.getSqlStatementContext(), queryContext.getParameters(), queryContext.getHintValueContext());
     }
     
     private static ShadowRouteEngine createShadowUpdateStatementRoutingEngine(final QueryContext queryContext) {
-        return new ShadowUpdateStatementRoutingEngine((UpdateStatementContext) queryContext.getSqlStatementContext(), queryContext.getParameters());
+        return new ShadowUpdateStatementRoutingEngine((UpdateStatementContext) queryContext.getSqlStatementContext(), queryContext.getParameters(), queryContext.getHintValueContext());
     }
     
     private static ShadowRouteEngine createShadowDeleteStatementRoutingEngine(final QueryContext queryContext) {
-        return new ShadowDeleteStatementRoutingEngine((DeleteStatementContext) queryContext.getSqlStatementContext(), queryContext.getParameters());
+        return new ShadowDeleteStatementRoutingEngine((DeleteStatementContext) queryContext.getSqlStatementContext(), queryContext.getParameters(), queryContext.getHintValueContext());
     }
     
     private static ShadowRouteEngine createShadowInsertStatementRoutingEngine(final QueryContext queryContext) {
-        return new ShadowInsertStatementRoutingEngine((InsertStatementContext) queryContext.getSqlStatementContext());
+        return new ShadowInsertStatementRoutingEngine((InsertStatementContext) queryContext.getSqlStatementContext(), queryContext.getHintValueContext());
     }
 }

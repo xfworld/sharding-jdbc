@@ -17,10 +17,10 @@ weight = 5
 
 可配置属性：
 
-| *名称*                  | *数据类型* | *说明*                         |
-|-----------------------|--------|------------------------------|
-| aes-key-value         | String | AES 使用的 KEY                  |
-| digest-algorithm-name | String | AES KEY 的摘要算法 (可选，默认值：SHA-1) |
+| *名称*                  | *数据类型* | *说明*          |
+|-----------------------|--------|---------------|
+| aes-key-value         | String | AES 使用的 KEY   |
+| digest-algorithm-name | String | AES KEY 的摘要算法 |
 
 ### 辅助查询加密算法
 
@@ -50,16 +50,19 @@ rules:
           cipher:
             name: username
             encryptorName: name_encryptor
-          likeQuery:
-            name: name_like
-            encryptorName: like_encryptor
+          assistedQuery:
+            name: assisted_username
+            encryptorName: assisted_encryptor
   encryptors:
-    like_encryptor:
-      type: CHAR_DIGEST_LIKE
     name_encryptor:
       type: AES
       props:
         aes-key-value: 123456abc
+        digest-algorithm-name: SHA-1
+    assisted_encryptor:
+      type: MD5
+      props:
+        salt: 123456
 ```
 
 ## 相关参考

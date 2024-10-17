@@ -19,18 +19,18 @@ package org.apache.shardingsphere.sharding.route.engine.validator.ddl.impl;
 
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.sharding.exception.metadata.EngagedViewException;
 import org.apache.shardingsphere.sharding.exception.syntax.RenamedViewWithoutSameConfigurationException;
 import org.apache.shardingsphere.sharding.route.engine.validator.ddl.ShardingDDLStatementValidator;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.sql.common.extractor.TableExtractor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.AlterViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.handler.ddl.AlterViewStatementHandler;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.AlterViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.util.TableExtractor;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,20 +42,24 @@ import java.util.Optional;
 public final class ShardingAlterViewStatementValidator extends ShardingDDLStatementValidator {
     
     @Override
-    public void preValidate(final ShardingRule shardingRule, final SQLStatementContext sqlStatementContext,
+    public void preValidate(final ShardingRule shardingRule, final SQLStatementContext sqlStatementContext, final HintValueContext hintValueContext,
                             final List<Object> params, final ShardingSphereDatabase database, final ConfigurationProperties props) {
         AlterViewStatement alterViewStatement = (AlterViewStatement) sqlStatementContext.getSqlStatement();
-        Optional<SelectStatement> selectStatement = AlterViewStatementHandler.getSelectStatement(alterViewStatement);
-        if (selectStatement.isPresent()) {
-            TableExtractor extractor = new TableExtractor();
-            extractor.extractTablesFromSelect(selectStatement.get());
-            validateShardingTable(shardingRule, "ALTER VIEW", extractor.getRewriteTables());
-        }
-        Optional<SimpleTableSegment> renamedView = AlterViewStatementHandler.getRenameView(alterViewStatement);
+        Optional<SelectStatement> selectStatement = alterViewStatement.getSelectStatement();
+        String originView = alterViewStatement.getView().getTableName().getIdentifier().getValue();
+        selectStatement.ifPresent(optional -> validateAlterViewShardingTables(shardingRule, optional, originView));
+        Optional<SimpleTableSegment> renamedView = alterViewStatement.getRenameView();
         if (renamedView.isPresent()) {
             String targetView = renamedView.get().getTableName().getIdentifier().getValue();
-            String originView = alterViewStatement.getView().getTableName().getIdentifier().getValue();
             validateBroadcastShardingView(shardingRule, originView, targetView);
+        }
+    }
+    
+    private void validateAlterViewShardingTables(final ShardingRule shardingRule, final SelectStatement selectStatement, final String viewName) {
+        TableExtractor extractor = new TableExtractor();
+        extractor.extractTablesFromSelect(selectStatement);
+        if (isShardingTablesNotBindingWithView(extractor.getRewriteTables(), shardingRule, viewName)) {
+            throw new EngagedViewException("sharding");
         }
     }
     

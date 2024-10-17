@@ -19,8 +19,9 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.de
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.ColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.ColumnDefinitionSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.generic.DataTypeAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.table.TableAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedColumnDefinition;
 
@@ -37,7 +38,7 @@ public final class ColumnDefinitionAssert {
     
     /**
      * Assert actual column definition segment is correct with expected column definition.
-     * 
+     *
      * @param assertContext assert context
      * @param actual actual column definition segment
      * @param expected expected column definition
@@ -47,12 +48,19 @@ public final class ColumnDefinitionAssert {
         if (null != expected.getType()) {
             assertNotNull(actual.getDataType(), assertContext.getText("Column definition data type should exist."));
             assertThat(assertContext.getText("Column definition data type assertion error: "), actual.getDataType().getDataTypeName(), is(expected.getType()));
+            if (null != expected.getDataType()) {
+                DataTypeAssert.assertIs(assertContext, actual.getDataType(), expected.getDataType());
+            }
         } else {
             assertNull(actual.getDataType(), assertContext.getText("Column definition data type should not exist."));
         }
         assertThat(assertContext.getText("Column definition primary key assertion error: "), actual.isPrimaryKey(), is(expected.isPrimaryKey()));
+        assertThat(assertContext.getText("Column definition auto increment assertion error: "), actual.isAutoIncrement(), is(expected.isAutoIncrement()));
         TableAssert.assertIs(assertContext, actual.getReferencedTables(), expected.getReferencedTables());
         assertThat(assertContext.getText("Column definition start index assertion error: "), actual.getStartIndex(), is(expected.getStartIndex()));
         assertThat(assertContext.getText("Column definition stop index assertion error: "), actual.getStopIndex(), is(expected.getStopIndex()));
+        if (expected.isNotNull()) {
+            assertThat(assertContext.getText("Column definition not null assertion error: "), actual.isNotNull(), is(expected.isNotNull()));
+        }
     }
 }

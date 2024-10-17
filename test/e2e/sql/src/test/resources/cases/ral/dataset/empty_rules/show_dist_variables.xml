@@ -28,6 +28,7 @@
     <row values="max_connections_size_per_query| 1" />
     <row values="proxy_backend_query_fetch_size| -1" />
     <row values="proxy_default_port| 3307" />
+    <row values="proxy_frontend_database_protocol_type| " />
     <row values="proxy_frontend_executor_size| 0" />
     <row values="proxy_frontend_flush_threshold| 128" />
     <row values="proxy_frontend_max_connections| 0" />
@@ -39,5 +40,5 @@
     <row values="sql_show| false" />
     <row values="sql_simple| false" />
     <row values="system_log_level| INFO" />
-    <row values="system_schema_metadata_enabled| true" />
+    <row values="system_schema_metadata_assembly_enabled| true" />
 </dataset>

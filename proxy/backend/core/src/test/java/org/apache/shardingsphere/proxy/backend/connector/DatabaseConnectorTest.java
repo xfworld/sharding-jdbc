@@ -25,6 +25,7 @@ import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResultMetaData;
+import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.merge.result.impl.memory.MemoryMergedResult;
 import org.apache.shardingsphere.infra.merge.result.impl.memory.MemoryQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
@@ -37,12 +38,14 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.infra.metadata.database.schema.util.SystemSchemaUtils;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
+import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
 import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
 import org.apache.shardingsphere.metadata.persist.data.ShardingSphereDataPersistService;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
+import org.apache.shardingsphere.mode.metadata.MetaDataContextsFactory;
 import org.apache.shardingsphere.parser.config.SQLParserRuleConfiguration;
 import org.apache.shardingsphere.parser.rule.SQLParserRule;
 import org.apache.shardingsphere.proxy.backend.connector.jdbc.fixture.QueryHeaderBuilderFixture;
@@ -61,7 +64,8 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.internal.configuration.plugins.Plugins;
-import org.mockito.plugins.MemberAccessor;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
@@ -91,6 +95,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(AutoMockExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @StaticMockSettings({ProxyContext.class, SystemSchemaUtils.class})
 class DatabaseConnectorTest {
     
@@ -108,24 +113,24 @@ class DatabaseConnectorTest {
     
     @BeforeEach
     void setUp() {
-        when(databaseConnectionManager.getConnectionSession().getDatabaseName()).thenReturn("foo_db");
+        when(databaseConnectionManager.getConnectionSession().getCurrentDatabaseName()).thenReturn("foo_db");
+        when(databaseConnectionManager.getConnectionSession().getUsedDatabaseName()).thenReturn("foo_db");
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
-        ShardingSphereDatabase database = contextManager.getMetaDataContexts().getMetaData().getDatabase("foo_db");
-        when(ProxyContext.getInstance().getDatabase("foo_db")).thenReturn(database);
     }
     
     private ContextManager mockContextManager() {
-        RuleMetaData globalRuleMetaData =
-                new RuleMetaData(Arrays.asList(new SQLParserRule(new SQLParserRuleConfiguration(false, mock(CacheOption.class), mock(CacheOption.class))), sqlFederationRule));
+        RuleMetaData globalRuleMetaData = new RuleMetaData(Arrays.asList(new SQLParserRule(new SQLParserRuleConfiguration(mock(CacheOption.class), mock(CacheOption.class))), sqlFederationRule));
         MetaDataPersistService metaDataPersistService = mock(MetaDataPersistService.class);
         ShardingSphereDataPersistService shardingSphereDataPersistService = mock(ShardingSphereDataPersistService.class);
         when(shardingSphereDataPersistService.load(any())).thenReturn(Optional.empty());
         when(metaDataPersistService.getShardingSphereDataPersistService()).thenReturn(shardingSphereDataPersistService);
-        MetaDataContexts metaDataContexts = new MetaDataContexts(metaDataPersistService,
-                new ShardingSphereMetaData(mockDatabases(), mock(ResourceMetaData.class), globalRuleMetaData, new ConfigurationProperties(new Properties())));
+        Map<String, ShardingSphereDatabase> databases = mockDatabases();
+        MetaDataContexts metaDataContexts = MetaDataContextsFactory.create(
+                metaDataPersistService, new ShardingSphereMetaData(databases, mock(ResourceMetaData.class), globalRuleMetaData, new ConfigurationProperties(new Properties())));
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
+        when(result.getDatabase("foo_db")).thenReturn(databases.get("foo_db"));
         return result;
     }
     
@@ -134,26 +139,24 @@ class DatabaseConnectorTest {
         when(database.containsDataSource()).thenReturn(true);
         when(database.isComplete()).thenReturn(true);
         when(database.getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "H2"));
-        when(database.getRuleMetaData().getRules()).thenReturn(Collections.emptyList());
         return Collections.singletonMap("foo_db", database);
     }
     
     @Test
     void assertBinaryProtocolQueryHeader() throws SQLException, NoSuchFieldException, IllegalAccessException {
         SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class, RETURNS_DEEP_STUBS);
-        when(sqlStatementContext.getTablesContext().getSchemaNames()).thenReturn(Collections.emptyList());
-        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(new QueryContext(sqlStatementContext, "schemaName", Collections.emptyList()), databaseConnectionManager, true);
+        when(sqlStatementContext.getDatabaseType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(createQueryContext(sqlStatementContext), databaseConnectionManager, true);
         assertNotNull(engine);
         assertThat(engine, instanceOf(DatabaseConnector.class));
         Field queryHeadersField = DatabaseConnector.class.getDeclaredField("queryHeaders");
         ShardingSphereDatabase database = createDatabaseMetaData();
-        MemberAccessor accessor = Plugins.getMemberAccessor();
         try (MockedStatic<DatabaseTypedSPILoader> spiLoader = mockStatic(DatabaseTypedSPILoader.class)) {
             spiLoader.when(() -> DatabaseTypedSPILoader.getService(QueryHeaderBuilder.class, TypedSPILoader.getService(DatabaseType.class, "MySQL"))).thenReturn(new QueryHeaderBuilderFixture());
-            accessor.set(queryHeadersField, engine,
+            Plugins.getMemberAccessor().set(queryHeadersField, engine,
                     Collections.singletonList(new QueryHeaderBuilderEngine(TypedSPILoader.getService(DatabaseType.class, "MySQL")).build(createQueryResultMetaData(), database, 1)));
             Field mergedResultField = DatabaseConnector.class.getDeclaredField("mergedResult");
-            accessor.set(mergedResultField, engine, new MemoryMergedResult<ShardingSphereRule>(null, null, null, Collections.emptyList()) {
+            Plugins.getMemberAccessor().set(mergedResultField, engine, new MemoryMergedResult<ShardingSphereRule>(null, null, null, Collections.emptyList()) {
                 
                 @Override
                 protected List<MemoryQueryResultRow> init(final ShardingSphereRule rule, final ShardingSphereSchema schema,
@@ -164,12 +167,22 @@ class DatabaseConnectorTest {
             Exception ex = null;
             try {
                 engine.getRowData();
-            } catch (final SQLException | IndexOutOfBoundsException e) {
-                ex = e;
+            } catch (final SQLException | IndexOutOfBoundsException exception) {
+                ex = exception;
             } finally {
                 assertFalse(ex instanceof IndexOutOfBoundsException);
             }
         }
+    }
+    
+    private QueryContext createQueryContext(final SQLStatementContext sqlStatementContext) {
+        ConnectionContext connectionContext = mock(ConnectionContext.class);
+        when(connectionContext.getCurrentDatabaseName()).thenReturn(Optional.of(DefaultDatabase.LOGIC_NAME));
+        ShardingSphereMetaData metaData = mock(ShardingSphereMetaData.class);
+        when(metaData.containsDatabase(DefaultDatabase.LOGIC_NAME)).thenReturn(true);
+        ShardingSphereDatabase database = mockDatabases().get("foo_db");
+        when(metaData.getDatabase(DefaultDatabase.LOGIC_NAME)).thenReturn(database);
+        return new QueryContext(sqlStatementContext, "schemaName", Collections.emptyList(), new HintValueContext(), connectionContext, metaData);
     }
     
     private ShardingSphereDatabase createDatabaseMetaData() {
@@ -191,8 +204,8 @@ class DatabaseConnectorTest {
     @Test
     void assertAddStatementCorrectly() {
         SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class, RETURNS_DEEP_STUBS);
-        when(sqlStatementContext.getTablesContext().getSchemaNames()).thenReturn(Collections.emptyList());
-        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(new QueryContext(sqlStatementContext, "schemaName", Collections.emptyList()), databaseConnectionManager, false);
+        when(sqlStatementContext.getDatabaseType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(createQueryContext(sqlStatementContext), databaseConnectionManager, false);
         engine.add(statement);
         Collection<?> actual = getField(engine, "cachedStatements");
         assertThat(actual.size(), is(1));
@@ -202,8 +215,8 @@ class DatabaseConnectorTest {
     @Test
     void assertAddResultSetCorrectly() {
         SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class, RETURNS_DEEP_STUBS);
-        when(sqlStatementContext.getTablesContext().getSchemaNames()).thenReturn(Collections.emptyList());
-        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(new QueryContext(sqlStatementContext, "schemaName", Collections.emptyList()), databaseConnectionManager, false);
+        when(sqlStatementContext.getDatabaseType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(createQueryContext(sqlStatementContext), databaseConnectionManager, false);
         engine.add(resultSet);
         Collection<?> actual = getField(engine, "cachedResultSets");
         assertThat(actual.size(), is(1));
@@ -213,8 +226,8 @@ class DatabaseConnectorTest {
     @Test
     void assertCloseCorrectly() throws SQLException {
         SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class, RETURNS_DEEP_STUBS);
-        when(sqlStatementContext.getTablesContext().getSchemaNames()).thenReturn(Collections.emptyList());
-        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(new QueryContext(sqlStatementContext, "schemaName", Collections.emptyList()), databaseConnectionManager, false);
+        when(sqlStatementContext.getDatabaseType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(createQueryContext(sqlStatementContext), databaseConnectionManager, false);
         Collection<ResultSet> cachedResultSets = getField(engine, "cachedResultSets");
         cachedResultSets.add(resultSet);
         Collection<Statement> cachedStatements = getField(engine, "cachedStatements");
@@ -230,8 +243,8 @@ class DatabaseConnectorTest {
     @Test
     void assertCloseResultSetsWithExceptionThrown() throws SQLException {
         SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class, RETURNS_DEEP_STUBS);
-        when(sqlStatementContext.getTablesContext().getSchemaNames()).thenReturn(Collections.emptyList());
-        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(new QueryContext(sqlStatementContext, "schemaName", Collections.emptyList()), databaseConnectionManager, false);
+        when(sqlStatementContext.getDatabaseType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        DatabaseConnector engine = DatabaseConnectorFactory.getInstance().newInstance(createQueryContext(sqlStatementContext), databaseConnectionManager, false);
         Collection<ResultSet> cachedResultSets = getField(engine, "cachedResultSets");
         SQLException sqlExceptionByResultSet = new SQLException("ResultSet");
         doThrow(sqlExceptionByResultSet).when(resultSet).close();

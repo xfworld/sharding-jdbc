@@ -17,18 +17,39 @@
 
 package org.apache.shardingsphere.data.pipeline.core.consistencycheck;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DataConsistencyCheckUtilsTest {
     
     @Test
+    void assertIsIntegerEquals() {
+        EqualsBuilder equalsBuilder = new EqualsBuilder();
+        String value = "123";
+        Long longValue = Long.parseLong(value);
+        assertTrue(DataConsistencyCheckUtils.isMatched(equalsBuilder, longValue, Integer.parseInt(value)));
+        assertTrue(DataConsistencyCheckUtils.isMatched(equalsBuilder, longValue, Short.parseShort(value)));
+        assertTrue(DataConsistencyCheckUtils.isMatched(equalsBuilder, longValue, Byte.parseByte(value)));
+    }
+    
+    @Test
     void assertIsBigDecimalEquals() {
-        BigDecimal one = BigDecimal.valueOf(3322, 1);
-        BigDecimal another = BigDecimal.valueOf(33220, 2);
+        BigDecimal one = BigDecimal.valueOf(3322L, 1);
+        BigDecimal another = BigDecimal.valueOf(33220L, 2);
         assertTrue(DataConsistencyCheckUtils.isBigDecimalEquals(one, another));
+    }
+    
+    @Test
+    void assertTimestampEquals() {
+        EqualsBuilder equalsBuilder = new EqualsBuilder();
+        long time = System.currentTimeMillis();
+        assertTrue(DataConsistencyCheckUtils.isMatched(equalsBuilder, new Timestamp(time), new Timestamp(time / 10L * 10L + 1L)));
+        assertFalse(DataConsistencyCheckUtils.isMatched(equalsBuilder, new Timestamp(time), new Timestamp(time + 1000L)));
     }
 }

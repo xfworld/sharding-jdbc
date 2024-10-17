@@ -18,19 +18,16 @@
 package org.apache.shardingsphere.encrypt.algorithm.standard;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.shardingsphere.encrypt.api.context.EncryptContext;
-import org.apache.shardingsphere.encrypt.api.encrypt.standard.StandardEncryptAlgorithm;
-import org.apache.shardingsphere.encrypt.exception.algorithm.EncryptAlgorithmInitializationException;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
+import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
+import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.test.util.PropertiesBuilder;
 import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 import org.mockito.MockedStatic;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -42,60 +39,56 @@ import static org.mockito.Mockito.times;
 
 class AESEncryptAlgorithmTest {
     
-    private StandardEncryptAlgorithm encryptAlgorithm;
+    private EncryptAlgorithm encryptAlgorithm;
     
     @BeforeEach
     void setUp() {
-        encryptAlgorithm = (StandardEncryptAlgorithm) TypedSPILoader.getService(EncryptAlgorithm.class, "AES", PropertiesBuilder.build(new Property("aes-key-value", "test")));
+        encryptAlgorithm = TypedSPILoader.getService(EncryptAlgorithm.class, "AES", PropertiesBuilder.build(new Property("aes-key-value", "test"), new Property("digest-algorithm-name", "SHA-1")));
     }
     
     @Test
-    void assertDefaultDigestAlgorithm() throws NoSuchAlgorithmException {
-        MockedStatic<DigestUtils> digestUtilsMockedStatic = mockStatic(DigestUtils.class);
-        digestUtilsMockedStatic.when(() -> DigestUtils.getDigest("SHA-1")).thenReturn(MessageDigest.getInstance("SHA-1"));
-        TypedSPILoader.getService(EncryptAlgorithm.class, "AES", PropertiesBuilder.build(new Property("aes-key-value", "test")));
+    void assertDigestAlgorithm() {
+        MockedStatic<DigestUtils> digestUtilsMockedStatic = mockStatic(DigestUtils.class, Answers.CALLS_REAL_METHODS);
+        TypedSPILoader.getService(EncryptAlgorithm.class, "AES", PropertiesBuilder.build(new Property("aes-key-value", "test"), new Property("digest-algorithm-name", "SHA-1")));
         digestUtilsMockedStatic.verify(() -> DigestUtils.getDigest("SHA-1"), times(1));
         digestUtilsMockedStatic.close();
     }
     
     @Test
-    void assertSHA512DigestAlgorithm() throws NoSuchAlgorithmException {
-        MockedStatic<DigestUtils> digestUtilsMockedStatic = mockStatic(DigestUtils.class);
-        digestUtilsMockedStatic.when(() -> DigestUtils.getDigest("SHA-512")).thenReturn(MessageDigest.getInstance("SHA-512"));
-        TypedSPILoader.getService(EncryptAlgorithm.class, "AES", PropertiesBuilder.build(new Property("aes-key-value", "test"), new Property("digest-algorithm-name", "SHA-512")));
-        digestUtilsMockedStatic.verify(() -> DigestUtils.getDigest("SHA-512"), times(1));
-        digestUtilsMockedStatic.close();
-    }
-    
-    @Test
     void assertCreateNewInstanceWithoutAESKey() {
-        assertThrows(EncryptAlgorithmInitializationException.class, () -> TypedSPILoader.getService(EncryptAlgorithm.class, "AES"));
+        assertThrows(AlgorithmInitializationException.class, () -> TypedSPILoader.getService(EncryptAlgorithm.class, "AES"));
     }
     
     @Test
     void assertCreateNewInstanceWithEmptyAESKey() {
-        assertThrows(EncryptAlgorithmInitializationException.class, () -> encryptAlgorithm.init(PropertiesBuilder.build(new Property("aes-key-value", ""))));
+        assertThrows(AlgorithmInitializationException.class, () -> encryptAlgorithm.init(PropertiesBuilder.build(new Property("aes-key-value", ""))));
+    }
+    
+    @Test
+    void assertCreateNewInstanceWithEmptyDigestAlgorithm() {
+        assertThrows(AlgorithmInitializationException.class, () -> encryptAlgorithm.init(PropertiesBuilder.build(new Property("aes-key-value", "123456abc"),
+                new Property("digest-algorithm-name", ""))));
     }
     
     @Test
     void assertEncrypt() {
-        Object actual = encryptAlgorithm.encrypt("test", mock(EncryptContext.class));
+        Object actual = encryptAlgorithm.encrypt("test", mock(AlgorithmSQLContext.class));
         assertThat(actual, is("dSpPiyENQGDUXMKFMJPGWA=="));
     }
     
     @Test
     void assertEncryptNullValue() {
-        assertNull(encryptAlgorithm.encrypt(null, mock(EncryptContext.class)));
+        assertNull(encryptAlgorithm.encrypt(null, mock(AlgorithmSQLContext.class)));
     }
     
     @Test
     void assertDecrypt() {
-        Object actual = encryptAlgorithm.decrypt("dSpPiyENQGDUXMKFMJPGWA==", mock(EncryptContext.class));
+        Object actual = encryptAlgorithm.decrypt("dSpPiyENQGDUXMKFMJPGWA==", mock(AlgorithmSQLContext.class));
         assertThat(actual.toString(), is("test"));
     }
     
     @Test
     void assertDecryptNullValue() {
-        assertNull(encryptAlgorithm.decrypt(null, mock(EncryptContext.class)));
+        assertNull(encryptAlgorithm.decrypt(null, mock(AlgorithmSQLContext.class)));
     }
 }

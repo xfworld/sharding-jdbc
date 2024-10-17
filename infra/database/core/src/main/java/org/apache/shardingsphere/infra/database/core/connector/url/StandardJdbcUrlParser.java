@@ -19,6 +19,7 @@ package org.apache.shardingsphere.infra.database.core.connector.url;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import org.apache.shardingsphere.infra.database.core.exception.UnrecognizedDatabaseURLException;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 
 import java.util.Properties;
@@ -48,10 +49,9 @@ public final class StandardJdbcUrlParser {
     
     /**
      * Parse JDBC URL.
-     * 
+     *
      * @param jdbcUrl JDBC URL to be parsed
      * @return parsed JDBC URL
-     * @throws UnrecognizedDatabaseURLException unrecognized database URL exception
      */
     public JdbcUrl parse(final String jdbcUrl) {
         Matcher matcher = CONNECTION_URL_PATTERN.matcher(jdbcUrl);

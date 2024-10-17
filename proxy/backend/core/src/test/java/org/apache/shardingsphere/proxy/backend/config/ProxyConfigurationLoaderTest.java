@@ -18,13 +18,13 @@
 package org.apache.shardingsphere.proxy.backend.config;
 
 import org.apache.shardingsphere.encrypt.yaml.config.YamlEncryptRuleConfiguration;
-import org.apache.shardingsphere.infra.yaml.config.pojo.algorithm.YamlAlgorithmConfiguration;
+import org.apache.shardingsphere.infra.algorithm.core.yaml.YamlAlgorithmConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.pojo.rule.YamlRuleConfiguration;
 import org.apache.shardingsphere.proxy.backend.config.yaml.YamlProxyDataSourceConfiguration;
 import org.apache.shardingsphere.proxy.backend.config.yaml.YamlProxyDatabaseConfiguration;
 import org.apache.shardingsphere.proxy.backend.config.yaml.YamlProxyServerConfiguration;
 import org.apache.shardingsphere.readwritesplitting.yaml.config.YamlReadwriteSplittingRuleConfiguration;
-import org.apache.shardingsphere.readwritesplitting.yaml.config.rule.YamlReadwriteSplittingDataSourceRuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.yaml.config.rule.YamlReadwriteSplittingDataSourceGroupRuleConfiguration;
 import org.apache.shardingsphere.sharding.yaml.config.YamlShardingRuleConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -102,12 +102,12 @@ class ProxyConfigurationLoaderTest {
         Optional<YamlReadwriteSplittingRuleConfiguration> ruleConfig = actual.getRules().stream()
                 .filter(each -> each instanceof YamlReadwriteSplittingRuleConfiguration).findFirst().map(each -> (YamlReadwriteSplittingRuleConfiguration) each);
         assertTrue(ruleConfig.isPresent());
-        for (YamlReadwriteSplittingDataSourceRuleConfiguration each : ruleConfig.get().getDataSources().values()) {
+        for (YamlReadwriteSplittingDataSourceGroupRuleConfiguration each : ruleConfig.get().getDataSourceGroups().values()) {
             assertReadwriteSplittingRuleConfiguration(each);
         }
     }
     
-    private void assertReadwriteSplittingRuleConfiguration(final YamlReadwriteSplittingDataSourceRuleConfiguration actual) {
+    private void assertReadwriteSplittingRuleConfiguration(final YamlReadwriteSplittingDataSourceGroupRuleConfiguration actual) {
         assertThat(actual.getWriteDataSourceName(), is("write_ds"));
         assertThat(actual.getReadDataSourceNames(), is(Arrays.asList("read_ds_0", "read_ds_1")));
     }
@@ -130,9 +130,7 @@ class ProxyConfigurationLoaderTest {
         YamlAlgorithmConfiguration aesEncryptAlgorithmConfig = actual.getEncryptors().get("aes_encryptor");
         assertThat(aesEncryptAlgorithmConfig.getType(), is("AES"));
         assertThat(aesEncryptAlgorithmConfig.getProps().getProperty("aes-key-value"), is("123456abc"));
-        YamlAlgorithmConfiguration md5EncryptAlgorithmConfig = actual.getEncryptors().get("aes_encryptor");
-        assertThat(md5EncryptAlgorithmConfig.getType(), is("AES"));
-        assertThat(md5EncryptAlgorithmConfig.getProps().getProperty("aes-key-value"), is("123456abc"));
+        assertThat(aesEncryptAlgorithmConfig.getProps().getProperty("digest-algorithm-name"), is("SHA-1"));
     }
     
     private void assertDataSourceConfiguration(final YamlProxyDataSourceConfiguration actual, final String expectedURL) {
