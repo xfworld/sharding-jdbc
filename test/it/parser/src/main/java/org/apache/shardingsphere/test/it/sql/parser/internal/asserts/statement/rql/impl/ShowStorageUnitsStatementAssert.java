@@ -19,7 +19,7 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.distsql.parser.statement.rql.show.ShowStorageUnitsStatement;
+import org.apache.shardingsphere.distsql.statement.rql.resource.ShowStorageUnitsStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.database.DatabaseAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.SQLParserTestCase;
@@ -56,11 +56,11 @@ public final class ShowStorageUnitsStatementAssert {
             assertTrue(actual.getDatabase().isPresent(), assertContext.getText("Actual database should exist."));
             DatabaseAssert.assertIs(assertContext, actual.getDatabase().get(), expected.getDatabase());
         }
-        if (null == expected.getUsageCount()) {
-            assertFalse(actual.getUsageCount().isPresent(), assertContext.getText("Actual usage count should not exist."));
+        if (null == expected.getLikePattern()) {
+            assertFalse(actual.getLikePattern().isPresent(), assertContext.getText("Actual like pattern should not exist."));
         } else {
-            assertTrue(actual.getUsageCount().isPresent(), assertContext.getText("Actual usage count should exist."));
-            assertThat(assertContext.getText("Usage count assertion error"), actual.getUsageCount().get(), is(expected.getUsageCount()));
+            assertTrue(actual.getLikePattern().isPresent(), assertContext.getText("Actual like pattern should exist."));
+            assertThat(assertContext.getText("Like pattern assertion error"), actual.getLikePattern().get(), is(expected.getLikePattern()));
         }
     }
 }

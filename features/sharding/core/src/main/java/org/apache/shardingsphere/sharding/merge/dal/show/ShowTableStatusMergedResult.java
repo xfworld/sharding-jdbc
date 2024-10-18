@@ -23,7 +23,7 @@ import org.apache.shardingsphere.infra.merge.result.impl.memory.MemoryMergedResu
 import org.apache.shardingsphere.infra.merge.result.impl.memory.MemoryQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sharding.rule.TableRule;
+import org.apache.shardingsphere.sharding.rule.ShardingTable;
 
 import java.math.BigInteger;
 import java.sql.SQLException;
@@ -51,8 +51,8 @@ public final class ShowTableStatusMergedResult extends MemoryMergedResult<Shardi
             while (each.next()) {
                 MemoryQueryResultRow memoryResultSetRow = new MemoryQueryResultRow(each);
                 String actualTableName = memoryResultSetRow.getCell(1).toString();
-                Optional<TableRule> tableRule = shardingRule.findTableRuleByActualTable(actualTableName);
-                tableRule.ifPresent(optional -> memoryResultSetRow.setCell(1, optional.getLogicTable()));
+                Optional<ShardingTable> shardingTable = shardingRule.findShardingTableByActualTable(actualTableName);
+                shardingTable.ifPresent(optional -> memoryResultSetRow.setCell(1, optional.getLogicTable()));
                 String tableName = memoryResultSetRow.getCell(1).toString();
                 if (memoryQueryResultRows.containsKey(tableName)) {
                     merge(memoryQueryResultRows.get(tableName), memoryResultSetRow);
@@ -74,10 +74,18 @@ public final class ShowTableStatusMergedResult extends MemoryMergedResult<Shardi
     }
     
     private BigInteger sum(final Object num1, final Object num2) {
-        return ((BigInteger) num1).add((BigInteger) num2);
+        return null == num1 && null == num2 ? null : getNonNullBigInteger(num1).add(getNonNullBigInteger(num2));
     }
     
     private BigInteger avg(final Object sum, final Object number) {
-        return BigInteger.ZERO.equals(number) ? BigInteger.ZERO : ((BigInteger) sum).divide((BigInteger) number);
+        if (null == sum && null == number) {
+            return null;
+        }
+        BigInteger numberBigInteger = getNonNullBigInteger(number);
+        return BigInteger.ZERO.equals(numberBigInteger) ? BigInteger.ZERO : getNonNullBigInteger(sum).divide(numberBigInteger);
+    }
+    
+    private BigInteger getNonNullBigInteger(final Object value) {
+        return Optional.ofNullable(value).filter(BigInteger.class::isInstance).map(BigInteger.class::cast).orElse(BigInteger.ZERO);
     }
 }

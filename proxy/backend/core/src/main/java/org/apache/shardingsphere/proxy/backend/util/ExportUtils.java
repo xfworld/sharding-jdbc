@@ -27,7 +27,7 @@ import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUn
 import org.apache.shardingsphere.infra.spi.type.ordered.OrderedSPILoader;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.yaml.config.swapper.rule.YamlRuleConfigurationSwapper;
-import org.apache.shardingsphere.proxy.backend.exception.FileIOException;
+import org.apache.shardingsphere.infra.exception.generic.FileIOException;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +46,7 @@ public final class ExportUtils {
     
     /**
      * Export configuration data to specified file.
-     * 
+     *
      * @param filePath file path
      * @param exportedData exported configuration data
      * @throws FileIOException file IO exception
@@ -54,14 +54,14 @@ public final class ExportUtils {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void exportToFile(final String filePath, final String exportedData) {
         File file = new File(filePath);
-        if (!file.exists()) {
+        if (!file.exists() && null != file.getParentFile()) {
             file.getParentFile().mkdirs();
         }
         try (OutputStream output = Files.newOutputStream(Paths.get(file.toURI()))) {
             output.write(exportedData.getBytes());
             output.flush();
-        } catch (final IOException ex) {
-            throw new FileIOException(ex);
+        } catch (final IOException ignore) {
+            throw new FileIOException(file);
         }
     }
     

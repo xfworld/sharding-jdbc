@@ -178,7 +178,7 @@ IF
 EXISTS
     : E X I S T S
     ;
-    
+
 WITH
     : W I T H
     ;
@@ -277,4 +277,8 @@ NOT
 
 NONE
     : N O N E
+    ;
+
+PLUGINS
+    : P L U G I N S
     ;

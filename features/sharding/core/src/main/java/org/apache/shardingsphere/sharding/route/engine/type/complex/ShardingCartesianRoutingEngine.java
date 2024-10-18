@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
 import org.apache.shardingsphere.infra.route.context.RouteMapper;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
-import org.apache.shardingsphere.sharding.exception.algorithm.sharding.NoShardingTableRouteFactorException;
+import org.apache.shardingsphere.sharding.exception.algorithm.NoShardingTableRouteFactorException;
 import org.apache.shardingsphere.sharding.route.engine.type.ShardingRouteEngine;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 
@@ -111,7 +111,7 @@ public final class ShardingCartesianRoutingEngine implements ShardingRouteEngine
     }
     
     private Collection<RouteUnit> getRouteUnits(final String dataSource, final Set<List<RouteMapper>> cartesianRoutingTableGroups) {
-        Collection<RouteUnit> result = new LinkedHashSet<>();
+        Collection<RouteUnit> result = new LinkedHashSet<>(cartesianRoutingTableGroups.size(), 1F);
         for (List<RouteMapper> each : cartesianRoutingTableGroups) {
             result.add(new RouteUnit(new RouteMapper(dataSource, dataSource), new LinkedList<>(each)));
         }

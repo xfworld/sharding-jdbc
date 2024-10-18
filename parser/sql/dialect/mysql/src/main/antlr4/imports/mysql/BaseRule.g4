@@ -17,12 +17,12 @@
 
 grammar BaseRule;
 
-import Symbol, Keyword, MySQLKeyword, Literals;
+import Comments, Symbol, Keyword, MySQLKeyword, Literals;
 
 parameterMarker
     : QUESTION_
     ;
-    
+
 customKeyword
     : MAX
     | MIN
@@ -33,6 +33,7 @@ customKeyword
     | POSITION
     | SUBSTRING
     | SUBSTR
+    | MID
     | EXTRACT
     | TRIM
     | LAST_DAY
@@ -67,7 +68,7 @@ customKeyword
     | UTC_TIMESTAMP
     | UTC_TIMESTAMP
     ;
-    
+
 literals
     : stringLiterals
     | numberLiterals
@@ -77,43 +78,43 @@ literals
     | booleanLiterals
     | nullValueLiterals
     ;
-    
+
 string_
     : DOUBLE_QUOTED_TEXT | SINGLE_QUOTED_TEXT
     ;
-    
+
 stringLiterals
     : (UNDERSCORE_CHARSET | UL_BINARY )? string_ | NCHAR_TEXT
     ;
-    
+
 numberLiterals
     : (PLUS_ | MINUS_)? NUMBER_
     ;
-    
+
 temporalLiterals
     : (DATE | TIME | TIMESTAMP) textString
     ;
-    
+
 hexadecimalLiterals
     : UNDERSCORE_CHARSET? UL_BINARY? HEX_DIGIT_ collateClause?
     ;
-    
+
 bitValueLiterals
     : UNDERSCORE_CHARSET? BIT_NUM_ collateClause?
     ;
-    
+
 booleanLiterals
     : TRUE | FALSE
     ;
-    
+
 nullValueLiterals
     : NULL
     ;
-    
+
 collationName
     : textOrIdentifier | BINARY
     ;
-    
+
 identifier
     : IDENTIFIER_
     | identifierKeywordsUnambiguous
@@ -126,7 +127,7 @@ identifier
     | UNDERSCORE_CHARSET
     | BQUOTA_STRING
     ;
-    
+
 identifierKeywordsUnambiguous
     : ACTION
     | ACCOUNT
@@ -442,7 +443,7 @@ identifierKeywordsUnambiguous
     | SERVER
     | SHARE
     | SIMPLE
-//    | SKIP
+    | SKIP_SYMBOL
     | SLOW
     | SNAPSHOT
     | SOCKET
@@ -522,14 +523,16 @@ identifierKeywordsUnambiguous
     | XML
     | YEAR
     | YEAR_MONTH
+    | CONDITION
+    | DESCRIBE
     ;
-    
+
 identifierKeywordsAmbiguous1RolesAndLabels
     : EXECUTE
     | RESTART
     | SHUTDOWN
     ;
-    
+
 identifierKeywordsAmbiguous2Labels
     : ASCII
     | BEGIN
@@ -567,7 +570,7 @@ identifierKeywordsAmbiguous2Labels
     | UNINSTALL
     | XA
     ;
-    
+
 identifierKeywordsAmbiguous3Roles
     : EVENT
     | FILE
@@ -579,7 +582,7 @@ identifierKeywordsAmbiguous3Roles
     | RESOURCE
     | SUPER
     ;
-    
+
 identifierKeywordsAmbiguous4SystemVariables
     : GLOBAL
     | LOCAL
@@ -599,84 +602,84 @@ ipAddress
 variable
     : userVariable | systemVariable
     ;
-    
+
 userVariable
     : AT_ textOrIdentifier
     | textOrIdentifier
     ;
-    
+
 systemVariable
     : AT_ AT_ (systemVariableScope=(GLOBAL | SESSION | LOCAL) DOT_)? rvalueSystemVariable
     ;
-    
+
 rvalueSystemVariable
     : textOrIdentifier
     | textOrIdentifier DOT_ identifier
     ;
-    
+
 setSystemVariable
     : AT_ AT_ (optionType DOT_)? internalVariableName
     ;
-    
+
 optionType
     : GLOBAL | PERSIST | PERSIST_ONLY | SESSION | LOCAL
     ;
-    
+
 internalVariableName
     : identifier
     | DEFAULT DOT_ identifier
     | identifier DOT_ identifier
     ;
-    
+
 setExprOrDefault
     : expr | DEFAULT | ALL | ON | BINARY | ROW | SYSTEM
     ;
-    
+
 transactionCharacteristics
     : transactionAccessMode (COMMA_ isolationLevel)?
     | isolationLevel (COMMA_ transactionAccessMode)?
     ;
-    
+
 isolationLevel
     : ISOLATION LEVEL isolationTypes
     ;
-    
+
 isolationTypes
     : REPEATABLE READ | READ COMMITTED | READ UNCOMMITTED | SERIALIZABLE
     ;
-    
+
 transactionAccessMode
     : READ (WRITE | ONLY)
     ;
-    
-schemaName
+
+databaseName
     : identifier
     ;
-    
-schemaNames
-    : schemaName (COMMA_ schemaName)*
+
+databaseNames
+    : databaseName (COMMA_ databaseName)*
     ;
-    
+
 charsetName
     : textOrIdentifier | BINARY | DEFAULT
     ;
-    
-schemaPairs
-    : schemaPair (COMMA_ schemaPair)*
+
+databasePairs
+    : databasePair (COMMA_ databasePair)*
     ;
-    
-schemaPair
-    : LP_ schemaName COMMA_ schemaName RP_
+
+databasePair
+    : LP_ databaseName COMMA_ databaseName RP_
     ;
-    
+
 tableName
     : (owner DOT_)? name
     ;
-    
+
 columnName
     : identifier
     ;
-    
+
 indexName
     : identifier
     ;
@@ -700,23 +703,23 @@ delimiterName
 userIdentifierOrText
     : textOrIdentifier (AT_ textOrIdentifier)?
     ;
-    
+
 username
     : userIdentifierOrText | CURRENT_USER (LP_ RP_)?
     ;
-    
+
 eventName
     : (owner DOT_)? identifier
     ;
-    
+
 serverName
     : textOrIdentifier
     ; 
-    
+
 wrapperName
     : textOrIdentifier
     ;
-    
+
 functionName
     : (owner DOT_)? identifier
     ;
@@ -728,123 +731,123 @@ procedureName
 viewName
     : (owner DOT_)? identifier
     ;
-    
+
 owner
     : identifier
     ;
-    
+
 alias
     : textOrIdentifier
     ;
-    
+
 name
     : identifier
     ;
-    
+
 tableList
     : tableName (COMMA_ tableName)*
     ;
-    
+
 viewNames
     : viewName (COMMA_ viewName)*
     ;
-    
+
 columnNames
     : columnName (COMMA_ columnName)*
     ;
-    
+
 groupName
     : identifier
     ;
-    
+
 routineName
     : identifier
     ;
-    
+
 shardLibraryName
     : stringLiterals
     ;
-    
+
 componentName
     : string_
     ;
-    
+
 pluginName
     : textOrIdentifier
     ;
-    
+
 hostname
     : string_
     ;
-    
+
 port
     : NUMBER_
     ;
-    
+
 cloneInstance
     : username AT_ hostname COLON_ port
     ;
-    
+
 cloneDir
     : string_
     ;
-    
+
 channelName
     : identifier (DOT_ identifier)?
     ;
-    
+
 logName
     : stringLiterals
     ;
-    
+
 roleName
     : roleIdentifierOrText (AT_ textOrIdentifier)?
     ;
-    
+
 roleIdentifierOrText
     : identifier | string_
     ;
-    
+
 engineRef
     : textOrIdentifier
     ;
-    
+
 triggerName
     : identifier (DOT_ identifier)?
     ;
-    
+
 triggerTime
     : BEFORE | AFTER
     ;
-    
+
 tableOrTables
     : TABLE | TABLES
     ;
-    
+
 userOrRole
     : username | roleName
     ;
-    
+
 partitionName
     : identifier
     ;
-    
+
 identifierList
     : identifier (COMMA_ identifier)*
     ;
-    
+
 allOrPartitionNameList
     : ALL | identifierList
     ;
-    
+
 triggerEvent
     : INSERT | UPDATE | DELETE
     ;
-    
+
 triggerOrder
     : (FOLLOWS | PRECEDES) triggerName
     ;
-    
+
 expr
     : booleanPrimary
     | expr andOperator expr
@@ -852,19 +855,19 @@ expr
     | expr XOR expr
     | notOperator expr
     ;
-    
+
 andOperator
     : AND | AND_
     ;
-    
+
 orOperator
     : OR | OR_
     ;
-    
+
 notOperator
     : NOT | NOT_
     ;
-    
+
 booleanPrimary
     : booleanPrimary IS NOT? (TRUE | FALSE | UNKNOWN | NULL)
     | booleanPrimary SAFE_EQ_ predicate
@@ -874,15 +877,15 @@ booleanPrimary
     | booleanPrimary assignmentOperator predicate
     | predicate
     ;
-    
+
 assignmentOperator
     : EQ_ | ASSIGNMENT_
     ;
-    
+
 comparisonOperator
     : EQ_ | GTE_ | GT_ | LTE_ | LT_ | NEQ_
     ;
-    
+
 predicate
     : bitExpr NOT? IN subquery
     | bitExpr NOT? IN LP_ expr (COMMA_ expr)* RP_
@@ -892,7 +895,7 @@ predicate
     | bitExpr NOT? (REGEXP | RLIKE) bitExpr
     | bitExpr
     ;
-    
+
 bitExpr
     : bitExpr VERTICAL_BAR_ bitExpr
     | bitExpr AMPERSAND_ bitExpr
@@ -910,7 +913,7 @@ bitExpr
     | bitExpr MINUS_ intervalExpression
     | simpleExpr
     ;
-    
+
 simpleExpr
     : functionCall
     | parameterMarker
@@ -924,28 +927,32 @@ simpleExpr
     | EXISTS? subquery
     | LBE_ identifier expr RBE_
     | identifier (JSON_SEPARATOR | JSON_UNQUOTED_SEPARATOR) string_
-    | path (RETURNING dataType)? onEmptyError? 
+    | path (RETURNING dataType)? onEmpty? onError?
     | matchExpression
     | caseExpression
     | intervalExpression
     ;
-    
+
 path
     : string_
     ;
 
-onEmptyError
-    : (NULL | ERROR | DEFAULT literals) ON (EMPTY | ERROR)
+onEmpty
+    : (NULL | ERROR | DEFAULT literals) ON EMPTY
     ;
-    
+
+onError
+    : (NULL | ERROR | DEFAULT literals) ON ERROR
+    ;
+
 columnRef
     : identifier (DOT_ identifier)? (DOT_ identifier)?
     ;
-    
+
 columnRefList
     : columnRef (COMMA_ columnRef)*
     ;
-    
+
 functionCall
     : aggregationFunction | specialFunction | jsonFunction | regularFunction | udfFunction
     ;
@@ -959,8 +966,32 @@ aggregationFunction
     ;
 
 jsonFunction
-    : columnRef (JSON_SEPARATOR | JSON_UNQUOTED_SEPARATOR) path
+    : jsonTableFunction
     | jsonFunctionName LP_ (expr? | expr (COMMA_ expr)*) RP_
+    | columnRef (JSON_SEPARATOR | JSON_UNQUOTED_SEPARATOR) path
+    ;
+
+jsonTableFunction
+    : JSON_TABLE LP_ expr COMMA_ path jsonTableColumns RP_
+    ;
+
+jsonTableColumns
+    : COLUMNS LP_ jsonTableColumn (COMMA_ jsonTableColumn)* RP_
+    ;
+
+jsonTableColumn
+    : name FOR ORDINALITY
+    | name dataType PATH path jsonTableColumnOnEmpty? jsonTableColumnOnError?
+    | name dataType EXISTS PATH string_ path
+    | NESTED PATH? path COLUMNS
+    ;
+
+jsonTableColumnOnEmpty
+    : (NULL | DEFAULT string_ | ERROR) ON EMPTY
+    ;
+
+jsonTableColumnOnError
+    : (NULL | DEFAULT string_ | ERROR) ON ERROR
     ;
 
 jsonFunctionName
@@ -968,41 +999,41 @@ jsonFunctionName
     | JSON_CONTAINS_PATH | JSON_DEPTH | JSON_EXTRACT | JSON_INSERT | JSON_KEYS | JSON_LENGTH | JSON_MERGE | JSON_MERGE_PATCH
     | JSON_MERGE_PRESERVE | JSON_OBJECT | JSON_OVERLAPS | JSON_PRETTY | JSON_QUOTE | JSON_REMOVE | JSON_REPLACE
     | JSON_SCHEMA_VALID | JSON_SCHEMA_VALIDATION_REPORT | JSON_SEARCH | JSON_SET | JSON_STORAGE_FREE | JSON_STORAGE_SIZE
-    | JSON_TABLE | JSON_TYPE | JSON_UNQUOTE | JSON_VALID | JSON_VALUE | MEMBER OF
+    | JSON_TYPE | JSON_UNQUOTE | JSON_VALID | JSON_VALUE | MEMBER OF
     ;
 
 aggregationFunctionName
     : MAX | MIN | SUM | COUNT | AVG | BIT_XOR | GROUP_CONCAT
     ;
-    
+
 distinct
     : DISTINCT
     ;
-    
+
 overClause
     : OVER (windowSpecification | identifier)
     ;
-    
+
 windowSpecification
     : LP_ identifier? (PARTITION BY expr (COMMA_ expr)*)? orderByClause? frameClause? RP_
     ;
-    
+
 frameClause
     : (ROWS | RANGE) (frameStart | frameBetween)
     ;
-    
+
 frameStart
     : CURRENT ROW | UNBOUNDED PRECEDING | UNBOUNDED FOLLOWING | expr PRECEDING | expr FOLLOWING
     ;
-    
+
 frameEnd
     : frameStart
     ;
-    
+
 frameBetween
     : BETWEEN frameStart AND frameEnd
     ;
-    
+
 specialFunction
     : castFunction
     | convertFunction
@@ -1017,20 +1048,25 @@ specialFunction
     | weightStringFunction
     | windowFunction
     | groupingFunction
+    | timeStampDiffFunction
     ;
-    
+
 currentUserFunction
     : CURRENT_USER (LP_ RP_)?
     ;
-    
+
 groupingFunction
     : GROUPING LP_ expr (COMMA_ expr)* RP_
+    ;
+
+timeStampDiffFunction
+    : TIMESTAMPDIFF LP_ intervalUnit COMMA_ expr COMMA_ expr RP_
     ;
 
 groupConcatFunction
     : GROUP_CONCAT LP_ distinct? (expr (COMMA_ expr)* | ASTERISK_)? (orderByClause)? (SEPARATOR expr)? RP_
     ;
-    
+
 windowFunction
     : funcName = (ROW_NUMBER | RANK | DENSE_RANK | CUME_DIST | PERCENT_RANK) LP_ RP_ windowingClause
     | funcName = NTILE (simpleExpr) windowingClause
@@ -1038,27 +1074,27 @@ windowFunction
     | funcName = (FIRST_VALUE | LAST_VALUE) LP_ expr RP_ nullTreatment? windowingClause
     | funcName = NTH_VALUE LP_ expr COMMA_ simpleExpr RP_ (FROM (FIRST | LAST))? nullTreatment? windowingClause
     ;
-    
+
 windowingClause
     : OVER (windowName=identifier | windowSpecification)
     ;
-    
+
 leadLagInfo
     : COMMA_ (NUMBER_ | QUESTION_) (COMMA_ expr)?
     ;
-    
+
 nullTreatment
     : (RESPECT | IGNORE) NULLS
     ;
-    
+
 checkType
     : FOR UPGRADE | QUICK | FAST | MEDIUM | EXTENDED | CHANGED
     ;
-    
+
 repairType
     : QUICK | EXTENDED | USE_FRM
     ;
-    
+
 castFunction
     : CAST LP_ expr AS castType ARRAY? RP_
     | CAST LP_ expr AT TIME ZONE expr AS DATETIME typeDatetimePrecision? RP_
@@ -1068,7 +1104,7 @@ convertFunction
     : CONVERT LP_ expr COMMA_ castType RP_
     | CONVERT LP_ expr USING charsetName RP_
     ;
-    
+
 castType
     : castTypeName = BINARY fieldLength?
     | castTypeName = CHAR fieldLength? charsetWithOptBinary?
@@ -1084,58 +1120,58 @@ castType
     | castTypeName = DOUBLE PRECISION
     | castTypeName = FLOAT precision?
     ;
-    
+
 positionFunction
     : POSITION LP_ expr IN expr RP_
     ;
-    
+
 substringFunction
-    : (SUBSTRING | SUBSTR) LP_ expr FROM NUMBER_ (FOR NUMBER_)? RP_
-    | (SUBSTRING | SUBSTR) LP_ expr COMMA_ NUMBER_ (COMMA_ NUMBER_)? RP_
+    : (SUBSTRING | SUBSTR | MID) LP_ expr FROM NUMBER_ (FOR NUMBER_)? RP_
+    | (SUBSTRING | SUBSTR | MID) LP_ expr COMMA_ NUMBER_ (COMMA_ NUMBER_)? RP_
     ;
-    
+
 extractFunction
     : EXTRACT LP_ intervalUnit FROM expr RP_
     ;
-    
+
 charFunction
     : CHAR LP_ expr (COMMA_ expr)* (USING charsetName)? RP_
     ;
-    
+
 trimFunction
     : TRIM LP_ ((LEADING | BOTH | TRAILING) expr? FROM)? expr RP_
     | TRIM LP_ (expr FROM)? expr RP_
     ;
-    
+
 valuesFunction
     : VALUES LP_ columnRefList RP_
     ;
-    
+
 weightStringFunction
     : WEIGHT_STRING LP_ expr (AS dataType)? levelClause? RP_
     ;
-    
+
 levelClause
     : LEVEL (levelInWeightListElement (COMMA_ levelInWeightListElement)* | NUMBER_ MINUS_ NUMBER_)
     ;
-    
+
 levelInWeightListElement
     : NUMBER_ direction? REVERSE?
     ;
-    
+
 regularFunction
     : completeRegularFunction
     | shorthandRegularFunction
     ;
-    
+
 shorthandRegularFunction
     : CURRENT_DATE | CURRENT_TIME (LP_ NUMBER_? RP_)? | CURRENT_TIMESTAMP | LAST_DAY | LOCALTIME | LOCALTIMESTAMP
     ;
-    
+
 completeRegularFunction
     : regularFunctionName (LP_ (expr (COMMA_ expr)* | ASTERISK_)? RP_)
     ;
-    
+
 regularFunctionName
     : IF | LOCALTIME | LOCALTIMESTAMP | REPLACE | INSERT | INTERVAL | MOD
     | DATABASE | SCHEMA | LEFT | RIGHT | DATE | DAY | GEOMETRYCOLLECTION | REPEAT
@@ -1143,61 +1179,61 @@ regularFunctionName
     | TIME | TIMESTAMP | TIMESTAMP_ADD | TIMESTAMP_DIFF | DATE | CURRENT_TIMESTAMP 
     | CURRENT_DATE | CURRENT_TIME | UTC_TIMESTAMP | identifier
     ;
-    
+
 matchExpression
     : MATCH (columnRefList | LP_ columnRefList RP_ ) AGAINST LP_ expr matchSearchModifier? RP_
     ;
-    
+
 matchSearchModifier
     : IN NATURAL LANGUAGE MODE | IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION | IN BOOLEAN MODE | WITH QUERY EXPANSION
     ;
-    
+
 caseExpression
     : CASE expr? caseWhen+ caseElse? END
     ;
-    
+
 datetimeExpr
     : expr
     ;
-    
+
 binaryLogFileIndexNumber
     : NUMBER_
     ;
-    
+
 caseWhen
     : WHEN expr THEN expr
     ;
-    
+
 caseElse
     : ELSE expr
     ;
-    
+
 intervalExpression
     : INTERVAL intervalValue
     ;
-    
+
 intervalValue
     : expr intervalUnit
     ;
-    
+
 intervalUnit
     : MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH
     | QUARTER | YEAR | SECOND_MICROSECOND | MINUTE_MICROSECOND | MINUTE_SECOND | HOUR_MICROSECOND | HOUR_SECOND
     | HOUR_MINUTE | DAY_MICROSECOND | DAY_SECOND | DAY_MINUTE | DAY_HOUR | YEAR_MONTH
     ;
-    
+
 subquery
     : 'refer subquery in DMStement.g4'
     ;
-    
+
 orderByClause
     : ORDER BY orderByItem (COMMA_ orderByItem)*
     ;
-    
+
 orderByItem
     : (numberLiterals | expr) direction?
     ;
-    
+
 dataType
     : dataTypeName = (INTEGER | INT | TINYINT | SMALLINT | MIDDLEINT | MEDIUMINT | BIGINT) fieldLength? fieldOptions?
     | (dataTypeName = REAL | dataTypeName = DOUBLE PRECISION?) precision? fieldOptions?
@@ -1230,33 +1266,33 @@ dataType
     | dataTypeName = SET stringList charsetWithOptBinary?
     | dataTypeName = (SERIAL | JSON | GEOMETRY | GEOMCOLLECTION | GEOMETRYCOLLECTION | POINT | MULTIPOINT | LINESTRING | MULTILINESTRING | POLYGON | MULTIPOLYGON)
     ;
-    
+
 stringList
     : LP_ textString (COMMA_ textString)* RP_
     ;
-    
+
 textString
     : string_
     | HEX_DIGIT_
     | BIT_NUM_
     ;
-    
+
 textStringHash
     : string_ | HEX_DIGIT_
     ;
-    
+
 fieldOptions
     : (UNSIGNED | SIGNED | ZEROFILL)+
     ;
-    
+
 precision
     : LP_ NUMBER_ COMMA_ NUMBER_ RP_
     ;
-    
+
 typeDatetimePrecision
     : LP_ NUMBER_ RP_
     ;
-    
+
 charsetWithOptBinary
     : ascii
     | unicode
@@ -1264,107 +1300,107 @@ charsetWithOptBinary
     | charset charsetName BINARY?
     | BINARY (charset charsetName)?
     ;
-    
+
 ascii
     : ASCII BINARY?
     | BINARY ASCII
     ;
-    
+
 unicode
     : UNICODE BINARY?
     | BINARY UNICODE
     ;
-    
+
 charset
     : (CHAR | CHARACTER) SET
     | CHARSET
     ;
-    
+
 defaultCollation
     : DEFAULT? COLLATE EQ_? collationName
     ;
-    
+
 defaultEncryption
     : DEFAULT? ENCRYPTION EQ_? string_
     ;
-    
+
 defaultCharset
     : DEFAULT? charset EQ_? charsetName
     ;
-    
+
 now
     : (CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP) (LP_ NUMBER_? RP_)?
     ;
-    
+
 columnFormat
     : FIXED
     | DYNAMIC
     | DEFAULT
     ;
-    
+
 storageMedia
     : DISK
     | MEMORY
     | DEFAULT
     ;
-    
+
 direction
     : ASC | DESC
     ;
-    
+
 keyOrIndex
     : KEY | INDEX
     ;
-    
+
 fieldLength
     : LP_ length=NUMBER_ RP_
     ;
-    
+
 characterSet
     : charset charsetName
     ;
-    
+
 collateClause
     : COLLATE (collationName | parameterMarker)
     ;
-    
+
 fieldOrVarSpec
-    : LP_ (identifier (COMMA_ identifier)*)? RP_
+    : LP_ (userVariable (COMMA_ userVariable)*)? RP_
     ;
-    
+
 ifNotExists
     : IF NOT EXISTS
     ;
-    
+
 ifExists
     : IF EXISTS
     ;
-    
+
 connectionId
     : NUMBER_
     ;
-    
+
 labelName
     : identifier
     ;
-    
+
 cursorName
     : identifier
     ;
-    
+
 conditionName
     : identifier
     ;
-    
+
 combineOption
     : ALL | DISTINCT
     ;
-    
+
 noWriteToBinLog
     : LOCAL
     | NO_WRITE_TO_BINLOG
     ;
-    
+
 channelOption
     : FOR CHANNEL string_
     ;

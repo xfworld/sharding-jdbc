@@ -22,33 +22,49 @@ import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.metadata.version.MetaDataVersion;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.metadata.persist.node.GlobalNode;
+import org.apache.shardingsphere.metadata.persist.service.version.MetaDataVersionPersistService;
 import org.apache.shardingsphere.mode.spi.PersistRepository;
 
-import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 /**
  * Properties persist service.
  */
 @RequiredArgsConstructor
-public final class PropertiesPersistService implements GlobalPersistService<Properties> {
+public final class PropertiesPersistService {
     
     private final PersistRepository repository;
     
-    @Override
-    public void persist(final Properties props) {
-        repository.persist(GlobalNode.getPropsPath(), YamlEngine.marshal(props));
-    }
+    private final MetaDataVersionPersistService metaDataVersionPersistService;
     
-    @Override
-    public Collection<MetaDataVersion> persistConfig(final Properties props) {
-        return Collections.emptyList();
-    }
-    
-    @Override
+    /**
+     * Load properties.
+     *
+     * @return properties
+     */
     public Properties load() {
-        String props = repository.getDirectly(GlobalNode.getPropsPath());
-        return Strings.isNullOrEmpty(props) ? new Properties() : YamlEngine.unmarshal(props, Properties.class);
+        String yamlContent = repository.query(GlobalNode.getPropsVersionNode(getActiveVersion()));
+        return Strings.isNullOrEmpty(yamlContent) ? new Properties() : YamlEngine.unmarshal(yamlContent, Properties.class);
+    }
+    
+    /**
+     * Persist properties.
+     *
+     * @param props properties
+     */
+    public void persist(final Properties props) {
+        List<String> versions = repository.getChildrenKeys(GlobalNode.getPropsVersionsNode());
+        String nextActiveVersion = versions.isEmpty() ? MetaDataVersion.DEFAULT_VERSION : String.valueOf(Integer.parseInt(versions.get(0)) + 1);
+        repository.persist(GlobalNode.getPropsVersionNode(nextActiveVersion), YamlEngine.marshal(props));
+        if (Strings.isNullOrEmpty(getActiveVersion())) {
+            repository.persist(GlobalNode.getPropsActiveVersionNode(), MetaDataVersion.DEFAULT_VERSION);
+        }
+        metaDataVersionPersistService.switchActiveVersion(Collections.singleton(new MetaDataVersion(GlobalNode.getPropsRootNode(), getActiveVersion(), nextActiveVersion)));
+    }
+    
+    private String getActiveVersion() {
+        return repository.query(GlobalNode.getPropsActiveVersionNode());
     }
 }

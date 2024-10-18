@@ -1,70 +1,255 @@
+## Release 5.5.2-SNAPSHOT
+
+### API Change
+
+### New Feature
+
+### Enhancement
+1. Proxy: Add query parameters and check for mysql kill processId - [#33274](https://github.com/apache/shardingsphere/pull/33274)
+1. Proxy Native: Change the Base Docker Image of ShardingSphere Proxy Native - [#33263](https://github.com/apache/shardingsphere/issues/33263)
+
+### Bug Fix
+
+1. Mode: Fixes `JDBCRepository` improper handling of H2database in memory mode - [#33281](https://github.com/apache/shardingsphere/issues/33281)
+1. SQL Binder: Use Multimap and CaseInsensitiveString to replace CaseInsensitiveMap for supporting mysql multi table join with same table alias - [#33303](https://github.com/apache/shardingsphere/pull/33303)
+
+### Change Log
+1. [MILESTONE](https://github.com/apache/shardingsphere/milestone/30)
+
+## Release 5.5.1-SNAPSHOT
+
+### API Change
+
+1. Authority: Use UserConfiguration instead of ShardingSphereUser in AuthorityConfiguration for decouple API and implementation - [#33073](https://github.com/apache/shardingsphere/pull/33073)
+
+### New Feature
+
+1. Kernel: Add new doris, hive and presto sql parser module and database type - [#31256](https://github.com/apache/shardingsphere/issues/31256)
+
+### Enhancement
+
+1. Encrypt: Add unsupported check for combine statement with encrypt columns - [#30916](https://github.com/apache/shardingsphere/pull/30916)
+1. SQL Parser: Support PostgreSQL COLLATION and CONSTRAINT keywords - [#31027](https://github.com/apache/shardingsphere/pull/31027)
+1. SQL Parser: Support Mysql change replication with no server ids - [#31110](https://github.com/apache/shardingsphere/pull/31110)
+1. SQL Parser: Support Mysql row and column aliases with ON DUPLICATE KEY UPDATE - [#31132](https://github.com/apache/shardingsphere/pull/31132)
+1. SQL Parser: Support Mysql CALL sql with mysql prefix - [#31133](https://github.com/apache/shardingsphere/pull/31133)
+1. SQL Parser: Support Mysql create loadable function returns int/dec - [#31135](https://github.com/apache/shardingsphere/pull/31135)
+1. SQL Parser: Support parsing MySQL CREATE TABLESPACE/TABLE in Mysql-8 - [#31137](https://github.com/apache/shardingsphere/pull/31137)
+1. SQL Parser: Support parsing MySQL CREATE INDEX with ENGINE_ATTRIBUTE - [#31140](https://github.com/apache/shardingsphere/pull/31140)
+1. SQL Parser: Support parsing MySQL LOAD DATA with @ variable - [#31142](https://github.com/apache/shardingsphere/pull/31142)
+1. SQL Parser: Support parsing MySQL START REPLICA statement - [#31152](https://github.com/apache/shardingsphere/pull/31152)
+1. SQL Parser: Support parsing MySQL json table function - [#31158](https://github.com/apache/shardingsphere/pull/31158)
+1. Sharding: Revise all local index for sharding table and add object uniqueness level spi to control index token generator - [#31176](https://github.com/apache/shardingsphere/pull/31176)
+1. SQL Parser: Enhance mysql json function visit statement result - [#31190](https://github.com/apache/shardingsphere/pull/31190)
+1. SQL Federation: Support sql federation bit_count function for mysql - [#31701](https://github.com/apache/shardingsphere/pull/31701)
+1. SQL Federation: Improve atan and anan2 sql function for mysql - [#31924](https://github.com/apache/shardingsphere/pull/31924)
+1. Kernel: Support sql hint extract when sql contains dbeaver hint comment - [#32331](https://github.com/apache/shardingsphere/pull/32331)
+1. Encrypt: Support select distinct(column) encrypt rewrite and refactor SubstitutableColumnNameToken build logic - [#32344](https://github.com/apache/shardingsphere/pull/32344)
+1. SQL Federation: Support federated query mysql bin function - [#32373](https://github.com/apache/shardingsphere/pull/32373)
+1. SQL Parser: Enhance MySQL select statement - [#32395](https://github.com/apache/shardingsphere/pull/32395)
+1. Kernel: Add extract combine left select in extractFromSelectStatementWithoutProjection method - [#32429](https://github.com/apache/shardingsphere/pull/32429)
+1. Proxy Native: Add more graalvm reachability metadata for caffeine cache - [#32633](https://github.com/apache/shardingsphere/pull/32633)
+1. Sharding: Add NullsOrderType.LOW and NullsOrderType.HIGH to handle NULL order by in sharding feature - [#32813](https://github.com/apache/shardingsphere/pull/32813)
+1. SQL Parser: Enhance Oracle update statement as alias parse and add test case - [#32823](https://github.com/apache/shardingsphere/pull/32823)
+1. SQL Federation: Support for federated query NOT operator - [#32961](https://github.com/apache/shardingsphere/pull/32961)
+1. Encrypt: Support like concat nested concat statement rewrite with encrypt feature - [#32970](https://github.com/apache/shardingsphere/pull/32970)
+1. SQL Parser: Support PostgreSQL, openGauss function table and update from segment parse - [#32994](https://github.com/apache/shardingsphere/pull/32994)
+1. SQL Parser: Support MariaDB DML Returning Clause - [#33094](https://github.com/apache/shardingsphere/issues/33094)
+1. DistSQL: Support running DistSQL under Proxy Native in the form of GraalVM Native Image - [#33095](https://github.com/apache/shardingsphere/pull/33095)
+1. DistSQL: Support connecting to Postgres via DistSQL in Proxy Native - [#33124](https://github.com/apache/shardingsphere/pull/33124)
+1. DistSQL: Check duplicate actual data nodes when creating or altering sharding table rule - [#33138](https://github.com/apache/shardingsphere/pull/33138)
+1. DistSQL: Check user privilege when registering or altering storage unit - [#32172](https://github.com/apache/shardingsphere/pull/32172)
+1. Infra: Enable Safe Composition of Metadata for ShardingSphere Proxy Native - [#33179](https://github.com/apache/shardingsphere/pull/33179)
+1. Infra: Support compiling and using ShardingSphere under OpenJDK 23 - [#33025](https://github.com/apache/shardingsphere/pull/33025)
+1. Hive: Support Hive integration module to connect to HiveServer2 4.0.1 - [#33212](https://github.com/apache/shardingsphere/pull/33212)
+1. Infra: Support building Example module with OpenJDK 23 - [#33224](https://github.com/apache/shardingsphere/pull/33224)
+
+### Bug Fix
+
+1. SQL Federation: Fix federated query LocalDateTime conversion - [#30935](https://github.com/apache/shardingsphere/pull/30935)
+1. SQL Federation: Fix push down sql execute error when sql contains chinese character with sql federation - [#30997](https://github.com/apache/shardingsphere/pull/30997)
+1. Encrypt: Fix show create table wrong result with encrypt when data type contains float - [#31024](https://github.com/apache/shardingsphere/pull/31024)
+1. SQL Parser: Support PostgreSQL do nothing conflict action - [#31048](https://github.com/apache/shardingsphere/pull/31048)
+1. Kernel: Replace ThreadLocal with TransmittableThreadLocal in HintManager to support cross Thread usage - [#31286](https://github.com/apache/shardingsphere/pull/31286)
+1. SQL Federation: Fix federation query binary type data query - [#31346](https://github.com/apache/shardingsphere/pull/31346)
+1. Kernel: Use ConnectionPropertiesParser spi to parse jdbcUrl to solve oracle url parse error - [#31746](https://github.com/apache/shardingsphere/pull/31746)
+1. Sharding: Fix Sharding column not tracked through aliases - [#31687](https://github.com/apache/shardingsphere/pull/31687)
+1. SQL Binder: Add TableAvailable interface for CloseStatementContext, MoveStatementContext, FetchStatementContext and fix sql rewrite test case - [#31756](https://github.com/apache/shardingsphere/pull/31756)
+1. Kernel: Fix column count assert exception caused by postgresql system table judge - [#32163](https://github.com/apache/shardingsphere/pull/32163)
+1. SQL Federation: Fix null result in federated query for a single projected column - [#32444](https://github.com/apache/shardingsphere/pull/32444)
+1. SQL Parser: Fix oracle nvl function and interval hour parse error - [#32549](https://github.com/apache/shardingsphere/pull/32549)
+1. Sharding: Fix alter view exception when config sharding rule and binding table rule - [#32700](https://github.com/apache/shardingsphere/pull/32700)
+1. SQL Federation: Fix sql federation unknown type exception caused by calcite wrong result type with bigint - [#32730](https://github.com/apache/shardingsphere/pull/32730)
+1. Shadow: Use hintValueContext to replace extract sql hint from sql statement for solving shadow sql hint bug - [#33063](https://github.com/apache/shardingsphere/pull/33063)
+1. Shadow: Make Shadow feature available again in GraalVM Native Image - [#33080](https://github.com/apache/shardingsphere/pull/33080)
+1. DistSQL & Kernel: Fix table exist exception when execute preview create table statement with exist table - [#33171](https://github.com/apache/shardingsphere/pull/33171)
+
+### Change Log
+
+1. [MILESTONE](https://github.com/apache/shardingsphere/milestone/29)
+
+## Release 5.5.0
+
+### API Change
+1. Proxy: Remove the outdated schemaName configuration of the Proxy
+2. Kernel: Remove the sqlCommentParseEnabled configuration in SQL Parser Rule to reduce code complexity
+3. SQL Parser: Consider removing sqlCommentParseEnabled config in SQLParser rule
+4. Federation: Add allQueryUseSQLFederation config for sql federation
+
+### New Feature
+1. DistSQL: New syntax for query plugin (SPI) implementation
+1. DistSQL: New syntax for managing SQL_TRANSLATOR rule
+
+### Enhancement
+1. Pipeline: Improve CDC stability and performance
+1. Pipeline: MemoryPipelineChannel supports configurable zero queue size for less memory consumption
+1. Pipeline: Show dedicated error when mode type is not Cluster
+1. Authority: Add isSuper option for user
+1. Pipeline: Ignore error message in status DistSQL result on job cancelling
+1. DistSQL: Use JSON format to output props in RQL
+1. DistSQL: Optimize REFRESH DATABASE METADATA logic
+1. DistSQL: SHOW COMPUTE NODES supports JDBC nodes
+1. DistSQL: Optimize syntax of REFRESH DATABASE METADATA
+1. DistSQL: Optimize the output of SHOW TABLE METADATA
+1. Proxy: Add MySQL precompiled parameter verification to avoid turning on rewriteBatchedStatements=true when BenchmarkSQL connects to Proxy, causing an ArrayIndexOutOfBoundsException exception when the Proxy parameterCount exceeds 65535.
+1. SQL Parser: Add EOF to throw exception when parse distsql rollback migration statement
+1. SQL Parser: Support more plsql statement parse and add plsql parse assert logic
+1. SQL Parser: Support parse index hint
+1. SQL Parser: Support mysql intersect combine operation sql parse
+1. SQL Parser: Supoort parse chinese white space for oracle
+1. SQL Parser: Fix mysql TimeStampDiff function parse
+1. SQL Parser: Fix sqlServer unqualified shorthand parsing
+1. SQL Parser: Support sqlServer SEARCH unreserved word parsing
+1. SQL Parser: Add sql server MEMBER unreserved word
+1. Binder: Add ParameterMarkerSegmentBinder logic for Oracle MergeStatementBinder
+1. Federation: Support mysql cross join statement for sql federation
+1. Transaction: Add advice message in XATransactionCheckPrivilegeFailedException
+1. Sharding: Validate duplicate sharding actual data nodes
+1. Sharding: Support null condition value routing
+1. Proxy: Fix mysql client multi statements option in protocol
+
+### Bug Fix
+1. Pipeline: Fix commit/rollback migration job doesn't drop related consistency check job when check job is not completed
+1. Pipeline: Fix show consistency check status stop_time display
+1. Proxy: Restore original databaseName in connectionSession after unicast
+1. Proxy: Fix show tables can be executed without use database
+1. Proxy: Fix the incorrect current database after unicast routing
+1. Proxy: Fix the problem that show tables can be executed before use database
+1. Readwrite-splitting: Fix check exception when using shadow data source
+1. Governance: Fix thread blocking problem when create logic database for Etcd register center
+1. Governance：Fix register storage units and create feature rules failure when use Standalone mode
+1. MetaData: Fix database system schema is not built when create database
+1. Metadata: Fix NPE of system schema builder rule
+1. SQL Parser: Fix PostgreSQL NPE when parse columnRef
+1. SQL Parser: Fix npe cause by parse MySQL select window statement
+1. Sharding: Fix routing error when joining tables in uppercase
+1. Sharding: Fix drop sharding table exception when table name is uppercase
+1. Sharding: Fix generated key with upper case column name
+1. Federation: Fix Object 'DUAL' not found exception when execute select 1 from dual with sql federation
+1. Transaction: Fix xa auto commit in executeQuery
+1. Proxy: Fix multi statements with specified database name
+
+### Change Log
+
+1. [MILESTONE](https://github.com/apache/shardingsphere/milestone/28)
+
+
+## Release 5.4.1
+
+### New Feature
+1. Proxy: Supports dbcp and c3p0 connection pools
+1. Metadata: Standalone mode adapts to metadata new structure
+1. Governance: Governance supports register instance level data source
+
+### Enhancement
+1. Mode: Improve Standalone mode JDBC type impl reset data on initialization
+1. Scaling: Isolate ShardingSphereDataSource Standalone repository in pipeline
+1. Scaling: Disable system-schema-metadata-enabled in pipeline
+1. JDBC: Move jdbc core META-INF/services/java.sql.Driver from test to main
+1. Scaling: Add algorithm columns in SHOW MIGRATION CHECK ALGORITHMS DistSQL result
+1. Scaling: Add type_aliaes column in SHOW MIGRATION CHECK ALGORITHMS DistSQL result
+1. Encrypt: Add duplicate name check for derived columns and logical columns
+1. Encrypt: Deny DDL for cipher columns in Proxy
+1. Encrypt: Add the default type for derived columns to varchar(4000)
+
+### Bug Fix
+1. Scaling: Fix get inventory position not correctly on breakpoint resuming when table names are similar
+1. Scaling: Fix CDC importer not start on breakpoint resuming when first inventory task is finished
+1. Single Table: Fix not switched active version when CREATE/DROP table modifies the Single rule configuration
+1. JDBC: Fix JDBC memory leak with MySQL in the 5.4.0 version
+
+### Change Log
+
+1. [MILESTONE](https://github.com/apache/shardingsphere/milestone/27)
+
+
 ## Release 5.4.0
 
 ### API Changes
-Metadata: Change sharding broadcast tables to global broadcast tables
-JDBC: Remove exclamation mark (!) for global rules
-DistSQL: Simplify keywords ASSISTED_QUERY, LIKE_QUERY in encrypt DistSQL
-DistSQL: Optimize SQL_PARSER rule syntax
-Encrypt: Adjust encryption yaml API to distinguish between encrypt, like, and assisted query configurations
-Encrypt: Remove plain column and queryWithCipherColumn configuration in encrypt feature
-Readwrite-splitting: Refactor read/write splitting api
-Proxy: Remove property proxy-instance-type configuration
-Proxy: Remove property proxy-backend-executor-suitable
-Proxy: Remove property proxy-mysql-default-version
-Scaling: Refactor commit rollback streaming to drop streaming
-Sharding: Merge ShardingCacheRule into ShardingRule (Experimental)
+1. Metadata: Change sharding broadcast tables to global broadcast tables
+1. JDBC: Remove exclamation mark (!) for global rules
+1. DistSQL: Simplify keywords ASSISTED_QUERY, LIKE_QUERY in encrypt DistSQL
+1. DistSQL: Optimize SQL_PARSER rule syntax
+1. Encrypt: Adjust encryption yaml API to distinguish between encrypt, like, and assisted query configurations
+1. Encrypt: Remove plain column and queryWithCipherColumn configuration in encrypt feature
+1. Readwrite-splitting: Refactor read/write splitting api
+1. Proxy: Remove property proxy-instance-type configuration
+1. Proxy: Remove property proxy-backend-executor-suitable
+1. Proxy: Remove property proxy-mysql-default-version
+1. Scaling: Refactor commit rollback streaming to drop streaming
+1. Sharding: Merge ShardingCacheRule into ShardingRule (Experimental)
 
 ### New Features
-DistSQL: New syntax to manage SQL_FEDERATION rule
-Proxy: Support Unix Domain Socket
+1. DistSQL: New syntax to manage SQL_FEDERATION rule
+1. Proxy: Support Unix Domain Socket
 
 ### Enhancements
-Scaling: CDC supports pure incremental mode
-Scaling: CDC supports exporting data by transaction
-Scaling: CDC supports MySQL and PostgreSQL
-Scaling: CDC supports single table
-Scaling: CDC supports all openGauss data types
-Scaling: CDC supports replication reconnection
-Scaling: Remove DataConsistencyCalculateAlgorithmChooser
-Scaling: Improve performance of integer unique key table inventory data splitting
-Scaling: Adjust process configuration default value to reduce resource consumption
-Scaling: Auto refresh table metadata for migration
-Scaling: Compatible with openGauss existing replication slot reuse when database not existing
-Scaling: Show data consistency check status result should be empty when it's not completed
-Scaling: Enable concurrent CRC32 match on source and target
-Scaling: Pipeline job compatible with sharding rule audit strategy
-Metadata: Refactor metadata persistence structure
-Metadata: Optimize the process of loading single table metadata
-Metadata: Support MySQL/PostgreSQL/openGauss system tables empty query
-DistSQL: Add support for transactionalReadQueryStrategy for read/write splitting rule
-DistSQL: Enhanced algorithm properties check
-Transaction: Add privilege check
-Transaction: Remove the TransactionTypeHolder and only create the current transaction manager
-Parser: Support MySQL LOAD DATA and LOAD XML statement with single table or broadcast table
-Parser: Improve the parsing support of high-priority SQL statements in the test results of the MySQL test program
-Parser: Oracle dialect parser now supports Chinese comma
-Encrypt: Support query of encrypt column in projection subquery when use encrypt feature
-Kernel: Adds table existence metadata check for INSERT, DELETE, UPDATE and SELECT statements
-JDBC: Implement batch execution for ShardingSphereStatement
-Proxy: Frontend supports SSL/TLS
-Proxy: Support Flush message for PostgreSQL/openGauss Proxy
-Proxy: Support data type bit, bool for PostgreSQL Proxy
+1. Scaling: CDC supports pure incremental mode
+1. Scaling: CDC supports exporting data by transaction
+1. Scaling: CDC supports MySQL and PostgreSQL
+1. Scaling: CDC supports single table
+1. Scaling: CDC supports all openGauss data types
+1. Scaling: CDC supports replication reconnection
+1. Scaling: Remove DataConsistencyCalculateAlgorithmChooser
+1. Scaling: Improve performance of integer unique key table inventory data splitting
+1. Scaling: Adjust process configuration default value to reduce resource consumption
+1. Scaling: Auto refresh table metadata for migration
+1. Scaling: Compatible with openGauss existing replication slot reuse when database not existing
+1. Scaling: Show data consistency check status result should be empty when it's not completed
+1. Scaling: Enable concurrent CRC32 match on source and target
+1. Scaling: Pipeline job compatible with sharding rule audit strategy
+1. Metadata: Refactor metadata persistence structure
+1. Metadata: Optimize the process of loading single table metadata
+1. Metadata: Support MySQL/PostgreSQL/openGauss system tables empty query
+1. DistSQL: Add support for transactionalReadQueryStrategy for read/write splitting rule
+1. DistSQL: Enhanced algorithm properties check
+1. Transaction: Add privilege check
+1. Transaction: Remove the TransactionTypeHolder and only create the current transaction manager
+1. Parser: Support MySQL LOAD DATA and LOAD XML statement with single table or broadcast table
+1. Parser: Improve the parsing support of high-priority SQL statements in the test results of the MySQL test program
+1. Parser: Oracle dialect parser now supports Chinese comma
+1. Encrypt: Support query of encrypt column in projection subquery when use encrypt feature
+1. Kernel: Adds table existence metadata check for INSERT, DELETE, UPDATE and SELECT statements
+1. JDBC: Implement batch execution for ShardingSphereStatement
+1. Proxy: Frontend supports SSL/TLS
+1. Proxy: Support Flush message for PostgreSQL/openGauss Proxy
+1. Proxy: Support data type bit, bool for PostgreSQL Proxy
 
 ### Bug Fixes
-Scaling: Fix pipeline job failure status persistence and usage
-Scaling: Fix CDC DELETE event Record.beforeList is null
-Scaling: Fix openGauss mppdb decoding plugin single quote issue
-Scaling: Fix execute engine not closed after job stopping
-Scaling: Fix stop job before task starting
-Metadata: Fix case sensitive issue when loading schema meta data with H2 database
-Metadata: Fix "object not found" exception when config PostgreSQL/openGauss schema name as database name
-DistSQL: Fix wrong result of check_table_metadata_enabled when execute SHOW DIST VARIABLE
-Encrypt: Fix SQL rewrite exception when use PostgreSQL/openGauss encrypt like feature
-Sharding: Support null sharding condition pass to sharding algorithm to allow user control null value route
-Parser: Support BETWEEN AND expression parsing in MySQL Projection
-Mask: Fix wrong mask result when config same value of from-x and to-y with KEEP_FROM_X_TO_Y
-Infra: Fix ClassNotFoundException may occur when missing pgjdbc
-Proxy: Fix MySQL packet out of order when client sending pipelining requests
+1. Scaling: Fix pipeline job failure status persistence and usage
+1. Scaling: Fix CDC DELETE event Record.beforeList is null
+1. Scaling: Fix openGauss mppdb decoding plugin single quote issue
+1. Scaling: Fix execute engine not closed after job stopping
+1. Scaling: Fix stop job before task starting
+1. Metadata: Fix case sensitive issue when loading schema meta data with H2 database
+1. Metadata: Fix "object not found" exception when config PostgreSQL/openGauss schema name as database name
+1. DistSQL: Fix wrong result of check_table_metadata_enabled when execute SHOW DIST VARIABLE
+1. Encrypt: Fix SQL rewrite exception when use PostgreSQL/openGauss encrypt like feature
+1. Sharding: Support null sharding condition pass to sharding algorithm to allow user control null value route
+1. Parser: Support BETWEEN AND expression parsing in MySQL Projection
+1. Mask: Fix wrong mask result when config same value of from-x and to-y with KEEP_FROM_X_TO_Y
+1. Infra: Fix ClassNotFoundException may occur when missing pgjdbc
+1. Proxy: Fix MySQL packet out of order when client sending pipelining requests
 
 ### Change Log
 
@@ -163,7 +348,7 @@ Proxy: Fix MySQL packet out of order when client sending pipelining requests
 1. Kernel:  Fix use Consul in cluster mode start up failure
 1. DB Discovery: Close heartbeat job when drop discovery rule
 1. Kernel: Fix wrong decide result when execute same sharding condition subquery with SQL federation
-1. Kernel:  Fix priority problem of UNION, INTERSECT, EXCEPT set operation in SQL Federation for PostgreSQL and openGuass dialect
+1. Kernel:  Fix priority problem of UNION, INTERSECT, EXCEPT set operation in SQL Federation for PostgreSQL and openGauss dialect
 1. Kernel:  Fix create view index out of range exception when view contains set operator
 1. Kernel: Add XA resource exceeds length check
 1. Kernel:  Fix transaction support for spring requires_new
@@ -436,7 +621,7 @@ Proxy: Fix MySQL packet out of order when client sending pipelining requests
 1. Support parsing ALTER OPERATOR in PostgreSQL
 1. Add PostgreSQL Copy Statement
 1. Add PostgreSQL Comment Statement
-1. Support listen statement in postgreSQL
+1. Support listen statement in PostgreSQL
 1. Support DECLARE cursor statement
 1. Add default serverConfig in helm charts
 1. Assemble openGauss JDBC Driver into Proxy distribution
@@ -1224,7 +1409,7 @@ Proxy: Fix MySQL packet out of order when client sending pipelining requests
 
 ### Enhancement
 
-1. Optimization for Sharing Parser with ANTLR Visitor improving the parsing performance of long SQL by 100%~1000%
+1. Optimization for Sharding Parser with ANTLR Visitor improving the parsing performance of long SQL by 100%~1000%
 1. Use multiple threads to load metadata for different data sources
 1. Support `allow.range.query.with.inline.sharding` option
 1. The docker of ShardingSphere-Proxy supports loading external lib packages

@@ -50,10 +50,9 @@ public final class ResourceMetaData {
                 .collect(Collectors.toMap(each -> each, StorageNode::new, (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
         Map<String, DataSourcePoolProperties> dataSourcePoolPropsMap = dataSources.entrySet().stream().collect(
                 Collectors.toMap(Entry::getKey, entry -> DataSourcePoolPropertiesCreator.create(entry.getValue()), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
-        storageUnits = new LinkedHashMap<>();
-        for (Entry<String, StorageNode> entry : storageUnitNodeMap.entrySet()) {
-            storageUnits.put(entry.getKey(), new StorageUnit(entry.getValue(), dataSourcePoolPropsMap.get(entry.getKey()), dataSources.get(entry.getValue().getName())));
-        }
+        storageUnits = storageUnitNodeMap.entrySet().stream()
+                .collect(Collectors.toMap(Entry::getKey, entry -> new StorageUnit(entry.getValue(), dataSourcePoolPropsMap.get(entry.getKey()), dataSources.get(entry.getValue().getName())),
+                        (a, b) -> b, LinkedHashMap::new));
     }
     
     /**
@@ -77,11 +76,20 @@ public final class ResourceMetaData {
     
     /**
      * Get not existed resource name.
-     * 
+     *
      * @param resourceNames resource names to be judged
      * @return not existed resource names
      */
     public Collection<String> getNotExistedDataSources(final Collection<String> resourceNames) {
         return resourceNames.stream().filter(each -> !storageUnits.containsKey(each)).collect(Collectors.toSet());
+    }
+    
+    /**
+     * Get data source map.
+     *
+     * @return data source map
+     */
+    public Map<String, DataSource> getDataSourceMap() {
+        return storageUnits.entrySet().stream().collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getDataSource(), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
     }
 }

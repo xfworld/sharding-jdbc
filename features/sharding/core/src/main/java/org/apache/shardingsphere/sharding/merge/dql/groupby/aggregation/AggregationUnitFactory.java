@@ -19,8 +19,8 @@ package org.apache.shardingsphere.sharding.merge.dql.groupby.aggregation;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.AggregationType;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.AggregationType;
 
 /**
  * Aggregation unit factory.
@@ -30,7 +30,7 @@ public final class AggregationUnitFactory {
     
     /**
      * Create aggregation unit instance.
-     * 
+     *
      * @param type aggregation function type
      * @param isDistinct is distinct
      * @return aggregation unit instance

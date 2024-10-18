@@ -1,0 +1,23 @@
+{
+  "rules": [
+    {"includeClasses": "**"},
+
+    {"excludeClasses": "android.app.**"},
+    {"excludeClasses": "com.**"},
+    {"excludeClasses": "ch.qos.logback.**"},
+    {"excludeClasses": "groovy.**"},
+    {"excludeClasses": "io.**"},
+    {"excludeClasses": "javax.**"},
+    {"excludeClasses": "jdk.internal.misc.**"},
+    {"excludeClasses": "libcore.io.**"},
+    {"excludeClasses": "net.bytebuddy.**"},
+    {"excludeClasses": "org.**"},
+    {"includeClasses": "org.apache.shardingsphere.**"},
+    {"excludeClasses": "sun.**"},
+    {"includeClasses": "sun.security.provider.SecureRandom"},
+
+    {"excludeClasses": "org.apache.shardingsphere.test.natived.**"}
+  ],
+  "regexRules": [
+  ]
+}

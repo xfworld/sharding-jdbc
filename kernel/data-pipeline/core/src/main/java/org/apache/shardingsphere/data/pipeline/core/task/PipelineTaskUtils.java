@@ -19,16 +19,12 @@ package org.apache.shardingsphere.data.pipeline.core.task;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.data.pipeline.api.config.ingest.InventoryDumperConfiguration;
-import org.apache.shardingsphere.data.pipeline.api.ingest.channel.PipelineChannel;
-import org.apache.shardingsphere.data.pipeline.api.ingest.position.IngestPosition;
-import org.apache.shardingsphere.data.pipeline.common.ingest.channel.AckCallbacks;
-import org.apache.shardingsphere.data.pipeline.common.ingest.channel.PipelineChannelCreator;
-import org.apache.shardingsphere.data.pipeline.common.job.progress.InventoryIncrementalJobItemProgress;
-import org.apache.shardingsphere.data.pipeline.common.task.progress.IncrementalTaskProgress;
+import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.inventory.InventoryDumperContext;
+import org.apache.shardingsphere.data.pipeline.core.ingest.position.IngestPosition;
+import org.apache.shardingsphere.data.pipeline.core.job.progress.TransmissionJobItemProgress;
+import org.apache.shardingsphere.data.pipeline.core.task.progress.IncrementalTaskProgress;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Pipeline task utilities.
@@ -37,14 +33,13 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class PipelineTaskUtils {
     
     /**
-     * Generate inventory task id.
+     * Generate inventory task ID.
      *
-     * @param inventoryDumperConfig inventory dumper configuration
-     * @return inventory task id
+     * @param dumperContext inventory dumper context
+     * @return generated ID
      */
-    public static String generateInventoryTaskId(final InventoryDumperConfiguration inventoryDumperConfig) {
-        String result = String.format("%s.%s", inventoryDumperConfig.getDataSourceName(), inventoryDumperConfig.getActualTableName());
-        return result + "#" + inventoryDumperConfig.getShardingItem();
+    public static String generateInventoryTaskId(final InventoryDumperContext dumperContext) {
+        return String.format("%s.%s#%s", dumperContext.getCommonContext().getDataSourceName(), dumperContext.getActualTableName(), dumperContext.getShardingItem());
     }
     
     /**
@@ -54,36 +49,12 @@ public final class PipelineTaskUtils {
      * @param initProgress initial job item progress
      * @return incremental task progress
      */
-    public static IncrementalTaskProgress createIncrementalTaskProgress(final IngestPosition position, final InventoryIncrementalJobItemProgress initProgress) {
+    public static IncrementalTaskProgress createIncrementalTaskProgress(final IngestPosition position, final TransmissionJobItemProgress initProgress) {
         IncrementalTaskProgress result = new IncrementalTaskProgress(position);
         if (null != initProgress && null != initProgress.getIncremental()) {
             Optional.ofNullable(initProgress.getIncremental().getIncrementalTaskProgress())
                     .ifPresent(optional -> result.setIncrementalTaskDelay(initProgress.getIncremental().getIncrementalTaskProgress().getIncrementalTaskDelay()));
         }
         return result;
-    }
-    
-    /**
-     * Create channel for inventory task.
-     *
-     * @param pipelineChannelCreator channel creator
-     * @param averageElementSize average element size
-     * @param position ingest position
-     * @return channel
-     */
-    public static PipelineChannel createInventoryChannel(final PipelineChannelCreator pipelineChannelCreator, final int averageElementSize, final AtomicReference<IngestPosition> position) {
-        return pipelineChannelCreator.createPipelineChannel(1, averageElementSize, records -> AckCallbacks.inventoryCallback(records, position));
-    }
-    
-    /**
-     * Create incremental channel.
-     *
-     * @param concurrency output concurrency
-     * @param pipelineChannelCreator channel creator
-     * @param progress incremental task progress
-     * @return channel
-     */
-    public static PipelineChannel createIncrementalChannel(final int concurrency, final PipelineChannelCreator pipelineChannelCreator, final IncrementalTaskProgress progress) {
-        return pipelineChannelCreator.createPipelineChannel(concurrency, 5, records -> AckCallbacks.incrementalCallback(records, progress));
     }
 }

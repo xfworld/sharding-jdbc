@@ -17,23 +17,21 @@
 
 package org.apache.shardingsphere.shadow.algorithm.shadow.hint;
 
-import org.apache.shardingsphere.infra.hint.HintValueContext;
-import org.apache.shardingsphere.infra.hint.SQLHintUtils;
-import org.apache.shardingsphere.shadow.api.shadow.ShadowOperationType;
-import org.apache.shardingsphere.shadow.api.shadow.hint.HintShadowAlgorithm;
-import org.apache.shardingsphere.shadow.api.shadow.hint.PreciseHintShadowValue;
+import org.apache.shardingsphere.shadow.spi.ShadowOperationType;
+import org.apache.shardingsphere.shadow.spi.hint.HintShadowAlgorithm;
+import org.apache.shardingsphere.shadow.spi.hint.PreciseHintShadowValue;
 
 import java.util.Collection;
 
 /**
  * SQL hint shadow algorithm.
  */
-public final class SQLHintShadowAlgorithm implements HintShadowAlgorithm<String> {
+public final class SQLHintShadowAlgorithm implements HintShadowAlgorithm<Boolean> {
     
     @Override
-    public boolean isShadow(final Collection<String> shadowTableNames, final PreciseHintShadowValue<String> noteShadowValue) {
-        if (ShadowOperationType.HINT_MATCH == noteShadowValue.getShadowOperationType() || shadowTableNames.contains(noteShadowValue.getLogicTableName())) {
-            return SQLHintUtils.extractHint(noteShadowValue.getValue()).map(HintValueContext::isShadow).orElse(false);
+    public boolean isShadow(final Collection<String> shadowTableNames, final PreciseHintShadowValue<Boolean> hintShadowValue) {
+        if (ShadowOperationType.HINT_MATCH == hintShadowValue.getShadowOperationType() || shadowTableNames.contains(hintShadowValue.getLogicTableName())) {
+            return hintShadowValue.getValue();
         }
         return false;
     }

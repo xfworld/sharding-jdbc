@@ -17,25 +17,22 @@
 
 package org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.impl;
 
-import com.google.common.base.Strings;
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.SneakyThrows;
-import org.apache.shardingsphere.driver.api.yaml.YamlShardingSphereDataSourceFactory;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
-import org.apache.shardingsphere.infra.yaml.config.pojo.YamlRootConfiguration;
-import org.apache.shardingsphere.infra.yaml.config.pojo.mode.YamlModeConfiguration;
-import org.apache.shardingsphere.infra.yaml.config.pojo.mode.YamlPersistRepositoryConfiguration;
+import org.apache.shardingsphere.test.e2e.env.container.atomic.DockerITContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.EmbeddedITContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.AdapterContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.StorageContainer;
-import org.apache.shardingsphere.test.e2e.env.runtime.scenario.path.ScenarioCommonPath;
 
 import javax.sql.DataSource;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
-import java.util.Collections;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -45,16 +42,13 @@ public final class ShardingSphereJdbcContainer implements EmbeddedITContainer, A
     
     private final StorageContainer storageContainer;
     
-    private final ScenarioCommonPath scenarioCommonPath;
-    
-    private final DatabaseType databaseType;
-    
     private final AtomicReference<DataSource> targetDataSourceProvider = new AtomicReference<>();
     
-    public ShardingSphereJdbcContainer(final StorageContainer storageContainer, final String scenario, final DatabaseType databaseType) {
+    private final String configPath;
+    
+    public ShardingSphereJdbcContainer(final StorageContainer storageContainer, final String configPath) {
+        this.configPath = configPath;
         this.storageContainer = storageContainer;
-        scenarioCommonPath = new ScenarioCommonPath(scenario);
-        this.databaseType = databaseType;
     }
     
     @Override
@@ -65,41 +59,46 @@ public final class ShardingSphereJdbcContainer implements EmbeddedITContainer, A
     public DataSource getTargetDataSource(final String serverLists) {
         DataSource dataSource = targetDataSourceProvider.get();
         if (null == dataSource) {
-            if (Strings.isNullOrEmpty(serverLists)) {
-                try {
-                    targetDataSourceProvider.set(
-                            YamlShardingSphereDataSourceFactory.createDataSource(storageContainer.getActualDataSourceMap(), new File(scenarioCommonPath.getRuleConfigurationFile(databaseType))));
-                } catch (final SQLException | IOException ex) {
-                    throw new RuntimeException(ex);
-                }
-            } else {
-                targetDataSourceProvider.set(createGovernanceClientDataSource(serverLists));
-            }
+            targetDataSourceProvider.set(createTargetDataSource());
         }
         return targetDataSourceProvider.get();
     }
     
-    @SneakyThrows({SQLException.class, IOException.class})
-    private DataSource createGovernanceClientDataSource(final String serverLists) {
-        YamlRootConfiguration rootConfig = YamlEngine.unmarshal(new File(scenarioCommonPath.getRuleConfigurationFile(databaseType)), YamlRootConfiguration.class);
-        rootConfig.setMode(createYamlModeConfiguration(serverLists));
-        return YamlShardingSphereDataSourceFactory.createDataSource(Collections.emptyMap(), YamlEngine.marshal(rootConfig).getBytes(StandardCharsets.UTF_8));
+    @SneakyThrows(IOException.class)
+    private DataSource createTargetDataSource() {
+        HikariDataSource result = new HikariDataSource();
+        result.setDriverClassName("org.apache.shardingsphere.driver.ShardingSphereDriver");
+        result.setJdbcUrl("jdbc:shardingsphere:absolutepath:" + processFile(configPath, getLinkReplacements()));
+        result.setUsername("root");
+        result.setPassword("Root@123");
+        result.setMaximumPoolSize(2);
+        result.setTransactionIsolation("TRANSACTION_READ_COMMITTED");
+        result.setLeakDetectionThreshold(10000L);
+        return result;
     }
     
-    private YamlModeConfiguration createYamlModeConfiguration(final String serverLists) {
-        YamlModeConfiguration result = new YamlModeConfiguration();
-        result.setType("Cluster");
-        YamlPersistRepositoryConfiguration repositoryConfig = new YamlPersistRepositoryConfiguration();
-        // TODO process more types
-        repositoryConfig.setType("ZooKeeper");
-        repositoryConfig.getProps().setProperty("namespace", "it_db");
-        repositoryConfig.getProps().setProperty("server-lists", serverLists);
-        repositoryConfig.getProps().setProperty("timeToLiveSeconds", "60");
-        repositoryConfig.getProps().setProperty("operationTimeoutMilliseconds", "500");
-        repositoryConfig.getProps().setProperty("retryIntervalMilliseconds", "500");
-        repositoryConfig.getProps().setProperty("maxRetries", "3");
-        result.setRepository(repositoryConfig);
-        return result;
+    private Map<String, String> getLinkReplacements() {
+        Map<String, String> replacements = new HashMap<>();
+        for (String each : ((DockerITContainer) storageContainer).getNetworkAliases()) {
+            for (Integer exposedPort : ((DockerITContainer) storageContainer).getExposedPorts()) {
+                replacements.put(each + ":" + exposedPort, "127.0.0.1:" + ((DockerITContainer) storageContainer).getMappedPort(exposedPort));
+            }
+        }
+        return replacements;
+    }
+    
+    private String processFile(final String filePath, final Map<String, String> replacements) throws IOException {
+        Path path = Paths.get(filePath);
+        String content = new String(Files.readAllBytes(path));
+        for (Map.Entry<String, String> entry : replacements.entrySet()) {
+            content = content.replace(entry.getKey(), entry.getValue());
+        }
+        File tempFile = File.createTempFile("shardingsphere_e2e_jdbc_tmp_config_", null);
+        tempFile.deleteOnExit();
+        try (FileWriter writer = new FileWriter(tempFile)) {
+            writer.write(content);
+        }
+        return tempFile.getAbsolutePath();
     }
     
     @Override

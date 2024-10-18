@@ -23,9 +23,11 @@ import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.config.AdaptorContainerConfiguration;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.constants.ProxyContainerConstants;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.util.AdapterContainerUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.net.URL;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -36,26 +38,41 @@ public final class ProxyStandaloneContainerConfigurationFactory {
     
     /**
      * Create instance of adaptor container configuration.
-     * 
+     *
      * @param scenario scenario
      * @param databaseType database type
      * @return created instance
      */
     public static AdaptorContainerConfiguration newInstance(final String scenario, final DatabaseType databaseType) {
-        return new AdaptorContainerConfiguration(scenario, getMountedResources(scenario, databaseType), AdapterContainerUtils.getAdapterContainerImage(), "");
+        return new AdaptorContainerConfiguration(scenario, new LinkedList<>(), getMountedResources(scenario, databaseType), AdapterContainerUtils.getAdapterContainerImage(), "");
     }
     
     private static Map<String, String> getMountedResources(final String scenario, final DatabaseType databaseType) {
         Map<String, String> result = new HashMap<>(3, 1F);
         result.put("/env/common/standalone/proxy/conf/logback.xml", ProxyContainerConstants.CONFIG_PATH_IN_CONTAINER + "logback.xml");
         result.put("/env/scenario/" + scenario + "/proxy/conf/" + databaseType.getType().toLowerCase(), ProxyContainerConstants.CONFIG_PATH_IN_CONTAINER);
-        result.put(serverYamlExists(scenario) ? "/env/scenario/" + scenario + "/proxy/mode/standalone/server.yaml"
-                : "/env/common/standalone/proxy/conf/server.yaml", ProxyContainerConstants.CONFIG_PATH_IN_CONTAINER + "server.yaml");
+        result.put(getGlobalYamlPath(scenario, databaseType), ProxyContainerConstants.CONFIG_PATH_IN_CONTAINER + "global.yaml");
         return result;
     }
     
-    private static boolean serverYamlExists(final String scenario) {
-        URL url = Thread.currentThread().getContextClassLoader().getResource("env/scenario/" + scenario + "/proxy/mode/standalone/server.yaml");
+    @NotNull
+    private static String getGlobalYamlPath(final String scenario, final DatabaseType databaseType) {
+        if (isDialectScenarioGlobalYamlExists(scenario, databaseType)) {
+            return "/env/scenario/" + scenario + "/proxy/mode/standalone/" + databaseType.getType().toLowerCase() + "/global.yaml";
+        }
+        if (isScenarioGlobalYamlExists(scenario)) {
+            return "/env/scenario/" + scenario + "/proxy/mode/standalone/global.yaml";
+        }
+        return "/env/common/standalone/proxy/conf/global.yaml";
+    }
+    
+    private static boolean isDialectScenarioGlobalYamlExists(final String scenario, final DatabaseType databaseType) {
+        URL url = Thread.currentThread().getContextClassLoader().getResource("env/scenario/" + scenario + "/proxy/mode/standalone/" + databaseType.getType().toLowerCase() + "/global.yaml");
+        return null != url;
+    }
+    
+    private static boolean isScenarioGlobalYamlExists(final String scenario) {
+        URL url = Thread.currentThread().getContextClassLoader().getResource("env/scenario/" + scenario + "/proxy/mode/standalone/global.yaml");
         return null != url;
     }
 }

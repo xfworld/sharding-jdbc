@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.impl;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.DockerITContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.AdapterContainer;
@@ -35,7 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * ShardingSphere proxy container.
  */
-@Slf4j
 public final class ShardingSphereProxyStandaloneContainer extends DockerITContainer implements AdapterContainer {
     
     private static final String PROPERTY_AGENT_HOME = "AGENT_HOME";
@@ -66,7 +64,7 @@ public final class ShardingSphereProxyStandaloneContainer extends DockerITContai
     
     @Override
     protected void configure() {
-        withExposedPorts(3307);
+        withExposedPorts(3307, 3308);
         mountConfigurationFiles();
         setWaitStrategy(new JdbcConnectionWaitStrategy(() -> DriverManager.getConnection(
                 DataSourceEnvironment.getURL(databaseType, getHost(), getMappedPort(3307), config.getProxyDataSourceName()), "proxy", "Proxy@123")));

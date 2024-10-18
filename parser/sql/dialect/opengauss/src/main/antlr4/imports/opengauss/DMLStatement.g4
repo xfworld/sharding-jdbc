@@ -151,12 +151,11 @@ optTempTableName
     ;
 
 cteList
-    : commonTableExpr
-    | cteList COMMA_ commonTableExpr
+    : commonTableExpr (COMMA_ commonTableExpr)*
     ;
 
 commonTableExpr
-    :  name optNameList AS optMaterialized LP_ preparableStmt RP_
+    :  alias optNameList AS optMaterialized LP_ preparableStmt RP_
     ;
 
 optMaterialized
@@ -220,7 +219,7 @@ valuesClause
 
 limitClause
     : LIMIT selectLimitValue
-    | LIMIT selectOffsetValue COMMA_ selectLimitValue 
+    | LIMIT selectOffsetValue COMMA_ selectLimitValue
     | FETCH firstOrNext selectFetchValue? rowOrRows onlyOrWithTies
     ;
 
@@ -391,7 +390,7 @@ innerJoinType
 outerJoinType
     : (FULL | LEFT | RIGHT) OUTER? JOIN
     ;
-    
+
 naturalJoinType
     : NATURAL INNER? JOIN
     | NATURAL (FULL | LEFT | RIGHT) OUTER? JOIN
@@ -433,25 +432,6 @@ dostmtOptList
 
 dostmtOptItem
     : STRING_ | LANGUAGE nonReservedWordOrSconst
-    ;
-
-lock
-    : LOCK TABLE? relationExprList (IN lockType MODE)? NOWAIT?
-    ;
-
-lockType
-    : ACCESS SHARE
-    | ROW SHARE
-    | ROW EXCLUSIVE
-    | SHARE UPDATE EXCLUSIVE
-    | SHARE
-    | SHARE ROW EXCLUSIVE
-    | EXCLUSIVE
-    | ACCESS EXCLUSIVE
-    ;
-
-checkpoint
-    : CHECKPOINT
     ;
 
 copy

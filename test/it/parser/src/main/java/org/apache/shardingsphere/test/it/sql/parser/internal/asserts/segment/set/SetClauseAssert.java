@@ -19,16 +19,16 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.se
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.AssignmentSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.SetAssignmentSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.ColumnAssignmentSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.SetAssignmentSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.SQLSegmentAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.assignment.AssignmentAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.set.ExpectedSetClause;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Set clause assert.
@@ -38,7 +38,7 @@ public final class SetClauseAssert {
     
     /**
      * Assert actual set assignment segment is correct with expected set assignment.
-     * 
+     *
      * @param assertContext assert context
      * @param actual actual set assignment segment
      * @param expected expected set clause
@@ -47,7 +47,7 @@ public final class SetClauseAssert {
         assertNotNull(expected, assertContext.getText("Assignments should exist."));
         assertThat(assertContext.getText("Assignments size assertion error: "), actual.getAssignments().size(), is(expected.getAssignments().size()));
         int count = 0;
-        for (AssignmentSegment each : actual.getAssignments()) {
+        for (ColumnAssignmentSegment each : actual.getAssignments()) {
             AssignmentAssert.assertIs(assertContext, each, expected.getAssignments().get(count));
             count++;
         }

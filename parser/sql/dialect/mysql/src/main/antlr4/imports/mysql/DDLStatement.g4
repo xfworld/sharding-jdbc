@@ -216,11 +216,11 @@ createIndex
     ;
 
 createDatabase
-    : CREATE (DATABASE | SCHEMA) ifNotExists? schemaName createDatabaseSpecification_*
+    : CREATE (DATABASE | SCHEMA) ifNotExists? databaseName createDatabaseSpecification_*
     ;
 
 alterDatabase
-    : ALTER (DATABASE | SCHEMA) schemaName? alterDatabaseSpecification_*
+    : ALTER (DATABASE | SCHEMA) databaseName? alterDatabaseSpecification_*
     ;
 
 createDatabaseSpecification_
@@ -228,14 +228,14 @@ createDatabaseSpecification_
     | defaultCollation
     | defaultEncryption
     ;
-    
+
 alterDatabaseSpecification_
     : createDatabaseSpecification_ 
     | READ ONLY EQ_? (DEFAULT | NUMBER_)
     ;
 
 dropDatabase
-    : DROP (DATABASE | SCHEMA) ifExists? schemaName
+    : DROP (DATABASE | SCHEMA) ifExists? databaseName
     ;
 
 alterInstance
@@ -345,30 +345,29 @@ dropView
     ;
 
 createTablespace
-    : createTablespaceInnodb | createTablespaceNdb
+    : CREATE UNDO? TABLESPACE identifier (createTablespaceInnodb | createTablespaceNdb | createTablespaceInnodbAndNdb)*
     ;
 
 createTablespaceInnodb
-    : CREATE (UNDO)? TABLESPACE identifier
-      ADD DATAFILE string_
-      (FILE_BLOCK_SIZE EQ_ fileSizeLiteral)?
-      (ENCRYPTION EQ_ y_or_n=string_)?
-      (ENGINE EQ_? engineRef)?
-      (COMMENT EQ_? string_)?
+    : FILE_BLOCK_SIZE EQ_ fileSizeLiteral
+    | ENCRYPTION EQ_ y_or_n=string_
+    | ENGINE_ATTRIBUTE EQ_? jsonAttribute = string_
     ;
 
 createTablespaceNdb
-    : CREATE ( UNDO )? TABLESPACE identifier
-      ADD DATAFILE string_
-      USE LOGFILE GROUP identifier
-      (EXTENT_SIZE EQ_? fileSizeLiteral)?
-      (INITIAL_SIZE EQ_? fileSizeLiteral)?
-      (AUTOEXTEND_SIZE EQ_? fileSizeLiteral)?
-      (MAX_SIZE EQ_? fileSizeLiteral)?
-      (NODEGROUP EQ_? identifier)?
-      WAIT?
-      (COMMENT EQ_? string_)?
-      (ENGINE EQ_? engineRef)?
+    : USE LOGFILE GROUP identifier
+    | EXTENT_SIZE EQ_? fileSizeLiteral
+    | INITIAL_SIZE EQ_? fileSizeLiteral
+    | MAX_SIZE EQ_? fileSizeLiteral
+    | NODEGROUP EQ_? identifier
+    | WAIT
+    | COMMENT EQ_? string_
+    ;
+
+createTablespaceInnodbAndNdb
+    : ADD DATAFILE string_
+    | AUTOEXTEND_SIZE EQ_? fileSizeLiteral
+    | ENGINE EQ_? engineRef
     ;
 
 alterTablespace
@@ -378,7 +377,7 @@ alterTablespace
 alterTablespaceNdb
     : ALTER UNDO? TABLESPACE tablespace=identifier
       (ADD | DROP) DATAFILE string_
-      (INITIAL_SIZE EQ_ fileSizeLiteral)?
+      (INITIAL_SIZE EQ_? fileSizeLiteral)?
       WAIT? (RENAME TO renameTableSpace=identifier)?
       (ENGINE EQ_? identifier)?
     ;
@@ -386,7 +385,9 @@ alterTablespaceNdb
 alterTablespaceInnodb
     : ALTER UNDO? TABLESPACE tablespace=identifier
       (SET (ACTIVE | INACTIVE))?
+      (AUTOEXTEND_SIZE EQ_? fileSizeLiteral)?
       (ENCRYPTION EQ_? y_or_n=string_)?
+      (ENGINE_ATTRIBUTE EQ_? jsonAttribute = string_)?
       (RENAME TO renameTablespace=identifier)?
       (ENGINE EQ_? identifier)?
     ;
@@ -424,7 +425,7 @@ createTrigger
     ;
 
 dropTrigger
-    : DROP TRIGGER ifExists? (schemaName DOT_)? triggerName
+    : DROP TRIGGER ifExists? (databaseName DOT_)? triggerName
     ;
 
 renameTable
@@ -460,6 +461,7 @@ columnAttribute
     | constraintClause? checkConstraint
     | constraintEnforcement
     | visibility
+    | value = ENGINE_ATTRIBUTE EQ_? jsonAttribute = string_
     ;
 
 checkConstraint
@@ -519,6 +521,7 @@ commonIndexOption
     : KEY_BLOCK_SIZE EQ_? NUMBER_
     | COMMENT stringLiterals
     | visibility
+    | ENGINE_ATTRIBUTE EQ_? jsonAttribute = string_
     ;
 
 visibility
@@ -565,6 +568,7 @@ createTableOption
     | option = KEY_BLOCK_SIZE EQ_? NUMBER_
     | option = ENGINE_ATTRIBUTE EQ_? jsonAttribute = string_
     | option = SECONDARY_ENGINE_ATTRIBUTE EQ_ jsonAttribute = string_
+    | option = AUTOEXTEND_SIZE EQ_? fileSizeLiteral
     ;
 
 createSRSStatement
@@ -664,11 +668,11 @@ procedureParameter
 fileSizeLiteral
     : FILESIZE_LITERAL | numberLiterals
     ; 
-    
+
 simpleStatement
     : validStatement
     ;
-    
+
 compoundStatement
     : beginStatement
     ;
@@ -691,21 +695,21 @@ declareStatement
 flowControlStatement
     : caseStatement | ifStatement | iterateStatement | leaveStatement | loopStatement | repeatStatement | returnStatement | whileStatement
     ;
-    
+
 caseStatement
     : CASE expr? 
       (WHEN expr THEN validStatement+)+ 
       (ELSE validStatement+)? 
       END CASE
     ;
-    
+
 ifStatement
     : IF expr THEN validStatement+
       (ELSEIF expr THEN validStatement+)*
       (ELSE validStatement+)?
       END IF
     ;
-    
+
 iterateStatement
     : ITERATE labelName
     ;
@@ -713,58 +717,58 @@ iterateStatement
 leaveStatement
     : LEAVE labelName
     ;
-    
+
 loopStatement
     : (labelName COLON_)? LOOP
       validStatement+
       END LOOP labelName?
     ;
-    
+
 repeatStatement
     : (labelName COLON_)? REPEAT
       validStatement+
       UNTIL expr
       END REPEAT labelName?
     ;
-    
+
 returnStatement
     : RETURN expr
     ;   
-    
+
 whileStatement
     : (labelName COLON_)? WHILE expr DO
       validStatement+
       END WHILE labelName?
     ;
-    
+
 cursorStatement
     : cursorCloseStatement | cursorDeclareStatement | cursorFetchStatement | cursorOpenStatement 
     ;
-    
+
 cursorCloseStatement
     : CLOSE cursorName
     ;
-    
+
 cursorDeclareStatement
     : DECLARE cursorName CURSOR FOR select
     ;
-    
+
 cursorFetchStatement
     : FETCH ((NEXT)? FROM)? cursorName INTO variable (COMMA_ variable)*
     ;
-    
+
 cursorOpenStatement
     : OPEN cursorName
     ;
-    
+
 conditionHandlingStatement
     : declareConditionStatement | declareHandlerStatement | getDiagnosticsStatement | resignalStatement | signalStatement 
     ;
-    
+
 declareConditionStatement
     : DECLARE conditionName CONDITION FOR conditionValue
     ;
-    
+
 declareHandlerStatement
     : DECLARE handlerAction HANDLER FOR conditionValue (COMMA_ conditionValue)* validStatement
     ;
@@ -779,11 +783,11 @@ getDiagnosticsStatement
 statementInformationItem
     : variable EQ_ statementInformationItemName
     ;
-    
+
 conditionInformationItem
     : variable EQ_ conditionInformationItemName
     ;
-    
+
 conditionNumber
     : variable | numberLiterals 
     ;
@@ -792,7 +796,7 @@ statementInformationItemName
     : NUMBER
     | ROW_COUNT
     ;
-    
+
 conditionInformationItemName
     : CLASS_ORIGIN
     | SUBCLASS_ORIGIN
@@ -808,41 +812,41 @@ conditionInformationItemName
     | COLUMN_NAME
     | CURSOR_NAME
     ;
-    
+
 handlerAction
     : CONTINUE | EXIT | UNDO
     ;
-    
+
 conditionValue
     : numberLiterals | SQLSTATE (VALUE)? stringLiterals | conditionName | SQLWARNING | NOT FOUND | SQLEXCEPTION
     ;
-    
+
 resignalStatement
     : RESIGNAL conditionValue?
       (SET signalInformationItem (COMMA_ signalInformationItem)*)?
     ;
-    
+
 signalStatement
     : SIGNAL conditionValue
       (SET signalInformationItem (COMMA_ signalInformationItem)*)?
     ;
-    
+
 signalInformationItem
     : conditionInformationItemName EQ_ expr
     ;
-    
+
 prepare
     : PREPARE identifier FROM (stringLiterals | userVariable)
     ;
-    
+
 executeStmt
     : EXECUTE identifier (USING executeVarList)?
     ;
-    
+
 executeVarList
     : userVariable (COMMA_ userVariable)*
     ;
-    
+
 deallocate
     : (DEALLOCATE | DROP) PREPARE identifier
     ;
