@@ -48,6 +48,7 @@ import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.BeginSt
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CaseStatementContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.ChangeColumnContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CharsetNameContext;
+import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CollationNameContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.ColumnDefinitionContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CompoundStatementContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateDatabaseContext;
@@ -60,9 +61,9 @@ import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateL
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateProcedureContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateServerContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateTableContext;
-import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateTablespaceContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateTableOptionContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateTableOptionsContext;
+import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateTablespaceContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateTriggerContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.CreateViewContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.DeallocateContext;
@@ -81,8 +82,8 @@ import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.Execute
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.FieldDefinitionContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.FlowControlStatementContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.FunctionNameContext;
-import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.IfStatementContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.IdentifierContext;
+import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.IfStatementContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.KeyListWithExpressionContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.KeyPartContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.KeyPartWithExpressionContext;
@@ -101,93 +102,94 @@ import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.SimpleS
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.TableConstraintDefContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.TableElementContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.TableNameContext;
+import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.TextOrIdentifierContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.TruncateTableContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.ValidStatementContext;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementParser.WhileStatementContext;
 import org.apache.shardingsphere.sql.parser.mysql.visitor.statement.MySQLStatementVisitor;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.AlgorithmOption;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.LockTableOption;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.AlterDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.CreateDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.charset.CharsetNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.ColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.AddColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.ChangeColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.DropColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.ModifyColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.RenameColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.position.ColumnAfterPositionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.position.ColumnFirstPositionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.position.ColumnPositionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.ConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.ConstraintSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.alter.AddConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.alter.DropConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.alter.ModifyConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.engine.EngineSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.DropIndexDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.RenameIndexDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.routine.FunctionNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.routine.RoutineBodySegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.routine.ValidStatementSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.table.AlgorithmTypeSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.table.ConvertTableDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.table.CreateTableOptionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.table.LockTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.table.RenameTableDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.tablespace.TablespaceSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.SimpleExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.CommentSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DataTypeSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OwnerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.value.collection.CollectionValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterDatabaseStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterEventStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterFunctionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterInstanceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterLogfileGroupStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterProcedureStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterServerStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterTablespaceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateDatabaseStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateEventStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateFunctionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateIndexStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateLogfileGroupStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateProcedureStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateServerStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateTablespaceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateTriggerStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLCreateViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDeallocateStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropDatabaseStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropEventStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropFunctionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropIndexStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropLogfileGroupStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropProcedureStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropServerStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropTablespaceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropTriggerStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLDropViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLExecuteStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLPrepareStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLRenameTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLTruncateStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLDeleteStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLInsertStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLSelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLUpdateStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.AlgorithmOption;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.LockTableOption;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.AlterDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.CreateDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.charset.CharsetNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.ColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.AddColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.ChangeColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.DropColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.ModifyColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.RenameColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.position.ColumnAfterPositionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.position.ColumnFirstPositionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.position.ColumnPositionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.AddConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.DropConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.ModifyConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.engine.EngineSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.DropIndexDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.RenameIndexDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.routine.FunctionNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.routine.RoutineBodySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.routine.ValidStatementSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.AlgorithmTypeSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.ConvertTableDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.CreateTableOptionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.LockTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.RenameTableDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.tablespace.TablespaceSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.SimpleExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.CommentSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DataTypeSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OwnerSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.collection.CollectionValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterDatabaseStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterEventStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterFunctionStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterInstanceStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterLogfileGroupStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterProcedureStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterServerStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterTablespaceStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateDatabaseStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateEventStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateFunctionStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateLogfileGroupStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateProcedureStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateServerStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateTablespaceStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateTriggerStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLCreateViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDeallocateStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropDatabaseStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropEventStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropFunctionStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropLogfileGroupStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropProcedureStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropServerStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropTablespaceStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropTriggerStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLExecuteStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLPrepareStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLRenameTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLTruncateStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLDeleteStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLInsertStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLSelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLUpdateStatement;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -229,7 +231,7 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
     @Override
     public ASTNode visitCreateDatabase(final CreateDatabaseContext ctx) {
         MySQLCreateDatabaseStatement result = new MySQLCreateDatabaseStatement();
-        result.setDatabaseName(new IdentifierValue(ctx.schemaName().getText()).getValue());
+        result.setDatabaseName(new IdentifierValue(ctx.databaseName().getText()).getValue());
         result.setIfNotExists(null != ctx.ifNotExists());
         return result;
     }
@@ -242,7 +244,7 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
     @Override
     public ASTNode visitDropDatabase(final DropDatabaseContext ctx) {
         MySQLDropDatabaseStatement result = new MySQLDropDatabaseStatement();
-        result.setDatabaseName(new IdentifierValue(ctx.schemaName().getText()).getValue());
+        result.setDatabaseName(new IdentifierValue(ctx.databaseName().getText()).getValue());
         result.setIfExists(null != ctx.ifExists());
         return result;
     }
@@ -266,7 +268,7 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
             result.setLikeTable((SimpleTableSegment) visit(ctx.createLikeClause()));
         }
         if (null != ctx.createTableOptions()) {
-            result.setCreateTableOptionSegment((CreateTableOptionSegment) visit(ctx.createTableOptions()));
+            result.setCreateTableOption((CreateTableOptionSegment) visit(ctx.createTableOptions()));
         }
         return result;
     }
@@ -279,6 +281,12 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
                 result.setEngine((EngineSegment) visit(each.engineRef()));
             } else if (null != each.COMMENT()) {
                 result.setCommentSegment(new CommentSegment(each.string_().getText(), each.string_().getStart().getStartIndex(), each.string_().getStop().getStopIndex()));
+            } else if (null != each.defaultCharset()) {
+                Optional.ofNullable(each.defaultCharset().charsetName()).map(CharsetNameContext::textOrIdentifier).map(TextOrIdentifierContext::identifier)
+                        .ifPresent(optional -> result.setCharsetName(optional.getText()));
+            } else if (null != each.defaultCollation()) {
+                Optional.ofNullable(each.defaultCollation().collationName()).map(CollationNameContext::textOrIdentifier).map(TextOrIdentifierContext::identifier)
+                        .ifPresent(optional -> result.setCollateName(optional.getText()));
             }
         }
         return result;
@@ -350,8 +358,11 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
     private ColumnDefinitionSegment generateColumnDefinitionSegment(final ColumnSegment column, final FieldDefinitionContext ctx) {
         DataTypeSegment dataTypeSegment = (DataTypeSegment) visit(ctx.dataType());
         boolean isPrimaryKey = ctx.columnAttribute().stream().anyMatch(each -> null != each.KEY() && null == each.UNIQUE());
+        boolean isAutoIncrement = ctx.columnAttribute().stream().anyMatch(each -> null != each.AUTO_INCREMENT());
         // TODO parse not null
-        return new ColumnDefinitionSegment(column.getStartIndex(), ctx.getStop().getStopIndex(), column, dataTypeSegment, isPrimaryKey, false);
+        ColumnDefinitionSegment result = new ColumnDefinitionSegment(column.getStartIndex(), ctx.getStop().getStopIndex(), column, dataTypeSegment, isPrimaryKey, false);
+        result.setAutoIncrement(isAutoIncrement);
+        return result;
     }
     
     @Override
@@ -568,9 +579,16 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
         ColumnSegment column = new ColumnSegment(ctx.column_name.start.getStartIndex(), ctx.column_name.stop.getStopIndex(), (IdentifierValue) visit(ctx.column_name));
         DataTypeSegment dataTypeSegment = (DataTypeSegment) visit(ctx.fieldDefinition().dataType());
         boolean isPrimaryKey = ctx.fieldDefinition().columnAttribute().stream().anyMatch(each -> null != each.KEY() && null == each.UNIQUE());
-        // TODO parse not null
-        ColumnDefinitionSegment result = new ColumnDefinitionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), column, dataTypeSegment, isPrimaryKey, false);
+        boolean isAutoIncrement = ctx.fieldDefinition().columnAttribute().stream().anyMatch(each -> null != each.AUTO_INCREMENT());
+        boolean isNotNull = ctx.fieldDefinition().columnAttribute().stream().anyMatch(each -> null != each.NOT() && null != each.NULL());
+        ColumnDefinitionSegment result = new ColumnDefinitionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), column, dataTypeSegment, isPrimaryKey, isNotNull);
         result.getReferencedTables().addAll(getReferencedTables(ctx));
+        result.setAutoIncrement(isAutoIncrement);
+        if (null != ctx.fieldDefinition().dataType().charsetWithOptBinary()) {
+            result.setCharsetName(ctx.fieldDefinition().dataType().charsetWithOptBinary().charsetName().textOrIdentifier().identifier().IDENTIFIER_().getText());
+        }
+        ctx.fieldDefinition().columnAttribute().stream().filter(each -> each.collateClause() != null).findFirst()
+                .ifPresent(optional -> result.setCollateName(optional.collateClause().collationName().textOrIdentifier().identifier().IDENTIFIER_().getText()));
         return result;
     }
     
@@ -590,6 +608,7 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
             result.setConstraintName((ConstraintSegment) visit(ctx.constraintClause().constraintName()));
         }
         if (null != ctx.KEY() && null != ctx.PRIMARY()) {
+            result.setPrimaryKey(true);
             result.getPrimaryKeyColumns().addAll(((CollectionValue) visit(ctx.keyListWithExpression())).getValue());
             return result;
         }
@@ -598,6 +617,7 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
             return result;
         }
         if (null != ctx.UNIQUE()) {
+            result.setUniqueKey(true);
             result.getIndexColumns().addAll(((CollectionValue) visit(ctx.keyListWithExpression())).getValue());
             if (null != ctx.indexName()) {
                 result.setIndexName((IndexSegment) visit(ctx.indexName()));
@@ -666,10 +686,10 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
         result.getColumns().addAll(((CollectionValue) visit(ctx.keyListWithExpression())).getValue());
         if (null != ctx.algorithmOptionAndLockOption()) {
             if (null != ctx.algorithmOptionAndLockOption().alterAlgorithmOption()) {
-                result.setAlgorithmSegment((AlgorithmTypeSegment) visit(ctx.algorithmOptionAndLockOption().alterAlgorithmOption()));
+                result.setAlgorithmType((AlgorithmTypeSegment) visit(ctx.algorithmOptionAndLockOption().alterAlgorithmOption()));
             }
             if (null != ctx.algorithmOptionAndLockOption().alterLockOption()) {
-                result.setLockTableSegment((LockTableSegment) visit(ctx.algorithmOptionAndLockOption().alterLockOption()));
+                result.setLockTable((LockTableSegment) visit(ctx.algorithmOptionAndLockOption().alterLockOption()));
             }
         }
         return result;
@@ -678,15 +698,15 @@ public final class MySQLDDLStatementVisitor extends MySQLStatementVisitor implem
     @Override
     public ASTNode visitDropIndex(final DropIndexContext ctx) {
         MySQLDropIndexStatement result = new MySQLDropIndexStatement();
-        result.setTable((SimpleTableSegment) visit(ctx.tableName()));
+        result.setSimpleTable((SimpleTableSegment) visit(ctx.tableName()));
         IndexNameSegment indexName = new IndexNameSegment(ctx.indexName().start.getStartIndex(), ctx.indexName().stop.getStopIndex(), new IdentifierValue(ctx.indexName().getText()));
         result.getIndexes().add(new IndexSegment(ctx.indexName().start.getStartIndex(), ctx.indexName().stop.getStopIndex(), indexName));
         if (null != ctx.algorithmOptionAndLockOption()) {
             if (null != ctx.algorithmOptionAndLockOption().alterAlgorithmOption()) {
-                result.setAlgorithmSegment((AlgorithmTypeSegment) visit(ctx.algorithmOptionAndLockOption().alterAlgorithmOption()));
+                result.setAlgorithmType((AlgorithmTypeSegment) visit(ctx.algorithmOptionAndLockOption().alterAlgorithmOption()));
             }
             if (null != ctx.algorithmOptionAndLockOption().alterLockOption()) {
-                result.setLockTableSegment((LockTableSegment) visit(ctx.algorithmOptionAndLockOption().alterLockOption()));
+                result.setLockTable((LockTableSegment) visit(ctx.algorithmOptionAndLockOption().alterLockOption()));
             }
         }
         return result;

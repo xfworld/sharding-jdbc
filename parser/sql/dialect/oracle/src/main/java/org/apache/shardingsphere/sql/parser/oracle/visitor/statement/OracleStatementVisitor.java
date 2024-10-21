@@ -85,6 +85,7 @@ import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.TrimFu
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.TypeNameContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.UnreservedWordContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.ViewNameContext;
+import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.WmConcatFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlAggFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlCdataFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlColattvalFunctionContext;
@@ -93,8 +94,8 @@ import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlExi
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlForestFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlIsSchemaValidFunctionContext;
-import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlNameSpaceStringAsIdentifierContext;
-import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlNameSpacesClauseContext;
+import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlNamespaceStringAsIdentifierContext;
+import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlNamespacesClauseContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlParseFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlPiFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlQueryFunctionContext;
@@ -103,76 +104,86 @@ import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlSer
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlTableColumnContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlTableFunctionContext;
 import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.XmlTableOptionsContext;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.AggregationType;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.OrderDirection;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.ParameterMarkerType;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.ConstraintSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexTypeSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.packages.PackageSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.type.TypeSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BetweenExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BinaryOperationExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.CaseWhenExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.DatetimeExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.FunctionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.InExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.IntervalDayToSecondExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.IntervalYearToMonthExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ListExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.MultisetExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.NotExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.XmlElementFunctionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.XmlNameSpaceStringAsIdentifierSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.XmlNameSpacesClauseSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.XmlPiFunctionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.XmlQueryAndExistsFunctionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.XmlSerializeFunctionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.XmlTableColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.XmlTableFunctionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.XmlTableOptionsSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.complex.CommonExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.ColumnWithJoinOperatorSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.LiteralExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.subquery.SubqueryExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.subquery.SubquerySegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.AggregationDistinctProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.AggregationProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ExpressionProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.IntervalExpressionProjection;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.OrderBySegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.ColumnOrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.ExpressionOrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.IndexOrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.OrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DataTypeLengthSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DataTypeSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OwnerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.ParameterMarkerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.util.SQLUtils;
-import org.apache.shardingsphere.sql.parser.sql.common.value.collection.CollectionValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.keyword.KeywordValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.BooleanLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.DateTimeLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.NullLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.NumberLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.OtherLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.StringLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.parametermarker.ParameterMarkerValue;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.oracle.dml.OracleSelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.AggregationType;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.OrderDirection;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.ParameterMarkerType;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.SequenceFunction;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexTypeSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.packages.PackageSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.type.TypeSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.datetime.DatetimeExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BetweenExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BinaryOperationExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.CaseWhenExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.FunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.InExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ListExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.NotExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.complex.CommonExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.LiteralExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubqueryExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubquerySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.interval.IntervalDayToSecondExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.interval.IntervalYearToMonthExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationDistinctProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ExpressionProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.IntervalExpressionProjection;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.join.OuterJoinExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.multiset.MultisetExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.OrderBySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.ColumnOrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.ExpressionOrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.IndexOrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.OrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlElementFunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlNamespaceStringAsIdentifierSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlNamespacesClauseSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlPiFunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlQueryAndExistsFunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlSerializeFunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlTableColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlTableFunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlTableOptionsSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DataTypeLengthSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DataTypeSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OwnerSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.ParameterMarkerSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.util.SQLUtils;
+import org.apache.shardingsphere.sql.parser.statement.core.value.collection.CollectionValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.keyword.KeywordValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.BooleanLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.DateTimeLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.NullLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.NumberLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.OtherLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.StringLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.parametermarker.ParameterMarkerValue;
+import org.apache.shardingsphere.sql.parser.statement.oracle.dml.OracleSelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.oracle.plsql.CursorForLoopStatementSegment;
+import org.apache.shardingsphere.sql.parser.statement.oracle.plsql.ProcedureBodyEndNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.oracle.plsql.ProcedureCallNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.oracle.plsql.SQLStatementSegment;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -184,6 +195,24 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
     private final Collection<ParameterMarkerSegment> globalParameterMarkerSegments = new LinkedList<>();
     
     private final Collection<ParameterMarkerSegment> statementParameterMarkerSegments = new LinkedList<>();
+    
+    private final List<SQLStatementSegment> sqlStatementsInPlsql = new ArrayList<>();
+    
+    private final List<ProcedureCallNameSegment> procedureCallNames = new ArrayList<>();
+    
+    private final List<ProcedureBodyEndNameSegment> procedureBodyEndNameSegments = new ArrayList<>();
+    
+    private final List<ExpressionSegment> dynamicSqlStatementExpressions = new ArrayList<>();
+    
+    private final Collection<String> variableNames = new HashSet<>();
+    
+    private final Map<String, SQLStatement> cursorStatements = new HashMap<>();
+    
+    private final List<CursorForLoopStatementSegment> cursorForLoopStatementSegments = new ArrayList<>();
+    
+    private final Map<Integer, Set<SQLStatement>> tempCursorForLoopStatements = new HashMap<>();
+    
+    private int cursorForLoopLevel;
     
     @Override
     public final ASTNode visitParameterMarker(final ParameterMarkerContext ctx) {
@@ -216,6 +245,9 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
         if (null != ctx.intervalLiterals()) {
             return visit(ctx.intervalLiterals());
         }
+        if (null != ctx.bindLiterals()) {
+            return visit(ctx.bindLiterals());
+        }
         throw new IllegalStateException("Literals must have string, number, dateTime, hex, bit, interval, boolean or null.");
     }
     
@@ -237,7 +269,11 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
     
     @Override
     public final ASTNode visitStringLiterals(final StringLiteralsContext ctx) {
-        return new StringLiteralValue(ctx.getText());
+        if (null != ctx.STRING_()) {
+            return new StringLiteralValue(ctx.getText());
+        } else {
+            return new StringLiteralValue(ctx.getText().substring(1));
+        }
     }
     
     @Override
@@ -301,6 +337,9 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
     
     @Override
     public final ASTNode visitColumnName(final ColumnNameContext ctx) {
+        if (SequenceFunction.valueFrom(ctx.name().getText()).isPresent()) {
+            return createSequenceFunction(ctx);
+        }
         ColumnSegment result = new ColumnSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), (IdentifierValue) visit(ctx.name()));
         OwnerContext owner = ctx.owner();
         if (null != owner) {
@@ -308,6 +347,15 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
         }
         if (null != ctx.nestedItem() && !ctx.nestedItem().isEmpty()) {
             result.setNestedObjectAttributes(ctx.nestedItem().stream().map(item -> (IdentifierValue) visit(item.identifier())).collect(Collectors.toList()));
+        }
+        return result;
+    }
+    
+    private FunctionSegment createSequenceFunction(final ColumnNameContext ctx) {
+        FunctionSegment result = new FunctionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), ctx.name().getText(), getOriginalText(ctx));
+        OwnerContext owner = ctx.owner();
+        if (null != owner) {
+            result.setOwner(new OwnerSegment(owner.getStart().getStartIndex(), owner.getStop().getStopIndex(), (IdentifierValue) visit(owner.identifier())));
         }
         return result;
     }
@@ -426,7 +474,7 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
         if (null != ctx.IS()) {
             String rightText = "";
             if (null != ctx.NOT()) {
-                rightText = rightText.concat(ctx.start.getInputStream().getText(new Interval(ctx.NOT().getSymbol().getStartIndex(), ctx.NOT().getSymbol().getStopIndex()))).concat(" ");
+                rightText = rightText + ctx.start.getInputStream().getText(new Interval(ctx.NOT().getSymbol().getStartIndex(), ctx.NOT().getSymbol().getStopIndex())) + " ";
             }
             Token operatorToken = null;
             if (null != ctx.NULL()) {
@@ -439,7 +487,7 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
                 operatorToken = ctx.FALSE().getSymbol();
             }
             int startIndex = null == operatorToken ? ctx.IS().getSymbol().getStopIndex() + 2 : operatorToken.getStartIndex();
-            rightText = rightText.concat(ctx.start.getInputStream().getText(new Interval(startIndex, ctx.stop.getStopIndex())));
+            rightText = rightText + ctx.start.getInputStream().getText(new Interval(startIndex, ctx.stop.getStopIndex()));
             ExpressionSegment right = new LiteralExpressionSegment(ctx.IS().getSymbol().getStopIndex() + 2, ctx.stop.getStopIndex(), rightText);
             String text = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
             ExpressionSegment left = (ExpressionSegment) visit(ctx.booleanPrimary());
@@ -577,7 +625,7 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
         }
         if (null != ctx.columnName()) {
             return null == ctx.joinOperator() ? visit(ctx.columnName())
-                    : new ColumnWithJoinOperatorSegment(startIndex, stopIndex, (ColumnSegment) visitColumnName(ctx.columnName()), ctx.joinOperator().getText());
+                    : new OuterJoinExpression(startIndex, stopIndex, (ColumnSegment) visitColumnName(ctx.columnName()), ctx.joinOperator().getText(), getOriginalText(ctx));
         }
         if (null != ctx.privateExprOfDb()) {
             return visit(ctx.privateExprOfDb());
@@ -708,6 +756,17 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
         return AggregationType.isAggregationType(aggregationType)
                 ? createAggregationSegment(ctx, aggregationType)
                 : createAggregationFunctionSegment(ctx, aggregationType);
+    }
+    
+    @Override
+    public ASTNode visitWmConcatFunction(final WmConcatFunctionContext ctx) {
+        FunctionSegment result = new FunctionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), ctx.WM_CONCAT().getText(), getOriginalText(ctx));
+        result.getParameters().add((ExpressionSegment) visit(ctx.expr()));
+        if (null != ctx.owner()) {
+            OwnerContext owner = ctx.owner();
+            result.setOwner(new OwnerSegment(owner.getStart().getStartIndex(), owner.getStop().getStopIndex(), (IdentifierValue) visit(owner.identifier())));
+        }
+        return result;
     }
     
     private FunctionSegment createAggregationFunctionSegment(final AggregationFunctionContext ctx, final String aggregationType) {
@@ -866,25 +925,25 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
     
     @Override
     public ASTNode visitXmlTableFunction(final XmlTableFunctionContext ctx) {
-        XmlNameSpacesClauseSegment xmlNameSpacesClause = null == ctx.xmlNameSpacesClause() ? null : (XmlNameSpacesClauseSegment) visit(ctx.xmlNameSpacesClause());
+        XmlNamespacesClauseSegment xmlNamespacesClause = null == ctx.xmlNamespacesClause() ? null : (XmlNamespacesClauseSegment) visit(ctx.xmlNamespacesClause());
         return new XmlTableFunctionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), ctx.XMLTABLE().getText(),
-                xmlNameSpacesClause, ctx.STRING_().getText(), (XmlTableOptionsSegment) visit(ctx.xmlTableOptions()), getOriginalText(ctx));
+                xmlNamespacesClause, ctx.STRING_().getText(), (XmlTableOptionsSegment) visit(ctx.xmlTableOptions()), getOriginalText(ctx));
     }
     
     @Override
-    public ASTNode visitXmlNameSpacesClause(final XmlNameSpacesClauseContext ctx) {
+    public ASTNode visitXmlNamespacesClause(final XmlNamespacesClauseContext ctx) {
         // TODO : throw exception if more than one defaultString exists in a xml name space clause
         String defaultString = null == ctx.defaultString() ? null : ctx.defaultString(0).STRING_().getText();
-        Collection<XmlNameSpaceStringAsIdentifierSegment> xmlNameSpaceStringAsIdentifierSegments = null == ctx.xmlNameSpaceStringAsIdentifier() ? Collections.emptyList()
-                : ctx.xmlNameSpaceStringAsIdentifier().stream().map(each -> (XmlNameSpaceStringAsIdentifierSegment) visit(each)).collect(Collectors.toList());
-        XmlNameSpacesClauseSegment result = new XmlNameSpacesClauseSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), defaultString, getOriginalText(ctx));
-        result.getStringAsIdentifier().addAll(xmlNameSpaceStringAsIdentifierSegments);
+        Collection<XmlNamespaceStringAsIdentifierSegment> xmlNamespaceStringAsIdentifierSegments = null == ctx.xmlNamespaceStringAsIdentifier() ? Collections.emptyList()
+                : ctx.xmlNamespaceStringAsIdentifier().stream().map(each -> (XmlNamespaceStringAsIdentifierSegment) visit(each)).collect(Collectors.toList());
+        XmlNamespacesClauseSegment result = new XmlNamespacesClauseSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), defaultString, getOriginalText(ctx));
+        result.getStringAsIdentifier().addAll(xmlNamespaceStringAsIdentifierSegments);
         return result;
     }
     
     @Override
-    public ASTNode visitXmlNameSpaceStringAsIdentifier(final XmlNameSpaceStringAsIdentifierContext ctx) {
-        return new XmlNameSpaceStringAsIdentifierSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), ctx.STRING_().getText(), ctx.identifier().getText(), getOriginalText(ctx));
+    public ASTNode visitXmlNamespaceStringAsIdentifier(final XmlNamespaceStringAsIdentifierContext ctx) {
+        return new XmlNamespaceStringAsIdentifierSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), ctx.STRING_().getText(), ctx.identifier().getText(), getOriginalText(ctx));
     }
     
     @Override
@@ -981,6 +1040,9 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
         }
         if (null != ctx.approxRank()) {
             return visit(ctx.approxRank());
+        }
+        if (null != ctx.wmConcatFunction()) {
+            return visit(ctx.wmConcatFunction());
         }
         throw new IllegalStateException(
                 "SpecialFunctionContext must have castFunction, charFunction, extractFunction, formatFunction, firstOrLastValueFunction, trimFunction, toDateFunction, approxCount"
@@ -1174,12 +1236,15 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
         result.setStartIndex(ctx.start.getStartIndex());
         result.setStopIndex(ctx.stop.getStartIndex());
         List<TerminalNode> numbers = ctx.INTEGER_();
-        if (numbers.size() == 1) {
+        if (1 == numbers.size()) {
             result.setPrecision(Integer.parseInt(numbers.get(0).getText()));
         }
-        if (numbers.size() == 2) {
+        if (2 == numbers.size()) {
             result.setPrecision(Integer.parseInt(numbers.get(0).getText()));
             result.setScale(Integer.parseInt(numbers.get(1).getText()));
+        }
+        if (null != ctx.type) {
+            result.setType(ctx.type.getText());
         }
         return result;
     }
@@ -1203,5 +1268,19 @@ public abstract class OracleStatementVisitor extends OracleStatementBaseVisitor<
         Collection<ParameterMarkerSegment> result = new LinkedList<>(statementParameterMarkerSegments);
         statementParameterMarkerSegments.clear();
         return result;
+    }
+    
+    /**
+     * Increase cursor for loop level.
+     */
+    protected void increaseCursorForLoopLevel() {
+        ++cursorForLoopLevel;
+    }
+    
+    /**
+     * Decrease cursor for loop level.
+     */
+    protected void decreaseCursorForLoopLevel() {
+        --cursorForLoopLevel;
     }
 }

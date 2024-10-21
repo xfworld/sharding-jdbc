@@ -18,20 +18,23 @@
 package org.apache.shardingsphere.proxy.backend.handler.transaction;
 
 import lombok.SneakyThrows;
-import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
+import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.mode.manager.ContextManager;
-import org.apache.shardingsphere.proxy.backend.connector.ProxyDatabaseConnectionManager;
 import org.apache.shardingsphere.proxy.backend.connector.DatabaseConnector;
 import org.apache.shardingsphere.proxy.backend.connector.DatabaseConnectorFactory;
+import org.apache.shardingsphere.proxy.backend.connector.ProxyDatabaseConnectionManager;
 import org.apache.shardingsphere.proxy.backend.connector.jdbc.transaction.BackendTransactionManager;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.handler.ProxyBackendHandler;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.CommitStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.RollbackStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.TCLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.CommitStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.RollbackStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.TCLStatement;
 import org.apache.shardingsphere.test.mock.AutoMockExtension;
 import org.apache.shardingsphere.test.mock.StaticMockSettings;
 import org.apache.shardingsphere.transaction.core.TransactionOperationType;
@@ -43,6 +46,7 @@ import org.mockito.Answers;
 import org.mockito.internal.configuration.plugins.Plugins;
 
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -62,7 +66,6 @@ class TransactionBackendHandlerFactoryTest {
     void assertTransactionBackendHandlerReturnedWhenTCLStatementInstanceOfCommitStatement() {
         ConnectionSession connectionSession = mock(ConnectionSession.class, Answers.RETURNS_DEEP_STUBS);
         ProxyDatabaseConnectionManager databaseConnectionManager = mock(ProxyDatabaseConnectionManager.class);
-        when(databaseConnectionManager.getConnectionSession()).thenReturn(connectionSession);
         when(connectionSession.getDatabaseConnectionManager()).thenReturn(databaseConnectionManager);
         SQLStatementContext context = mock(SQLStatementContext.class);
         when(context.getSqlStatement()).thenReturn(mock(CommitStatement.class));
@@ -79,7 +82,6 @@ class TransactionBackendHandlerFactoryTest {
     void assertTransactionBackendHandlerReturnedWhenTCLStatementInstanceOfRollbackStatement() {
         ConnectionSession connectionSession = mock(ConnectionSession.class, Answers.RETURNS_DEEP_STUBS);
         ProxyDatabaseConnectionManager databaseConnectionManager = mock(ProxyDatabaseConnectionManager.class);
-        when(databaseConnectionManager.getConnectionSession()).thenReturn(connectionSession);
         when(connectionSession.getDatabaseConnectionManager()).thenReturn(databaseConnectionManager);
         SQLStatementContext context = mock(SQLStatementContext.class);
         when(context.getSqlStatement()).thenReturn(mock(RollbackStatement.class));
@@ -105,7 +107,18 @@ class TransactionBackendHandlerFactoryTest {
         DatabaseConnectorFactory mockFactory = mock(DatabaseConnectorFactory.class);
         when(DatabaseConnectorFactory.getInstance()).thenReturn(mockFactory);
         when(mockFactory.newInstance(any(QueryContext.class), nullable(ProxyDatabaseConnectionManager.class), anyBoolean())).thenReturn(mock(DatabaseConnector.class));
-        assertThat(TransactionBackendHandlerFactory.newInstance(context, null, mock(ConnectionSession.class)), instanceOf(DatabaseConnector.class));
+        ShardingSphereMetaData metaData = mock(ShardingSphereMetaData.class);
+        when(ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData()).thenReturn(metaData);
+        ConnectionSession connectionSession = mock(ConnectionSession.class);
+        ConnectionContext connectionContext = mockConnectionContext();
+        when(connectionSession.getConnectionContext()).thenReturn(connectionContext);
+        assertThat(TransactionBackendHandlerFactory.newInstance(context, null, connectionSession), instanceOf(DatabaseConnector.class));
+    }
+    
+    private ConnectionContext mockConnectionContext() {
+        ConnectionContext result = mock(ConnectionContext.class);
+        when(result.getCurrentDatabaseName()).thenReturn(Optional.of(DefaultDatabase.LOGIC_NAME));
+        return result;
     }
     
     @SuppressWarnings("unchecked")
@@ -117,6 +130,6 @@ class TransactionBackendHandlerFactoryTest {
     
     @SneakyThrows(ReflectiveOperationException.class)
     private BackendTransactionManager getBackendTransactionManager(final TransactionBackendHandler transactionBackendHandler) {
-        return (BackendTransactionManager) Plugins.getMemberAccessor().get(transactionBackendHandler.getClass().getDeclaredField("backendTransactionManager"), transactionBackendHandler);
+        return (BackendTransactionManager) Plugins.getMemberAccessor().get(TransactionBackendHandler.class.getDeclaredField("backendTransactionManager"), transactionBackendHandler);
     }
 }

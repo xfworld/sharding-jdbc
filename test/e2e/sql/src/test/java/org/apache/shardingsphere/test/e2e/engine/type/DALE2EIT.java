@@ -17,16 +17,18 @@
 
 package org.apache.shardingsphere.test.e2e.engine.type;
 
-import org.apache.shardingsphere.test.e2e.cases.SQLCommandType;
+import org.apache.shardingsphere.infra.util.datetime.DateTimeFormatterFactory;
 import org.apache.shardingsphere.test.e2e.cases.dataset.metadata.DataSetColumn;
 import org.apache.shardingsphere.test.e2e.cases.dataset.metadata.DataSetMetaData;
 import org.apache.shardingsphere.test.e2e.cases.dataset.row.DataSetRow;
+import org.apache.shardingsphere.test.e2e.env.E2EEnvironmentAware;
+import org.apache.shardingsphere.test.e2e.env.E2EEnvironmentEngine;
 import org.apache.shardingsphere.test.e2e.engine.arg.E2ETestCaseArgumentsProvider;
 import org.apache.shardingsphere.test.e2e.engine.arg.E2ETestCaseSettings;
-import org.apache.shardingsphere.test.e2e.engine.composer.E2EContainerComposer;
-import org.apache.shardingsphere.test.e2e.engine.composer.SingleE2EContainerComposer;
+import org.apache.shardingsphere.test.e2e.engine.context.E2ETestContext;
 import org.apache.shardingsphere.test.e2e.framework.param.array.E2ETestParameterFactory;
 import org.apache.shardingsphere.test.e2e.framework.param.model.AssertionTestParameter;
+import org.apache.shardingsphere.test.e2e.framework.type.SQLCommandType;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -37,7 +39,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,9 +48,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @E2ETestCaseSettings(SQLCommandType.DAL)
-class DALE2EIT {
+class DALE2EIT implements E2EEnvironmentAware {
     
-    private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private E2EEnvironmentEngine environmentSetupEngine;
+    
+    @Override
+    public void setEnvironmentEngine(final E2EEnvironmentEngine environmentEngine) {
+        this.environmentSetupEngine = environmentEngine;
+    }
     
     @ParameterizedTest(name = "{0}")
     @EnabledIf("isEnabled")
@@ -59,40 +65,40 @@ class DALE2EIT {
         if (null == testParam.getTestCaseContext()) {
             return;
         }
-        SingleE2EContainerComposer containerComposer = new SingleE2EContainerComposer(testParam);
-        assertExecute(containerComposer);
+        E2ETestContext context = new E2ETestContext(testParam);
+        assertExecute(context);
     }
     
-    private void assertExecute(final SingleE2EContainerComposer containerComposer) throws SQLException {
-        try (Connection connection = containerComposer.getTargetDataSource().getConnection()) {
+    private void assertExecute(final E2ETestContext context) throws SQLException {
+        try (Connection connection = this.environmentSetupEngine.getTargetDataSource().getConnection()) {
             try (Statement statement = connection.createStatement()) {
-                statement.execute(containerComposer.getSQL());
-                assertExecuteResult(containerComposer, statement);
+                statement.execute(context.getSQL());
+                assertExecuteResult(context, statement);
             }
         }
     }
     
-    private void assertExecuteResult(final SingleE2EContainerComposer containerComposer, final Statement statement) throws SQLException {
+    private void assertExecuteResult(final E2ETestContext context, final Statement statement) throws SQLException {
         try (ResultSet resultSet = statement.getResultSet()) {
-            if (null == containerComposer.getAssertion().getAssertionSQL()) {
-                assertResultSet(containerComposer, resultSet);
+            if (null == context.getAssertion().getAssertionSQL()) {
+                assertResultSet(context, resultSet);
             } else {
-                statement.execute(containerComposer.getAssertion().getAssertionSQL().getSql());
+                statement.execute(context.getAssertion().getAssertionSQL().getSql());
                 try (ResultSet assertionSQLResultSet = statement.getResultSet()) {
-                    assertResultSet(containerComposer, assertionSQLResultSet);
+                    assertResultSet(context, assertionSQLResultSet);
                 }
             }
         }
     }
     
-    private void assertResultSet(final SingleE2EContainerComposer containerComposer, final ResultSet resultSet) throws SQLException {
-        assertMetaData(resultSet.getMetaData(), getExpectedColumns(containerComposer));
-        assertRows(resultSet, containerComposer.getDataSet().getRows());
+    private void assertResultSet(final E2ETestContext context, final ResultSet resultSet) throws SQLException {
+        assertMetaData(resultSet.getMetaData(), getExpectedColumns(context));
+        assertRows(resultSet, context.getDataSet().getRows());
     }
     
-    private Collection<DataSetColumn> getExpectedColumns(final SingleE2EContainerComposer containerComposer) {
+    private Collection<DataSetColumn> getExpectedColumns(final E2ETestContext context) {
         Collection<DataSetColumn> result = new LinkedList<>();
-        for (DataSetMetaData each : containerComposer.getDataSet().getMetaDataList()) {
+        for (DataSetMetaData each : context.getDataSet().getMetaDataList()) {
             result.addAll(each.getColumns());
         }
         return result;
@@ -110,11 +116,11 @@ class DALE2EIT {
         int rowCount = 0;
         ResultSetMetaData actualMetaData = actual.getMetaData();
         while (actual.next()) {
-            assertTrue(rowCount < expected.size(), "Size of actual result set is different with size of expected dat set rows.");
+            assertTrue(rowCount < expected.size(), "Size of actual result set is different with size of expected data set rows.");
             assertRow(actual, actualMetaData, expected.get(rowCount));
             rowCount++;
         }
-        assertThat("Size of actual result set is different with size of expected dat set rows.", rowCount, is(expected.size()));
+        assertThat("Size of actual result set is different with size of expected data set rows.", rowCount, is(expected.size()));
     }
     
     private void assertRow(final ResultSet actual, final ResultSetMetaData actualMetaData, final DataSetRow expected) throws SQLException {
@@ -131,11 +137,11 @@ class DALE2EIT {
     }
     
     private void assertDateValue(final ResultSet actual, final int columnIndex, final String columnLabel, final String expected) throws SQLException {
-        if (E2EContainerComposer.NOT_VERIFY_FLAG.equals(expected)) {
+        if (E2ETestContext.NOT_VERIFY_FLAG.equals(expected)) {
             return;
         }
-        assertThat(dateTimeFormatter.format(actual.getDate(columnIndex).toLocalDate()), is(expected));
-        assertThat(dateTimeFormatter.format(actual.getDate(columnLabel).toLocalDate()), is(expected));
+        assertThat(DateTimeFormatterFactory.getTimeFormatter().format(actual.getDate(columnIndex).toLocalDate()), is(expected));
+        assertThat(DateTimeFormatterFactory.getTimeFormatter().format(actual.getDate(columnLabel).toLocalDate()), is(expected));
     }
     
     private void assertObjectValue(final ResultSet actual, final int columnIndex, final String columnLabel, final String expected) throws SQLException {

@@ -115,7 +115,7 @@ class JDBCStreamQueryResultTest {
     @Test
     void assertGetValueByBytes() throws SQLException {
         ResultSet resultSet = mock(ResultSet.class);
-        byte[] value = {1};
+        byte[] value = {(byte) 1};
         when(resultSet.getBytes(1)).thenReturn(value);
         assertThat(new JDBCStreamQueryResult(resultSet).getValue(1, byte[].class), is(value));
     }
@@ -264,6 +264,14 @@ class JDBCStreamQueryResultTest {
         assertFalse(actual.wasNull());
         actual.next();
         assertTrue(actual.wasNull());
+    }
+    
+    @Test
+    void assertClose() throws SQLException {
+        ResultSet resultSet = getResultSet();
+        JDBCStreamQueryResult queryResult = new JDBCStreamQueryResult(resultSet);
+        queryResult.close();
+        verify(resultSet).close();
     }
     
     private ResultSet getResultSet() throws SQLException {

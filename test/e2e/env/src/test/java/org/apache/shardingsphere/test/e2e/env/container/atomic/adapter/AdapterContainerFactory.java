@@ -22,11 +22,13 @@ import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.config.AdaptorContainerConfiguration;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.impl.ShardingSphereJdbcContainer;
+import org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.impl.ShardingSphereMultiProxyClusterContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.impl.ShardingSphereProxyClusterContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.impl.ShardingSphereProxyStandaloneContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.enums.AdapterMode;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.enums.AdapterType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.StorageContainer;
+import org.apache.shardingsphere.test.e2e.env.runtime.scenario.path.ScenarioCommonPath;
 
 /**
  * Adapter container factory.
@@ -40,21 +42,23 @@ public final class AdapterContainerFactory {
      * @param mode adapter mode
      * @param adapter adapter type
      * @param databaseType database type
-     * @param storageContainer storage container
      * @param scenario scenario
      * @param containerConfig adaptor container configuration
+     * @param storageContainer storage container
      * @return created instance
      * @throws RuntimeException runtime exception
      */
     public static AdapterContainer newInstance(final AdapterMode mode, final AdapterType adapter, final DatabaseType databaseType,
-                                               final StorageContainer storageContainer, final String scenario, final AdaptorContainerConfiguration containerConfig) {
+                                               final String scenario, final AdaptorContainerConfiguration containerConfig, final StorageContainer storageContainer) {
         switch (adapter) {
             case PROXY:
                 return AdapterMode.CLUSTER == mode
                         ? new ShardingSphereProxyClusterContainer(databaseType, containerConfig)
                         : new ShardingSphereProxyStandaloneContainer(databaseType, containerConfig);
+            case PROXY_RANDOM:
+                return new ShardingSphereMultiProxyClusterContainer(databaseType, containerConfig);
             case JDBC:
-                return new ShardingSphereJdbcContainer(storageContainer, scenario, databaseType);
+                return new ShardingSphereJdbcContainer(storageContainer, new ScenarioCommonPath(scenario).getRuleConfigurationFile(databaseType));
             default:
                 throw new RuntimeException(String.format("Unknown adapter `%s`.", adapter));
         }

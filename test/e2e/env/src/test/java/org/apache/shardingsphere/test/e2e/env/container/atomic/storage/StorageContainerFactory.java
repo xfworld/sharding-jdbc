@@ -22,15 +22,29 @@ import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.config.StorageContainerConfiguration;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.impl.H2Container;
+import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.impl.MariaDBContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.impl.MySQLContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.impl.OpenGaussContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.impl.PostgreSQLContainer;
+import org.apache.shardingsphere.test.e2e.env.runtime.E2ETestEnvironment;
 
 /**
  * Storage container factory.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StorageContainerFactory {
+    
+    /**
+     * Create new instance of storage container.
+     *
+     * @param databaseType database type
+     * @param storageContainerConfig storage container configuration
+     * @return created instance
+     * @throws RuntimeException runtime exception
+     */
+    public static StorageContainer newInstance(final DatabaseType databaseType, final StorageContainerConfiguration storageContainerConfig) {
+        return newInstance(databaseType, E2ETestEnvironment.getInstance().getClusterEnvironment().getDatabaseImages().get(databaseType), storageContainerConfig);
+    }
     
     /**
      * Create new instance of storage container.
@@ -52,6 +66,8 @@ public final class StorageContainerFactory {
                 return new OpenGaussContainer(storageContainerImage, storageContainerConfig);
             case "H2":
                 return new H2Container(storageContainerConfig);
+            case "MariaDB":
+                return new MariaDBContainer(storageContainerImage, storageContainerConfig);
             default:
                 throw new RuntimeException(String.format("Database `%s` is unknown.", databaseType.getType()));
         }

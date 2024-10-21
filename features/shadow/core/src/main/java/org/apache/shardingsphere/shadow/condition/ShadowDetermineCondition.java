@@ -18,10 +18,7 @@
 package org.apache.shardingsphere.shadow.condition;
 
 import lombok.Getter;
-import org.apache.shardingsphere.shadow.api.shadow.ShadowOperationType;
-
-import java.util.Collection;
-import java.util.LinkedList;
+import org.apache.shardingsphere.shadow.spi.ShadowOperationType;
 
 /**
  * Shadow determine condition.
@@ -35,22 +32,9 @@ public final class ShadowDetermineCondition {
     
     private ShadowColumnCondition shadowColumnCondition;
     
-    private final Collection<String> sqlComments = new LinkedList<>();
-    
     public ShadowDetermineCondition(final String tableName, final ShadowOperationType shadowOperationType) {
         this.tableName = tableName;
         this.shadowOperationType = shadowOperationType;
-    }
-    
-    /**
-     * Initialize SQL comments.
-     *
-     * @param sqlComments SQL comments
-     * @return shadow determine condition
-     */
-    public ShadowDetermineCondition initSQLComments(final Collection<String> sqlComments) {
-        this.sqlComments.addAll(sqlComments);
-        return this;
     }
     
     /**

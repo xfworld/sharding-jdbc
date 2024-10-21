@@ -27,9 +27,37 @@ import lombok.RequiredArgsConstructor;
 @Getter
 public final class MetaDataVersion {
     
+    public static final String DEFAULT_VERSION = "0";
+    
+    private static final String ACTIVE_VERSION = "active_version";
+    
+    private static final String VERSIONS = "versions";
+    
     private final String key;
     
     private final String currentActiveVersion;
     
     private final String nextActiveVersion;
+    
+    public MetaDataVersion(final String key) {
+        this(key, "", "");
+    }
+    
+    /**
+     * Get active version node path.
+     *
+     * @return path of active version node
+     */
+    public String getActiveVersionNodePath() {
+        return String.join("/", key, ACTIVE_VERSION);
+    }
+    
+    /**
+     * Get versions node path.
+     *
+     * @return path of versions node
+     */
+    public String getVersionsNodePath() {
+        return String.join("/", key, VERSIONS, currentActiveVersion);
+    }
 }

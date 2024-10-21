@@ -17,10 +17,10 @@
 
 package org.apache.shardingsphere.data.pipeline.core.job;
 
-import org.apache.shardingsphere.data.pipeline.common.context.PipelineContextKey;
+import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextKey;
+import org.apache.shardingsphere.data.pipeline.core.job.id.PipelineJobIdUtils;
 import org.apache.shardingsphere.data.pipeline.scenario.migration.MigrationJobId;
 import org.apache.shardingsphere.data.pipeline.scenario.migration.MigrationJobType;
-import org.apache.shardingsphere.data.pipeline.scenario.migration.api.impl.MigrationJobAPI;
 import org.apache.shardingsphere.infra.instance.metadata.InstanceType;
 import org.junit.jupiter.api.Test;
 
@@ -29,23 +29,34 @@ import java.util.Collections;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PipelineJobIdUtilsTest {
     
     @Test
-    void assertParse() {
-        for (InstanceType each : InstanceType.values()) {
-            assertParse0(each);
-        }
+    void assertParseJobTypeWithInvalidJobId() {
+        assertThrows(IllegalArgumentException.class, () -> PipelineJobIdUtils.parseJobType("123"));
+        assertThrows(IllegalArgumentException.class, () -> PipelineJobIdUtils.parseJobType("12345678901234567890"));
     }
     
-    private void assertParse0(final InstanceType instanceType) {
-        PipelineContextKey contextKey = PipelineContextKey.build("sharding_db", instanceType);
-        MigrationJobId pipelineJobId = new MigrationJobId(contextKey, Collections.singletonList("t_order:ds_0.t_order_0,ds_0.t_order_1"));
-        String jobId = new MigrationJobAPI().marshalJobId(pipelineJobId);
+    @Test
+    void assertParseJobType() {
+        PipelineContextKey contextKey = new PipelineContextKey("foo_db", InstanceType.JDBC);
+        String jobId = PipelineJobIdUtils.marshal(new MigrationJobId(contextKey, Collections.singletonList("foo_tbl:foo_ds.foo_tbl_0,foo_ds.foo_tbl_1")));
         assertThat(PipelineJobIdUtils.parseJobType(jobId), instanceOf(MigrationJobType.class));
-        PipelineContextKey actualContextKey = PipelineJobIdUtils.parseContextKey(jobId);
-        assertThat(actualContextKey.getInstanceType(), is(instanceType));
-        assertThat(actualContextKey.getDatabaseName(), is(instanceType == InstanceType.PROXY ? "" : "sharding_db"));
+    }
+    
+    @Test
+    void assertParseContextKeyWithJDBCInstanceType() {
+        PipelineContextKey contextKey = new PipelineContextKey("foo_db", InstanceType.JDBC);
+        String jobId = PipelineJobIdUtils.marshal(new MigrationJobId(contextKey, Collections.singletonList("foo_tbl:foo_ds.foo_tbl_0,foo_ds.foo_tbl_1")));
+        assertThat(PipelineJobIdUtils.parseContextKey(jobId).getDatabaseName(), is("foo_db"));
+    }
+    
+    @Test
+    void assertParseContextKeyWithProxyInstanceType() {
+        PipelineContextKey contextKey = new PipelineContextKey("foo_db", InstanceType.PROXY);
+        String jobId = PipelineJobIdUtils.marshal(new MigrationJobId(contextKey, Collections.singletonList("foo_tbl:foo_ds.foo_tbl_0,foo_ds.foo_tbl_1")));
+        assertThat(PipelineJobIdUtils.parseContextKey(jobId).getDatabaseName(), is(""));
     }
 }

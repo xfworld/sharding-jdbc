@@ -27,8 +27,8 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class RecordSingleTableInventoryCalculatedResultTest {
     
@@ -49,29 +49,27 @@ class RecordSingleTableInventoryCalculatedResultTest {
     @Test
     void assertFullTypeRecordsEqualsWithDifferentDecimalScale() {
         RecordSingleTableInventoryCalculatedResult expected = new RecordSingleTableInventoryCalculatedResult(1000, Collections.singletonList(buildFixedFullTypeRecord()));
-        Map<String, Object> record = buildFixedFullTypeRecord();
-        record.forEach((key, value) -> {
+        Map<String, Object> recordMap = buildFixedFullTypeRecord();
+        recordMap.forEach((key, value) -> {
             if (value instanceof BigDecimal) {
                 BigDecimal decimal = (BigDecimal) value;
-                record.put(key, decimal.setScale(decimal.scale() + 1, RoundingMode.CEILING));
+                recordMap.put(key, decimal.setScale(decimal.scale() + 1, RoundingMode.CEILING));
             }
         });
-        RecordSingleTableInventoryCalculatedResult actual = new RecordSingleTableInventoryCalculatedResult(1000, Collections.singletonList(record));
+        RecordSingleTableInventoryCalculatedResult actual = new RecordSingleTableInventoryCalculatedResult(1000, Collections.singletonList(recordMap));
         assertThat(actual, is(expected));
     }
     
     @Test
     void assertRecordsCountNotEquals() {
-        RecordSingleTableInventoryCalculatedResult result1 = new RecordSingleTableInventoryCalculatedResult(1000, Collections.singletonList(buildFixedFullTypeRecord()));
-        RecordSingleTableInventoryCalculatedResult result2 = new RecordSingleTableInventoryCalculatedResult(1000, Collections.emptyList());
-        assertNotEquals(result1, result2);
+        assertThat(new RecordSingleTableInventoryCalculatedResult(1000, Collections.singletonList(buildFixedFullTypeRecord())),
+                not(new RecordSingleTableInventoryCalculatedResult(1000, Collections.emptyList())));
     }
     
     @Test
     void assertMaxUniqueKeyValueNotEquals() {
-        RecordSingleTableInventoryCalculatedResult result1 = new RecordSingleTableInventoryCalculatedResult(1000, Collections.singletonList(buildFixedFullTypeRecord()));
-        RecordSingleTableInventoryCalculatedResult result2 = new RecordSingleTableInventoryCalculatedResult(1001, Collections.singletonList(buildFixedFullTypeRecord()));
-        assertNotEquals(result1, result2);
+        assertThat(new RecordSingleTableInventoryCalculatedResult(1000, Collections.singletonList(buildFixedFullTypeRecord())),
+                not(new RecordSingleTableInventoryCalculatedResult(1001, Collections.singletonList(buildFixedFullTypeRecord()))));
     }
     
     @Test
@@ -81,7 +79,7 @@ class RecordSingleTableInventoryCalculatedResultTest {
         record.forEach((key, value) -> {
             RecordSingleTableInventoryCalculatedResult result2 = new RecordSingleTableInventoryCalculatedResult(1000,
                     Collections.singletonList(modifyColumnValueRandomly(buildFixedFullTypeRecord(), key)));
-            assertNotEquals(result1, result2);
+            assertThat(result1, not(result2));
         });
     }
     

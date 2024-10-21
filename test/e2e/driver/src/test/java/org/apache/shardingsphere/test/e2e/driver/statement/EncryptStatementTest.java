@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.test.e2e.driver.statement;
 
-import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
 import org.apache.shardingsphere.test.e2e.driver.AbstractEncryptDriverTest;
 import org.junit.jupiter.api.Test;
 
@@ -56,11 +55,6 @@ class EncryptStatementTest extends AbstractEncryptDriverTest {
     private static final String SHOW_COLUMNS_SQL = "SHOW columns FROM t_encrypt";
     
     @Test
-    void assertSQLShow() {
-        assertTrue(getEncryptConnectionWithProps().getContextManager().getMetaDataContexts().getMetaData().getProps().<Boolean>getValue(ConfigurationPropertyKey.SQL_SHOW));
-    }
-    
-    @Test
     void assertInsertWithExecute() throws SQLException {
         try (Statement statement = getEncryptConnection().createStatement()) {
             statement.execute(INSERT_SQL);
@@ -90,11 +84,11 @@ class EncryptStatementTest extends AbstractEncryptDriverTest {
     
     @Test
     void assertUpdateWithExecuteUpdate() throws SQLException {
-        int result;
+        int actual;
         try (Statement statement = getEncryptConnection().createStatement()) {
-            result = statement.executeUpdate(UPDATE_SQL);
+            actual = statement.executeUpdate(UPDATE_SQL);
         }
-        assertThat(result, is(2));
+        assertThat(actual, is(2));
         assertResultSet(2, 1, "encryptValue");
     }
     

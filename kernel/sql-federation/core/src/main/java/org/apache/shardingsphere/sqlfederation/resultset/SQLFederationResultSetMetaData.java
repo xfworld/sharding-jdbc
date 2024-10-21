@@ -17,17 +17,21 @@
 
 package org.apache.shardingsphere.sqlfederation.resultset;
 
+import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl.JavaType;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.impl.ColumnProjection;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
-import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
+import org.apache.shardingsphere.sqlfederation.resultset.converter.SQLFederationColumnTypeConverter;
 
+import java.math.BigInteger;
 import java.sql.ResultSetMetaData;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +41,6 @@ import java.util.Optional;
  * SQL federation result set meta data.
  */
 public final class SQLFederationResultSetMetaData extends WrapperAdapter implements ResultSetMetaData {
-    
-    private final ShardingSphereSchema schema;
     
     private final Schema sqlFederationSchema;
     
@@ -50,14 +52,16 @@ public final class SQLFederationResultSetMetaData extends WrapperAdapter impleme
     
     private final Map<Integer, String> indexAndColumnLabels;
     
-    public SQLFederationResultSetMetaData(final ShardingSphereSchema schema, final Schema sqlFederationSchema,
-                                          final SelectStatementContext selectStatementContext, final RelDataType resultColumnType, final Map<Integer, String> indexAndColumnLabels) {
-        this.schema = schema;
+    private final SQLFederationColumnTypeConverter columnTypeConverter;
+    
+    public SQLFederationResultSetMetaData(final Schema sqlFederationSchema, final SelectStatementContext selectStatementContext, final RelDataType resultColumnType,
+                                          final Map<Integer, String> indexAndColumnLabels, final SQLFederationColumnTypeConverter columnTypeConverter) {
         this.sqlFederationSchema = sqlFederationSchema;
-        this.relDataTypeFactory = new JavaTypeFactoryImpl();
+        relDataTypeFactory = new JavaTypeFactoryImpl();
         this.selectStatementContext = selectStatementContext;
         this.resultColumnType = resultColumnType;
         this.indexAndColumnLabels = indexAndColumnLabels;
+        this.columnTypeConverter = columnTypeConverter;
     }
     
     @Override
@@ -147,12 +151,20 @@ public final class SQLFederationResultSetMetaData extends WrapperAdapter impleme
     
     @Override
     public int getColumnType(final int column) {
-        return resultColumnType.getFieldList().get(column - 1).getType().getSqlTypeName().getJdbcOrdinal();
+        RelDataType relDataType = resultColumnType.getFieldList().get(column - 1).getType();
+        // TODO remove this logic when calcite supports BigInteger type
+        if (relDataType instanceof JavaType && BigInteger.class.isAssignableFrom(((JavaType) relDataType).getJavaClass())) {
+            return SqlType.BIGINT.id;
+        }
+        int jdbcType = relDataType.getSqlTypeName().getJdbcOrdinal();
+        return columnTypeConverter.convertColumnType(jdbcType);
     }
     
     @Override
     public String getColumnTypeName(final int column) {
-        return resultColumnType.getFieldList().get(column - 1).getType().getSqlTypeName().getName();
+        SqlTypeName originalSqlTypeName = resultColumnType.getFieldList().get(column - 1).getType().getSqlTypeName();
+        SqlTypeName convertSqlTypeName = SqlTypeName.getNameForJdbcType(columnTypeConverter.convertColumnType(originalSqlTypeName.getJdbcOrdinal()));
+        return null == convertSqlTypeName ? originalSqlTypeName.getName() : convertSqlTypeName.getName();
     }
     
     @Override

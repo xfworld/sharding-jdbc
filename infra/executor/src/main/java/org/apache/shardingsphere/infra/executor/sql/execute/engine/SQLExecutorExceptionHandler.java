@@ -20,7 +20,7 @@ package org.apache.shardingsphere.infra.executor.sql.execute.engine;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnknownSQLException;
+import org.apache.shardingsphere.infra.exception.generic.UnknownSQLException;
 
 import java.sql.SQLException;
 
@@ -44,7 +44,7 @@ public final class SQLExecutorExceptionHandler {
     
     /**
      * Get throw exception if error occur or not.
-     * 
+     *
      * @return throw exception if error occur or not
      */
     public static boolean isExceptionThrown() {
@@ -53,7 +53,7 @@ public final class SQLExecutorExceptionHandler {
     
     /**
      * Handle exception. 
-     * 
+     *
      * @param exception to be handled exception
      * @throws SQLException SQL exception
      */

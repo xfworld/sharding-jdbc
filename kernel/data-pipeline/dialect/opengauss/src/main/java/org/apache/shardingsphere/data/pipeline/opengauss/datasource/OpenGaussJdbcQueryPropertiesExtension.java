@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.data.pipeline.opengauss.datasource;
 
-import org.apache.shardingsphere.data.pipeline.spi.datasource.JdbcQueryPropertiesExtension;
+import org.apache.shardingsphere.data.pipeline.spi.JdbcQueryPropertiesExtension;
 
 import java.util.Properties;
 
@@ -30,7 +30,7 @@ public final class OpenGaussJdbcQueryPropertiesExtension implements JdbcQueryPro
     
     public OpenGaussJdbcQueryPropertiesExtension() {
         queryProps.setProperty("stringtype", "unspecified");
-        queryProps.setProperty("bitToString", "true");
+        queryProps.setProperty("bitToString", Boolean.TRUE.toString());
     }
     
     @Override

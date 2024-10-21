@@ -17,9 +17,9 @@
 
 package org.apache.shardingsphere.proxy.backend.mysql.handler.admin.executor;
 
-import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.database.UnknownDatabaseException;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.database.UnknownDatabaseException;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
@@ -28,17 +28,18 @@ import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
+import org.apache.shardingsphere.mode.metadata.MetaDataContextsFactory;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLUseStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLUseStatement;
 import org.apache.shardingsphere.test.mock.AutoMockExtension;
 import org.apache.shardingsphere.test.mock.StaticMockSettings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
 
@@ -55,25 +56,26 @@ class UseDatabaseExecutorTest {
     
     private static final String DATABASE_PATTERN = "db_%s";
     
-    @Mock
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private ConnectionSession connectionSession;
     
     @Test
     void assertExecuteUseStatementBackendHandler() {
         MySQLUseStatement useStatement = mock(MySQLUseStatement.class);
-        when(useStatement.getSchema()).thenReturn(String.format(DATABASE_PATTERN, 0));
+        when(useStatement.getDatabase()).thenReturn(String.format(DATABASE_PATTERN, 0));
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
         when(ProxyContext.getInstance().databaseExists("db_0")).thenReturn(true);
         UseDatabaseExecutor executor = new UseDatabaseExecutor(useStatement);
+        when(connectionSession.getConnectionContext().getGrantee()).thenReturn(null);
         executor.execute(connectionSession);
-        verify(connectionSession).setCurrentDatabase(anyString());
+        verify(connectionSession).setCurrentDatabaseName(anyString());
     }
     
     @Test
     void assertExecuteUseStatementBackendHandlerWhenSchemaNotExist() {
         MySQLUseStatement useStatement = mock(MySQLUseStatement.class);
-        when(useStatement.getSchema()).thenReturn(String.format(DATABASE_PATTERN, 10));
+        when(useStatement.getDatabase()).thenReturn(String.format(DATABASE_PATTERN, 10));
         UseDatabaseExecutor executor = new UseDatabaseExecutor(useStatement);
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
@@ -82,7 +84,7 @@ class UseDatabaseExecutorTest {
     
     private ContextManager mockContextManager() {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
-        MetaDataContexts metaDataContexts = new MetaDataContexts(mock(MetaDataPersistService.class),
+        MetaDataContexts metaDataContexts = MetaDataContextsFactory.create(mock(MetaDataPersistService.class),
                 new ShardingSphereMetaData(getDatabases(), mock(ResourceMetaData.class), mock(RuleMetaData.class), new ConfigurationProperties(new Properties())));
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
         return result;
@@ -93,7 +95,6 @@ class UseDatabaseExecutorTest {
         for (int i = 0; i < 10; i++) {
             ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
             when(database.getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
-            when(database.getRuleMetaData().getRules()).thenReturn(new LinkedList<>());
             result.put(String.format(DATABASE_PATTERN, i), database);
         }
         return result;

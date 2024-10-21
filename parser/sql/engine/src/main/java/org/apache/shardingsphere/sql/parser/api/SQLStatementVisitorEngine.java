@@ -25,9 +25,9 @@ import org.apache.shardingsphere.sql.parser.api.visitor.statement.SQLStatementVi
 import org.apache.shardingsphere.sql.parser.core.ParseASTNode;
 import org.apache.shardingsphere.sql.parser.core.database.visitor.SQLStatementVisitorFactory;
 import org.apache.shardingsphere.sql.parser.core.database.visitor.SQLVisitorRule;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.CommentSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.AbstractSQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.CommentSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.AbstractSQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
 /**
  * SQL statement visitor engine.
@@ -37,10 +37,8 @@ public final class SQLStatementVisitorEngine {
     
     private final DatabaseType databaseType;
     
-    private final boolean isParseComment;
-    
-    public SQLStatementVisitorEngine(final String databaseType, final boolean isParseComment) {
-        this(TypedSPILoader.getService(DatabaseType.class, databaseType), isParseComment);
+    public SQLStatementVisitorEngine(final String databaseType) {
+        this(TypedSPILoader.getService(DatabaseType.class, databaseType));
     }
     
     /**
@@ -52,9 +50,7 @@ public final class SQLStatementVisitorEngine {
     public SQLStatement visit(final ParseASTNode parseASTNode) {
         SQLStatementVisitor visitor = SQLStatementVisitorFactory.newInstance(databaseType, SQLVisitorRule.valueOf(parseASTNode.getRootNode().getClass()));
         ASTNode result = parseASTNode.getRootNode().accept(visitor);
-        if (isParseComment) {
-            appendSQLComments(parseASTNode, result);
-        }
+        appendSQLComments(parseASTNode, result);
         return (SQLStatement) result;
     }
     

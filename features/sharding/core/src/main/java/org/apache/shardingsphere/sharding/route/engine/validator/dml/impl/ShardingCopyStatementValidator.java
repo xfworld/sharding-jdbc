@@ -25,7 +25,7 @@ import org.apache.shardingsphere.infra.route.context.RouteContext;
 import org.apache.shardingsphere.sharding.exception.syntax.UnsupportedShardingOperationException;
 import org.apache.shardingsphere.sharding.route.engine.validator.dml.ShardingDMLStatementValidator;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.CopyStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.CopyStatement;
 
 import java.util.List;
 
@@ -35,7 +35,7 @@ import java.util.List;
 public final class ShardingCopyStatementValidator extends ShardingDMLStatementValidator {
     
     @Override
-    public void preValidate(final ShardingRule shardingRule, final SQLStatementContext sqlStatementContext,
+    public void preValidate(final ShardingRule shardingRule, final SQLStatementContext sqlStatementContext, final HintValueContext hintValueContext,
                             final List<Object> params, final ShardingSphereDatabase database, final ConfigurationProperties props) {
         String tableName = ((CopyStatement) sqlStatementContext.getSqlStatement()).getTableSegment().getTableName().getIdentifier().getValue();
         if (shardingRule.isShardingTable(tableName)) {
