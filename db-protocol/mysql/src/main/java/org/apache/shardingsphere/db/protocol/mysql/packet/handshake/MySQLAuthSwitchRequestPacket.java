@@ -31,6 +31,7 @@ import java.util.Arrays;
  * @see <a href="https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_auth_switch_request.html">AuthSwitchRequest</a>
  */
 @RequiredArgsConstructor
+@Getter
 public final class MySQLAuthSwitchRequestPacket extends MySQLPacket {
     
     /**
@@ -38,18 +39,15 @@ public final class MySQLAuthSwitchRequestPacket extends MySQLPacket {
      */
     public static final int HEADER = 0xfe;
     
-    @Getter
     private final String authPluginName;
     
-    @Getter
     private final MySQLAuthenticationPluginData authPluginData;
     
     public MySQLAuthSwitchRequestPacket(final MySQLPacketPayload payload) {
         Preconditions.checkArgument(HEADER == payload.readInt1(), "Header of MySQL auth switch request packet must be `0xfe`.");
         authPluginName = payload.readStringNul();
         String strAuthPluginData = payload.readStringNul();
-        authPluginData = new MySQLAuthenticationPluginData(Arrays.copyOfRange(strAuthPluginData.getBytes(), 0, 8),
-                Arrays.copyOfRange(strAuthPluginData.getBytes(), 8, 20));
+        authPluginData = new MySQLAuthenticationPluginData(Arrays.copyOfRange(strAuthPluginData.getBytes(), 0, 8), Arrays.copyOfRange(strAuthPluginData.getBytes(), 8, 20));
     }
     
     @Override

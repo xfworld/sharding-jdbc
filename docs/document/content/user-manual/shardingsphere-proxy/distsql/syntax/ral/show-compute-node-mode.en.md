@@ -1,6 +1,6 @@
 +++
 title = "SHOW COMPUTE NODE MODE"
-weight = 5
+weight = 6
 +++
 
 ### Description
@@ -11,7 +11,7 @@ The `SHOW COMPUTE NODE MODE` syntax is used to query current proxy instance mode
 {{< tabs >}}
 {{% tab name="Grammar" %}}
 ```sql
-ShowComputeNodeInfo ::=
+ShowComputeNodeMode ::=
   'SHOW' 'COMPUTE' 'NODE' 'MODE'
 ```
 {{% /tab %}}

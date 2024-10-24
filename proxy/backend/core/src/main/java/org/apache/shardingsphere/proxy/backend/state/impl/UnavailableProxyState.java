@@ -17,18 +17,18 @@
 
 package org.apache.shardingsphere.proxy.backend.state.impl;
 
-import org.apache.shardingsphere.distsql.parser.statement.ral.QueryableRALStatement;
-import org.apache.shardingsphere.distsql.parser.statement.ral.updatable.ImportMetaDataStatement;
-import org.apache.shardingsphere.distsql.parser.statement.ral.updatable.UnlockClusterStatement;
-import org.apache.shardingsphere.distsql.parser.statement.rql.RQLStatement;
+import org.apache.shardingsphere.distsql.statement.ral.queryable.QueryableRALStatement;
+import org.apache.shardingsphere.distsql.statement.ral.updatable.ImportMetaDataStatement;
+import org.apache.shardingsphere.distsql.statement.ral.updatable.UnlockClusterStatement;
+import org.apache.shardingsphere.distsql.statement.rql.RQLStatement;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
-import org.apache.shardingsphere.proxy.backend.exception.UnavailableException;
+import org.apache.shardingsphere.mode.exception.ClusterStateException;
 import org.apache.shardingsphere.proxy.backend.state.ProxyClusterState;
-import org.apache.shardingsphere.proxy.backend.state.SupportedSQLStatementJudgeEngine;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.ShowStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowDatabasesStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLUseStatement;
+import org.apache.shardingsphere.proxy.backend.state.SQLSupportedJudgeEngine;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ShowStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLShowDatabasesStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLUseStatement;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,11 +45,11 @@ public final class UnavailableProxyState implements ProxyClusterState {
     
     private static final Collection<Class<? extends SQLStatement>> UNSUPPORTED_SQL_STATEMENTS = Collections.singleton(SQLStatement.class);
     
-    private final SupportedSQLStatementJudgeEngine judgeEngine = new SupportedSQLStatementJudgeEngine(SUPPORTED_SQL_STATEMENTS, UNSUPPORTED_SQL_STATEMENTS);
+    private final SQLSupportedJudgeEngine judgeEngine = new SQLSupportedJudgeEngine(SUPPORTED_SQL_STATEMENTS, UNSUPPORTED_SQL_STATEMENTS);
     
     @Override
     public void check(final SQLStatement sqlStatement) {
-        ShardingSpherePreconditions.checkState(judgeEngine.isSupported(sqlStatement), UnavailableException::new);
+        ShardingSpherePreconditions.checkState(judgeEngine.isSupported(sqlStatement), () -> new ClusterStateException(getType(), sqlStatement));
     }
     
     @Override

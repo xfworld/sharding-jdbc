@@ -43,8 +43,9 @@ public final class MySQLContainerConfigurationFactory {
      * @return created instance
      */
     public static StorageContainerConfiguration newInstance(final String scenario) {
-        return new StorageContainerConfiguration(getCommand(), getContainerEnvironments(), getMountedResources(scenario), DatabaseEnvironmentManager.getDatabaseNames(scenario),
-                DatabaseEnvironmentManager.getExpectedDatabaseNames(scenario));
+        return new StorageContainerConfiguration(getCommand(), getContainerEnvironments(), getMountedResources(scenario),
+                DatabaseEnvironmentManager.getDatabaseTypes(scenario, TypedSPILoader.getService(DatabaseType.class, "MySQL")),
+                DatabaseEnvironmentManager.getExpectedDatabaseTypes(scenario, TypedSPILoader.getService(DatabaseType.class, "MySQL")));
     }
     
     private static String getCommand() {
@@ -60,7 +61,7 @@ public final class MySQLContainerConfigurationFactory {
     }
     
     private static Map<String, String> getMountedResources(final String scenario) {
-        Map<String, String> result = new HashMap<>();
+        Map<String, String> result = new HashMap<>(3, 1F);
         result.put(new ScenarioDataPath(scenario).getInitSQLResourcePath(Type.ACTUAL, TypedSPILoader.getService(DatabaseType.class, "MySQL")) + "/01-actual-init.sql",
                 "/docker-entrypoint-initdb.d/01-actual-init.sql");
         result.put(new ScenarioDataPath(scenario).getInitSQLResourcePath(Type.EXPECTED, TypedSPILoader.getService(DatabaseType.class, "MySQL")) + "/01-expected-init.sql",

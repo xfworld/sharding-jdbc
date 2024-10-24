@@ -17,18 +17,17 @@
 
 package org.apache.shardingsphere.data.pipeline.core.consistencycheck.table.calculator;
 
-import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.util.close.QuietlyCloser;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Calculation context.
  */
-@RequiredArgsConstructor
 public final class CalculationContext implements AutoCloseable {
     
     private final AtomicReference<Connection> connection = new AtomicReference<>();
@@ -36,6 +35,8 @@ public final class CalculationContext implements AutoCloseable {
     private final AtomicReference<PreparedStatement> preparedStatement = new AtomicReference<>();
     
     private final AtomicReference<ResultSet> resultSet = new AtomicReference<>();
+    
+    private final AtomicBoolean closed = new AtomicBoolean(false);
     
     /**
      * Get connection.
@@ -82,10 +83,23 @@ public final class CalculationContext implements AutoCloseable {
         this.resultSet.set(resultSet);
     }
     
+    /**
+     * Is closed.
+     *
+     * @return closed or not
+     */
+    public boolean isClosed() {
+        return closed.get();
+    }
+    
     @Override
     public void close() {
+        closed.set(true);
         QuietlyCloser.close(resultSet.get());
         QuietlyCloser.close(preparedStatement.get());
         QuietlyCloser.close(connection.get());
+        resultSet.set(null);
+        preparedStatement.set(null);
+        connection.set(null);
     }
 }

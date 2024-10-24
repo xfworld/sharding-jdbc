@@ -20,16 +20,14 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
-        <artifactId>shardingsphere-it</artifactId>
-        <version>5.4.1-SNAPSHOT</version>
+        <artifactId>shardingsphere-test-it</artifactId>
+        <version>5.5.2-SNAPSHOT</version>
     </parent>
-    <artifactId>shardingsphere-it-parser</artifactId>
+    <artifactId>shardingsphere-test-it-parser</artifactId>
     <name>${project.artifactId}</name>
     
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
-        
-        <commons-csv.version>1.9.0</commons-csv.version>
     </properties>
     
     <dependencies>
@@ -86,11 +84,6 @@
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-global-clock-distsql-parser</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-traffic-distsql-parser</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

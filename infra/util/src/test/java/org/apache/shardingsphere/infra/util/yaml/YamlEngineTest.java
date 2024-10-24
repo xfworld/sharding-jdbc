@@ -18,12 +18,11 @@
 package org.apache.shardingsphere.infra.util.yaml;
 
 import org.apache.shardingsphere.infra.util.yaml.fixture.shortcuts.YamlShortcutsConfigurationFixture;
+import org.apache.shardingsphere.test.util.ConfigurationFileUtils;
 import org.junit.jupiter.api.Test;
-import org.yaml.snakeyaml.constructor.ConstructorException;
+import org.yaml.snakeyaml.composer.ComposerException;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
@@ -33,6 +32,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class YamlEngineTest {
     
@@ -47,20 +47,27 @@ class YamlEngineTest {
     }
     
     @Test
-    void assertUnmarshalWithYamlBytes() throws IOException {
-        URL url = getClass().getClassLoader().getResource("yaml/shortcuts-fixture.yaml");
+    void assertUnmarshalWithEmptyFile() throws IOException {
+        URL url = getClass().getClassLoader().getResource("yaml/empty-config.yaml");
         assertNotNull(url);
-        StringBuilder yamlContent = new StringBuilder();
-        try (
-                FileReader fileReader = new FileReader(url.getFile());
-                BufferedReader reader = new BufferedReader(fileReader)) {
-            String line;
-            while (null != (line = reader.readLine())) {
-                yamlContent.append(line).append(System.lineSeparator());
-            }
-        }
-        YamlShortcutsConfigurationFixture actual = YamlEngine.unmarshal(yamlContent.toString().getBytes(), YamlShortcutsConfigurationFixture.class);
+        YamlShortcutsConfigurationFixture actual = YamlEngine.unmarshal(new File(url.getFile()), YamlShortcutsConfigurationFixture.class);
+        assertNotNull(actual);
+        assertTrue(actual.isEmpty());
+    }
+    
+    @Test
+    void assertUnmarshalWithYamlBytes() throws IOException {
+        String yamlContent = ConfigurationFileUtils.readFile("yaml/shortcuts-fixture.yaml");
+        YamlShortcutsConfigurationFixture actual = YamlEngine.unmarshal(yamlContent.getBytes(), YamlShortcutsConfigurationFixture.class);
         assertThat(actual.getName(), is("test"));
+    }
+    
+    @Test
+    void assertUnmarshalWithEmptyYamlBytes() throws IOException {
+        String yamlContent = ConfigurationFileUtils.readFile("yaml/empty-config.yaml");
+        YamlShortcutsConfigurationFixture actual = YamlEngine.unmarshal(yamlContent.getBytes(), YamlShortcutsConfigurationFixture.class);
+        assertNotNull(actual);
+        assertTrue(actual.isEmpty());
     }
     
     @Test
@@ -82,6 +89,13 @@ class YamlEngineTest {
     }
     
     @Test
+    void assertUnmarshalWithEmptyProperties() {
+        Properties actual = YamlEngine.unmarshal("", Properties.class);
+        assertNotNull(actual);
+        assertTrue(actual.isEmpty());
+    }
+    
+    @Test
     void assertMarshal() {
         YamlShortcutsConfigurationFixture actual = new YamlShortcutsConfigurationFixture();
         actual.setName("test");
@@ -89,19 +103,9 @@ class YamlEngineTest {
     }
     
     @Test
-    void assertUnmarshalInvalidYaml() throws IOException {
-        URL url = getClass().getClassLoader().getResource("yaml/accepted-class.yaml");
-        assertNotNull(url);
-        StringBuilder yamlContent = new StringBuilder();
-        try (
-                FileReader fileReader = new FileReader(url.getFile());
-                BufferedReader reader = new BufferedReader(fileReader)) {
-            String line;
-            while (null != (line = reader.readLine())) {
-                yamlContent.append(line).append(System.lineSeparator());
-            }
-        }
-        assertThrows(ConstructorException.class, () -> YamlEngine.unmarshal(yamlContent.toString(), Object.class));
+    void assertUnmarshalInvalidYaml() {
+        String yamlContent = ConfigurationFileUtils.readFile("yaml/accepted-class.yaml");
+        assertThrows(ComposerException.class, () -> YamlEngine.unmarshal(yamlContent, Object.class));
     }
     
     @Test
@@ -110,8 +114,7 @@ class YamlEngineTest {
         actual.setName("test");
         YamlShortcutsConfigurationFixture actualAnother = new YamlShortcutsConfigurationFixture();
         actualAnother.setName("test");
-        String res = "- !FIXTURE" + System.lineSeparator() + "  name: test" + System.lineSeparator() + "- !FIXTURE"
-                + System.lineSeparator() + "  name: test" + System.lineSeparator();
-        assertThat(YamlEngine.marshal(Arrays.asList(actual, actualAnother)), is(res));
+        String expected = "- !FIXTURE" + System.lineSeparator() + "  name: test" + System.lineSeparator() + "- !FIXTURE" + System.lineSeparator() + "  name: test" + System.lineSeparator();
+        assertThat(YamlEngine.marshal(Arrays.asList(actual, actualAnother)), is(expected));
     }
 }

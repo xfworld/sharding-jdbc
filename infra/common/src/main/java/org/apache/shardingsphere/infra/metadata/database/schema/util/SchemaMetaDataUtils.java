@@ -27,7 +27,7 @@ import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.datanode.DataNodes;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilderMaterial;
-import org.apache.shardingsphere.infra.metadata.database.schema.exception.UnsupportedActualDataNodeStructureException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.datanode.UnsupportedActualDataNodeStructureException;
 
 import javax.sql.DataSource;
 import java.util.Collection;
@@ -51,8 +51,7 @@ public final class SchemaMetaDataUtils {
      * @param checkMetaDataEnable check meta data enable config
      * @return meta data loader materials
      */
-    public static Collection<MetaDataLoaderMaterial> getMetaDataLoaderMaterials(final Collection<String> tableNames,
-                                                                                final GenericSchemaBuilderMaterial material, final boolean checkMetaDataEnable) {
+    public static Collection<MetaDataLoaderMaterial> getMetaDataLoaderMaterials(final Collection<String> tableNames, final GenericSchemaBuilderMaterial material, final boolean checkMetaDataEnable) {
         Map<String, Collection<String>> dataSourceTableGroups = new LinkedHashMap<>();
         Collection<DatabaseType> unsupportedThreeTierStorageStructureDatabaseTypes = getUnsupportedThreeTierStorageStructureDatabaseTypes(material.getStorageTypes().values());
         DataNodes dataNodes = new DataNodes(material.getRules());
@@ -68,7 +67,7 @@ public final class SchemaMetaDataUtils {
         for (Entry<String, Collection<String>> entry : dataSourceTableGroups.entrySet()) {
             DatabaseType storageType = material.getStorageTypes().get(entry.getKey());
             String defaultSchemaName = getDefaultSchemaNameByStorageType(storageType, material.getDefaultSchemaName());
-            result.add(new MetaDataLoaderMaterial(entry.getValue(), getDataSource(material, entry.getKey()), storageType, defaultSchemaName));
+            result.add(new MetaDataLoaderMaterial(entry.getValue(), entry.getKey(), getDataSource(material, entry.getKey()), storageType, defaultSchemaName));
         }
         return result;
     }
@@ -85,7 +84,8 @@ public final class SchemaMetaDataUtils {
                                                                                  final String tableName) {
         for (DataNode dataNode : dataNodes.getDataNodes(tableName)) {
             ShardingSpherePreconditions.checkState(notSupportThreeTierStructureStorageTypes.isEmpty() || !dataNode.getDataSourceName().contains("."),
-                    () -> new UnsupportedActualDataNodeStructureException(dataNode, notSupportThreeTierStructureStorageTypes.iterator().next().getJdbcUrlPrefixes()));
+                    () -> new UnsupportedActualDataNodeStructureException(
+                            dataNode.getDataSourceName(), dataNode.getTableName(), notSupportThreeTierStructureStorageTypes.iterator().next().getJdbcUrlPrefixes()));
             if (dataNode.getDataSourceName().contains(".")) {
                 String database = dataNode.getDataSourceName().split("\\.")[1];
                 GlobalDataSourceRegistry.getInstance().getCachedDatabaseTables().put(dataNode.getTableName(), database);

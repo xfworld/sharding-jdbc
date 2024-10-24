@@ -17,9 +17,9 @@
 
 package org.apache.shardingsphere.proxy.backend.state.impl;
 
-import org.apache.shardingsphere.distsql.parser.statement.ral.updatable.ImportMetaDataStatement;
-import org.apache.shardingsphere.proxy.backend.exception.UnavailableException;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DMLStatement;
+import org.apache.shardingsphere.distsql.statement.ral.updatable.ImportMetaDataStatement;
+import org.apache.shardingsphere.mode.exception.ClusterStateException;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.DMLStatement;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,7 +29,7 @@ class UnavailableProxyStateTest {
     
     @Test
     void assertExecuteWithUnsupportedSQL() {
-        assertThrows(UnavailableException.class, () -> new UnavailableProxyState().check(mock(DMLStatement.class)));
+        assertThrows(ClusterStateException.class, () -> new UnavailableProxyState().check(mock(DMLStatement.class)));
     }
     
     @Test

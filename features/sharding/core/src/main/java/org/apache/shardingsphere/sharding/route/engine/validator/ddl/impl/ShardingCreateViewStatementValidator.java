@@ -22,22 +22,18 @@ import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementCont
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
 import org.apache.shardingsphere.sharding.exception.metadata.EngagedViewException;
 import org.apache.shardingsphere.sharding.exception.syntax.UnsupportedCreateViewException;
 import org.apache.shardingsphere.sharding.route.engine.validator.ddl.ShardingDDLStatementValidator;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.sql.common.extractor.TableExtractor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.AggregationProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.CreateViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.handler.dml.SelectStatementHandler;
-import org.apache.shardingsphere.sqlfederation.rule.SQLFederationRule;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CreateViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.util.TableExtractor;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -47,16 +43,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public final class ShardingCreateViewStatementValidator extends ShardingDDLStatementValidator {
     
-    private final RuleMetaData globalRuleMetaData;
-    
     @Override
-    public void preValidate(final ShardingRule shardingRule, final SQLStatementContext sqlStatementContext,
+    public void preValidate(final ShardingRule shardingRule, final SQLStatementContext sqlStatementContext, final HintValueContext hintValueContext,
                             final List<Object> params, final ShardingSphereDatabase database, final ConfigurationProperties props) {
         TableExtractor extractor = new TableExtractor();
         extractor.extractTablesFromSelect(((CreateViewStatement) sqlStatementContext.getSqlStatement()).getSelect());
         Collection<SimpleTableSegment> tableSegments = extractor.getRewriteTables();
-        boolean sqlFederationEnabled = globalRuleMetaData.getSingleRule(SQLFederationRule.class).getConfiguration().isSqlFederationEnabled();
-        if (!sqlFederationEnabled && isShardingTablesWithoutBinding(shardingRule, sqlStatementContext, tableSegments)) {
+        String viewName = ((CreateViewStatement) sqlStatementContext.getSqlStatement()).getView().getTableName().getIdentifier().getValue();
+        if (isShardingTablesNotBindingWithView(tableSegments, shardingRule, viewName)) {
             throw new EngagedViewException("sharding");
         }
     }
@@ -68,23 +62,6 @@ public final class ShardingCreateViewStatementValidator extends ShardingDDLState
         if (isContainsNotSupportedViewStatement(selectStatement, routeContext)) {
             throw new UnsupportedCreateViewException();
         }
-    }
-    
-    private boolean isShardingTablesWithoutBinding(final ShardingRule shardingRule, final SQLStatementContext sqlStatementContext,
-                                                   final Collection<SimpleTableSegment> tableSegments) {
-        for (SimpleTableSegment each : tableSegments) {
-            String logicTable = each.getTableName().getIdentifier().getValue();
-            if (shardingRule.isShardingTable(logicTable) && !isBindingTables(
-                    shardingRule, ((CreateViewStatement) sqlStatementContext.getSqlStatement()).getView().getTableName().getIdentifier().getValue(), logicTable)) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    private boolean isBindingTables(final ShardingRule shardingRule, final String logicViewName, final String logicTable) {
-        Collection<String> bindTables = Arrays.asList(logicTable, logicViewName);
-        return shardingRule.isAllBindingTables(bindTables);
     }
     
     private boolean isContainsNotSupportedViewStatement(final SelectStatement selectStatement, final RouteContext routeContext) {
@@ -112,6 +89,6 @@ public final class ShardingCreateViewStatementValidator extends ShardingDDLState
     }
     
     private boolean hasLimit(final SelectStatement selectStatement) {
-        return SelectStatementHandler.getLimitSegment(selectStatement).isPresent();
+        return selectStatement.getLimit().isPresent();
     }
 }

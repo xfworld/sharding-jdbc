@@ -21,6 +21,8 @@ import org.apache.shardingsphere.infra.database.core.metadata.database.DialectDa
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.NullsOrderType;
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
 
+import java.util.Optional;
+
 /**
  * Database meta data of SQLServer.
  */
@@ -33,7 +35,12 @@ public final class SQLServerDatabaseMetaData implements DialectDatabaseMetaData 
     
     @Override
     public NullsOrderType getDefaultNullsOrderType() {
-        return NullsOrderType.FIRST;
+        return NullsOrderType.LOW;
+    }
+    
+    @Override
+    public Optional<String> getDefaultSchema() {
+        return Optional.of("dbo");
     }
     
     @Override

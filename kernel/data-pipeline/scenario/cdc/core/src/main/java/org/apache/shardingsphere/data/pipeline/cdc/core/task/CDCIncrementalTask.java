@@ -20,13 +20,12 @@ package org.apache.shardingsphere.data.pipeline.cdc.core.task;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.data.pipeline.api.ingest.dumper.Dumper;
-import org.apache.shardingsphere.data.pipeline.common.execute.ExecuteEngine;
-import org.apache.shardingsphere.data.pipeline.common.task.progress.IncrementalTaskProgress;
+import org.apache.shardingsphere.data.pipeline.core.execute.PipelineExecuteEngine;
 import org.apache.shardingsphere.data.pipeline.core.importer.Importer;
+import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.Dumper;
 import org.apache.shardingsphere.data.pipeline.core.task.PipelineTask;
 import org.apache.shardingsphere.data.pipeline.core.task.TaskExecuteCallback;
+import org.apache.shardingsphere.data.pipeline.core.task.progress.IncrementalTaskProgress;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -37,14 +36,13 @@ import java.util.concurrent.CompletableFuture;
  * CDC incremental task.
  */
 @RequiredArgsConstructor
-@Slf4j
 @ToString(exclude = {"incrementalExecuteEngine", "dumper", "importer", "taskProgress"})
 public final class CDCIncrementalTask implements PipelineTask {
     
     @Getter
     private final String taskId;
     
-    private final ExecuteEngine incrementalExecuteEngine;
+    private final PipelineExecuteEngine incrementalExecuteEngine;
     
     private final Dumper dumper;
     
@@ -71,9 +69,5 @@ public final class CDCIncrementalTask implements PipelineTask {
         if (null != importer) {
             importer.stop();
         }
-    }
-    
-    @Override
-    public void close() {
     }
 }

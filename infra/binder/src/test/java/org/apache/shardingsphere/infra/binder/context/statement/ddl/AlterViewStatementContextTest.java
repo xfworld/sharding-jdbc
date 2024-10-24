@@ -18,14 +18,15 @@
 package org.apache.shardingsphere.infra.binder.context.statement.ddl;
 
 import org.apache.shardingsphere.infra.binder.context.statement.CommonSQLStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.AlterViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.ddl.MySQLAlterViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLSelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.ddl.PostgreSQLAlterViewStatement;
+import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.AlterViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLAlterViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLSelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.ddl.PostgreSQLAlterViewStatement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -49,25 +50,25 @@ class AlterViewStatementContextTest {
     @Test
     void assertMySQLNewInstance() {
         SelectStatement select = mock(MySQLSelectStatement.class);
-        when(select.getFrom()).thenReturn(view);
-        MySQLAlterViewStatement alterViewStatement = mock(MySQLAlterViewStatement.class);
-        when(alterViewStatement.getView()).thenReturn(view);
-        when(alterViewStatement.getSelect()).thenReturn(select);
+        when(select.getFrom()).thenReturn(Optional.of(view));
+        MySQLAlterViewStatement alterViewStatement = new MySQLAlterViewStatement();
+        alterViewStatement.setView(view);
+        alterViewStatement.setSelect(select);
         assertNewInstance(alterViewStatement);
     }
     
     @Test
     void assertPostgreSQLNewInstance() {
-        PostgreSQLAlterViewStatement alterViewStatement = mock(PostgreSQLAlterViewStatement.class);
-        when(alterViewStatement.getView()).thenReturn(view);
-        when(alterViewStatement.getRenameView()).thenReturn(Optional.of(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("view")))));
+        PostgreSQLAlterViewStatement alterViewStatement = new PostgreSQLAlterViewStatement();
+        alterViewStatement.setView(view);
+        alterViewStatement.setRenameView(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("view"))));
         assertNewInstance(alterViewStatement);
     }
     
     private void assertNewInstance(final AlterViewStatement alterViewStatement) {
-        AlterViewStatementContext actual = new AlterViewStatementContext(alterViewStatement);
+        AlterViewStatementContext actual = new AlterViewStatementContext(alterViewStatement, DefaultDatabase.LOGIC_NAME);
         assertThat(actual, instanceOf(CommonSQLStatementContext.class));
         assertThat(actual.getSqlStatement(), is(alterViewStatement));
-        assertThat(actual.getAllTables().size(), is(2));
+        assertThat(actual.getTablesContext().getSimpleTables().size(), is(2));
     }
 }

@@ -19,7 +19,7 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.AlterTablespaceStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.AlterTablespaceStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.SQLSegmentAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.identifier.IdentifierValueAssert;
@@ -42,12 +42,8 @@ public final class AlterTablespaceStatementAssert {
      * @param expected expected alter tablespace statement test case
      */
     public static void assertIs(final SQLCaseAssertContext assertContext, final AlterTablespaceStatement actual, final AlterTablespaceStatementTestCase expected) {
-        if (null != expected.getTablespace()) {
-            assertTablespace(assertContext, actual, expected);
-        }
-        if (null != expected.getRenameTablespace()) {
-            assertRenameTablespace(assertContext, actual, expected);
-        }
+        assertTablespace(assertContext, actual, expected);
+        assertRenameTablespace(assertContext, actual, expected);
     }
     
     private static void assertTablespace(final SQLCaseAssertContext assertContext, final AlterTablespaceStatement actual, final AlterTablespaceStatementTestCase expected) {
@@ -56,8 +52,8 @@ public final class AlterTablespaceStatementAssert {
         } else {
             assertNotNull(actual.getTablespaceSegment(), assertContext.getText("Actual tablespace should exist."));
             IdentifierValueAssert.assertIs(assertContext, actual.getTablespaceSegment().getIdentifier(), expected.getTablespace(), "Tablespace");
+            SQLSegmentAssert.assertIs(assertContext, actual.getTablespaceSegment(), expected.getTablespace());
         }
-        SQLSegmentAssert.assertIs(assertContext, actual.getTablespaceSegment(), expected.getTablespace());
     }
     
     private static void assertRenameTablespace(final SQLCaseAssertContext assertContext, final AlterTablespaceStatement actual, final AlterTablespaceStatementTestCase expected) {
@@ -66,7 +62,7 @@ public final class AlterTablespaceStatementAssert {
         } else {
             assertNotNull(actual.getRenameTablespaceSegment(), assertContext.getText("Actual rename tablespace should exist."));
             IdentifierValueAssert.assertIs(assertContext, actual.getRenameTablespaceSegment().getIdentifier(), expected.getRenameTablespace(), "Tablespace");
+            SQLSegmentAssert.assertIs(assertContext, actual.getRenameTablespaceSegment(), expected.getRenameTablespace());
         }
-        SQLSegmentAssert.assertIs(assertContext, actual.getRenameTablespaceSegment(), expected.getRenameTablespace());
     }
 }

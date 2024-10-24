@@ -17,84 +17,71 @@
 
 package org.apache.shardingsphere.metadata.persist.service.config.database;
 
-import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
-import org.apache.shardingsphere.infra.datasource.pool.props.creator.DataSourcePoolPropertiesCreator;
-import org.apache.shardingsphere.metadata.persist.service.config.database.datasource.DataSourceUnitPersistService;
+import org.apache.shardingsphere.infra.metadata.version.MetaDataVersion;
 import org.apache.shardingsphere.mode.spi.PersistRepository;
-import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.sql.DataSource;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DataSourceUnitPersistServiceTest {
     
+    private DataSourceUnitPersistService persistService;
+    
     @Mock
     private PersistRepository repository;
     
+    @BeforeEach
+    void setUp() {
+        persistService = new DataSourceUnitPersistService(repository);
+        
+    }
+    
     @Test
     void assertLoad() {
-        when(repository.getDirectly("/metadata/foo_db/active_version")).thenReturn("0");
-        when(repository.getDirectly("/metadata/foo_db/versions/0/data_sources/units")).thenReturn(readDataSourceYaml("yaml/persist/data-source.yaml"));
-        Map<String, DataSourcePoolProperties> actual = new DataSourceUnitPersistService(repository).load("foo_db");
+        when(repository.getChildrenKeys("/metadata/foo_db/data_sources/units")).thenReturn(Collections.singletonList("foo_ds"));
+        when(repository.query("/metadata/foo_db/data_sources/units/foo_ds/active_version")).thenReturn("10");
+        when(repository.query("/metadata/foo_db/data_sources/units/foo_ds/versions/10")).thenReturn("{dataSourceClassName: org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource}");
+        Map<String, DataSourcePoolProperties> actual = persistService.load("foo_db");
+        assertThat(actual.size(), is(1));
+        assertThat(actual.get("foo_ds").getPoolClassName(), is("org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource"));
+    }
+    
+    @Test
+    void assertPersist() {
+        Map<String, DataSourcePoolProperties> dataSourcePropsMap = new LinkedHashMap<>(1, 1F);
+        dataSourcePropsMap.put("foo_ds", new DataSourcePoolProperties("org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource", Collections.emptyMap()));
+        dataSourcePropsMap.put("bar_ds", new DataSourcePoolProperties("org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource", Collections.emptyMap()));
+        when(repository.query("/metadata/foo_db/data_sources/units/foo_ds/active_version")).thenReturn("10");
+        when(repository.getChildrenKeys("/metadata/foo_db/data_sources/units/foo_ds/versions")).thenReturn(Collections.singletonList("10"));
+        List<MetaDataVersion> actual = new ArrayList<>(persistService.persist("foo_db", dataSourcePropsMap));
         assertThat(actual.size(), is(2));
-        assertDataSourcePoolProperties(actual.get("ds_0"), DataSourcePoolPropertiesCreator.create(createDataSource("ds_0")));
-        assertDataSourcePoolProperties(actual.get("ds_1"), DataSourcePoolPropertiesCreator.create(createDataSource("ds_1")));
-    }
-    
-    @SneakyThrows({IOException.class, URISyntaxException.class})
-    private String readDataSourceYaml(final String path) {
-        return Files.readAllLines(Paths.get(ClassLoader.getSystemResource(path).toURI()))
-                .stream().filter(each -> !"".equals(each.trim()) && !each.startsWith("#")).map(each -> each + System.lineSeparator()).collect(Collectors.joining());
-    }
-    
-    private void assertDataSourcePoolProperties(final DataSourcePoolProperties actual, final DataSourcePoolProperties expected) {
-        assertThat(actual.getPoolClassName(), is(expected.getPoolClassName()));
-        assertThat(actual.getAllLocalProperties().get("url"), is(expected.getAllLocalProperties().get("url")));
-        assertThat(actual.getAllLocalProperties().get("username"), is(expected.getAllLocalProperties().get("username")));
-        assertThat(actual.getAllLocalProperties().get("password"), is(expected.getAllLocalProperties().get("password")));
-        assertThat(actual.getAllLocalProperties().get("connectionInitSqls"), is(expected.getAllLocalProperties().get("connectionInitSqls")));
+        assertThat(actual.get(0).getActiveVersionNodePath(), is("/metadata/foo_db/data_sources/units/foo_ds/active_version"));
+        assertThat(actual.get(0).getCurrentActiveVersion(), is("10"));
+        assertThat(actual.get(0).getNextActiveVersion(), is("11"));
+        assertThat(actual.get(1).getActiveVersionNodePath(), is("/metadata/foo_db/data_sources/units/bar_ds/active_version"));
+        assertNull(actual.get(1).getCurrentActiveVersion());
+        assertThat(actual.get(1).getNextActiveVersion(), is("0"));
     }
     
     @Test
-    void assertLoadWithoutPath() {
-        when(repository.getDirectly("/metadata/foo_db/active_version")).thenReturn("0");
-        Map<String, DataSourcePoolProperties> actual = new DataSourceUnitPersistService(repository).load("foo_db");
-        assertTrue(actual.isEmpty());
-    }
-    
-    @Test
-    void assertAppend() {
-        when(repository.getDirectly("/metadata/foo_db/active_version")).thenReturn("0");
-        new DataSourceUnitPersistService(repository).append("foo_db", Collections.singletonMap("foo_ds", DataSourcePoolPropertiesCreator.create(createDataSource("foo_ds"))));
-        String expected = readDataSourceYaml("yaml/persist/data-source-foo.yaml");
-        verify(repository).persist("/metadata/foo_db/versions/0/data_sources/units", expected);
-    }
-    
-    private DataSource createDataSource(final String name) {
-        MockedDataSource result = new MockedDataSource();
-        result.setUrl("jdbc:mysql://localhost:3306/" + name);
-        result.setUsername("root");
-        result.setPassword("root");
-        result.setConnectionInitSqls(Arrays.asList("set names utf8mb4;", "set names utf8;"));
-        return result;
+    void assertDelete() {
+        persistService.delete("foo_db", "foo_ds");
+        verify(repository).delete("/metadata/foo_db/data_sources/units/foo_ds");
     }
 }

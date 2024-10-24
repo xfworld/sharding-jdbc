@@ -63,8 +63,7 @@ public final class DefaultDistributedLock implements DistributedLock {
     }
     
     private boolean persist(final String value) {
-        client.persistExclusiveEphemeral(lockKey, value);
-        return true;
+        return client.persistExclusiveEphemeral(lockKey, value);
     }
     
     @Override
@@ -76,7 +75,6 @@ public final class DefaultDistributedLock implements DistributedLock {
         if (newLockCount > 0) {
             return;
         }
-        ShardingSpherePreconditions.checkState(newLockCount == 0, () -> new IllegalMonitorStateException(String.format("Lock count has gone negative for lock: %s.", lockKey)));
         try {
             client.delete(lockKey);
         } finally {

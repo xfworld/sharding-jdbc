@@ -17,9 +17,9 @@
 
 package org.apache.shardingsphere.infra.database.core.metadata.database;
 
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPI;
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.NullsOrderType;
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPI;
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
 
 import java.sql.Connection;
@@ -52,7 +52,7 @@ public interface DialectDatabaseMetaData extends DatabaseTypedSPI {
     
     /**
      * Get default nulls order type.
-     * 
+     *
      * @return default nulls order type
      */
     // TODO Reuse java.sql.DatabaseMetaData.nullsAreSortedHigh and java.sql.DatabaseMetaData.nullsAreSortedLow
@@ -65,7 +65,7 @@ public interface DialectDatabaseMetaData extends DatabaseTypedSPI {
      * @return is reserved word or not
      */
     // TODO Reuse java.sql.DatabaseMetaData.getSQLKeywords
-    default boolean isReservedWord(String identifier) {
+    default boolean isReservedWord(final String identifier) {
         return false;
     }
     
@@ -123,10 +123,19 @@ public interface DialectDatabaseMetaData extends DatabaseTypedSPI {
     
     /**
      * Is support three tier storage structure.
-     * 
+     *
      * @return support or not
      */
     default boolean isSupportThreeTierStorageStructure() {
+        return false;
+    }
+    
+    /**
+     * Is support global CSN.
+     *
+     * @return support or not
+     */
+    default boolean isSupportGlobalCSN() {
         return false;
     }
 }

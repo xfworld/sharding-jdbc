@@ -52,7 +52,7 @@ public final class OpenGaussDatabaseMetaData implements DialectDatabaseMetaData 
     
     @Override
     public NullsOrderType getDefaultNullsOrderType() {
-        return NullsOrderType.LAST;
+        return NullsOrderType.HIGH;
     }
     
     @Override
@@ -68,6 +68,11 @@ public final class OpenGaussDatabaseMetaData implements DialectDatabaseMetaData 
     @Override
     public Optional<String> getDefaultSchema() {
         return Optional.of("public");
+    }
+    
+    @Override
+    public boolean isSupportGlobalCSN() {
+        return true;
     }
     
     @Override

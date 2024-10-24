@@ -20,11 +20,10 @@ package org.apache.shardingsphere.data.pipeline.core.consistencycheck.table.calc
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.data.pipeline.common.sqlbuilder.PipelineDataConsistencyCalculateSQLBuilder;
 import org.apache.shardingsphere.data.pipeline.core.consistencycheck.result.SingleTableInventoryCalculatedResult;
 import org.apache.shardingsphere.data.pipeline.core.exception.data.PipelineTableDataConsistencyCheckLoadingFailedException;
-import org.apache.shardingsphere.data.pipeline.core.exception.data.UnsupportedCRC32SingleTableInventoryCalculatorException;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.sql.PipelineDataConsistencyCalculateSQLBuilder;
+import org.apache.shardingsphere.infra.algorithm.core.exception.UnsupportedAlgorithmOnDatabaseTypeException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -50,11 +49,11 @@ public final class CRC32SingleTableInventoryCalculator extends AbstractSingleTab
     }
     
     private CalculatedItem calculateCRC32(final PipelineDataConsistencyCalculateSQLBuilder pipelineSQLBuilder, final SingleTableInventoryCalculateParameter param, final String columnName) {
-        Optional<String> sql = pipelineSQLBuilder.buildCRC32SQL(param.getSchemaName(), param.getLogicTableName(), columnName);
-        ShardingSpherePreconditions.checkState(sql.isPresent(), () -> new UnsupportedCRC32SingleTableInventoryCalculatorException(param.getDatabaseType()));
+        String sql = pipelineSQLBuilder.buildCRC32SQL(param.getSchemaName(), param.getLogicTableName(), columnName)
+                .orElseThrow(() -> new UnsupportedAlgorithmOnDatabaseTypeException("DataConsistencyCalculate", "CRC32", param.getDatabaseType()));
         try (
                 Connection connection = param.getDataSource().getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(sql.get());
+                PreparedStatement preparedStatement = connection.prepareStatement(sql);
                 ResultSet resultSet = preparedStatement.executeQuery()) {
             setCurrentStatement(preparedStatement);
             resultSet.next();
@@ -114,7 +113,6 @@ public final class CRC32SingleTableInventoryCalculator extends AbstractSingleTab
             return result;
         }
         
-        // TODO not support now
         @Override
         public Optional<Object> getMaxUniqueKeyValue() {
             return Optional.empty();

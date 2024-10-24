@@ -38,14 +38,14 @@ class SQLExceptionTransformEngineTest {
     
     @Test
     void assertToSQLExceptionWithSQLException() {
-        SQLException cause = new SQLException();
+        SQLException cause = new SQLException("");
         assertThat(SQLExceptionTransformEngine.toSQLException(cause, databaseType), is(cause));
     }
     
     @Test
     void assertToSQLExceptionWithShardingSphereSQLException() {
         ShardingSphereSQLException cause = mock(ShardingSphereSQLException.class);
-        SQLException expected = new SQLException();
+        SQLException expected = new SQLException("");
         when(cause.toSQLException()).thenReturn(expected);
         assertThat(SQLExceptionTransformEngine.toSQLException(cause, databaseType), is(expected));
     }
@@ -54,7 +54,10 @@ class SQLExceptionTransformEngineTest {
     void assertToSQLExceptionWithDatabaseProtocolException() {
         DatabaseProtocolException cause = mock(DatabaseProtocolException.class);
         when(cause.getMessage()).thenReturn("No reason");
-        assertThat(SQLExceptionTransformEngine.toSQLException(cause, databaseType).getMessage(), is("Database protocol exception: No reason"));
+        SQLException actual = SQLExceptionTransformEngine.toSQLException(cause, databaseType);
+        assertThat(actual.getSQLState(), is("HY000"));
+        assertThat(actual.getErrorCode(), is(30002));
+        assertThat(actual.getMessage(), is("Database protocol exception: No reason"));
     }
     
     @Test
@@ -66,11 +69,17 @@ class SQLExceptionTransformEngineTest {
     void assertToSQLExceptionWithShardingSphereServerException() {
         ShardingSphereServerException cause = mock(ShardingSphereServerException.class);
         when(cause.getMessage()).thenReturn("No reason");
-        assertThat(SQLExceptionTransformEngine.toSQLException(cause, databaseType).getMessage(), is("No reason"));
+        SQLException actual = SQLExceptionTransformEngine.toSQLException(cause, databaseType);
+        assertThat(actual.getSQLState(), is("HY000"));
+        assertThat(actual.getErrorCode(), is(30004));
+        assertThat(actual.getMessage(), is("Server exception." + System.lineSeparator() + "More details: " + cause));
     }
     
     @Test
     void assertToSQLExceptionWithOtherException() {
-        assertThat(SQLExceptionTransformEngine.toSQLException(new Exception("No reason"), databaseType).getMessage(), is("Unknown exception: No reason"));
+        SQLException actual = SQLExceptionTransformEngine.toSQLException(new Exception("No reason"), databaseType);
+        assertThat(actual.getSQLState(), is("HY000"));
+        assertThat(actual.getErrorCode(), is(30000));
+        assertThat(actual.getMessage(), is("Unknown exception." + System.lineSeparator() + "More details: java.lang.Exception: No reason"));
     }
 }

@@ -1,6 +1,6 @@
 +++
 title = "数据加密"
-weight = 4
+weight = 5
 +++
 
 ## 背景信息
@@ -11,7 +11,7 @@ weight = 4
 
 ### 配置入口
 
-类名称：org.apache.shardingsphere.encrypt.api.config.EncryptRuleConfiguration
+类名称：org.apache.shardingsphere.encrypt.config.EncryptRuleConfiguration
 
 可配置属性：
 
@@ -22,7 +22,7 @@ weight = 4
 
 ### 加密表规则配置
 
-类名称：org.apache.shardingsphere.encrypt.api.config.rule.EncryptTableRuleConfiguration
+类名称：org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfiguration
 
 可配置属性：
 
@@ -33,20 +33,20 @@ weight = 4
 
 ### 加密列规则配置
 
-类名称：org.apache.shardingsphere.encrypt.api.config.rule.EncryptColumnRuleConfiguration
+类名称：org.apache.shardingsphere.encrypt.config.rule.EncryptColumnRuleConfiguration
 
 可配置属性：
 
-| *名称*              | *数据类型*  | *说明*        |
-|-------------------|---------|-------------|
-| name              | String  | 逻辑列名称       |
-| cipher            | EncryptColumnItemRuleConfiguration  | 密文列配置       |
-| assistedQuery (?) | EncryptColumnItemRuleConfiguration  | 查询辅助列配置     |
-| likeQuery (?)     | EncryptColumnItemRuleConfiguration  | 模糊查询列配置     |
+| *名称*              | *数据类型*                             | *说明*    |
+|-------------------|------------------------------------|---------|
+| name              | String                             | 逻辑列名称   |
+| cipher            | EncryptColumnItemRuleConfiguration | 密文列配置   |
+| assistedQuery (?) | EncryptColumnItemRuleConfiguration | 查询辅助列配置 |
+| likeQuery (?)     | EncryptColumnItemRuleConfiguration | 模糊查询列配置 |
 
 ### 加密列属性规则配置
 
-类名称：org.apache.shardingsphere.encrypt.api.config.rule.EncryptColumnItemRuleConfiguration
+类名称：org.apache.shardingsphere.encrypt.config.rule.EncryptColumnItemRuleConfiguration
 
 可配置属性：
 
@@ -57,7 +57,7 @@ weight = 4
 
 ### 加解密算法配置
 
-类名称：org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration
+类名称：org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration
 
 可配置属性：
 
@@ -83,6 +83,7 @@ public final class EncryptDatabasesConfiguration {
     public DataSource getDataSource() throws SQLException {
         Properties props = new Properties();
         props.setProperty("aes-key-value", "123456");
+        props.setProperty("digest-algorithm-name", "SHA-1");
         EncryptColumnRuleConfiguration columnConfigAes = new EncryptColumnRuleConfiguration("username", new EncryptColumnItemRuleConfiguration("username", "name_encryptor"));
         EncryptColumnRuleConfiguration columnConfigTest = new EncryptColumnRuleConfiguration("pwd", new EncryptColumnItemRuleConfiguration("pwd", "pwd_encryptor"));
         columnConfigTest.setAssistedQuery(new EncryptColumnItemRuleConfiguration("assisted_query_pwd", "pwd_encryptor"));

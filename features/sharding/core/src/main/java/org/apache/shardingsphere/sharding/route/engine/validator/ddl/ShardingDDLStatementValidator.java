@@ -24,9 +24,10 @@ import org.apache.shardingsphere.infra.route.context.RouteContext;
 import org.apache.shardingsphere.sharding.exception.syntax.UnsupportedShardingOperationException;
 import org.apache.shardingsphere.sharding.route.engine.validator.ShardingStatementValidator;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -85,14 +86,14 @@ public abstract class ShardingDDLStatementValidator implements ShardingStatement
     
     /**
      * Judge whether route unit and data node are different size.
-     * 
+     *
      * @param shardingRule sharding rule
      * @param routeContext route context
      * @param tableName table name
      * @return route unit and data node are different size or not
      */
     protected boolean isRouteUnitDataNodeDifferentSize(final ShardingRule shardingRule, final RouteContext routeContext, final String tableName) {
-        return shardingRule.isShardingTable(tableName) && shardingRule.getTableRule(tableName).getActualDataNodes().size() != routeContext.getRouteUnits().size();
+        return shardingRule.isShardingTable(tableName) && shardingRule.getShardingTable(tableName).getActualDataNodes().size() != routeContext.getRouteUnits().size();
     }
     
     /**
@@ -104,5 +105,23 @@ public abstract class ShardingDDLStatementValidator implements ShardingStatement
      */
     protected boolean isSchemaContainsIndex(final ShardingSphereSchema schema, final IndexSegment index) {
         return schema.getAllTableNames().stream().anyMatch(each -> schema.getTable(each).containsIndex(index.getIndexName().getIdentifier().getValue()));
+    }
+    
+    /**
+     * Judge whether sharding tables not binding with view.
+     *
+     * @param tableSegments table segments
+     * @param shardingRule sharding rule
+     * @param viewName view name
+     * @return sharding tables not binding with view or not
+     */
+    protected boolean isShardingTablesNotBindingWithView(final Collection<SimpleTableSegment> tableSegments, final ShardingRule shardingRule, final String viewName) {
+        for (SimpleTableSegment each : tableSegments) {
+            String logicTable = each.getTableName().getIdentifier().getValue();
+            if (shardingRule.isShardingTable(logicTable) && !shardingRule.isAllBindingTables(Arrays.asList(viewName, logicTable))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -17,10 +17,10 @@ Type: AES
 
 Attributes:
 
-| *Name*                | *DataType* | *Description*                                       |
-|-----------------------|------------|-----------------------------------------------------|
-| aes-key-value         | String     | AES KEY                                             |
-| digest-algorithm-name | String     | AES KEY DIGEST ALGORITHM (optional, default: SHA-1) |
+| *Name*                | *DataType* | *Description*            |
+|-----------------------|------------|--------------------------|
+| aes-key-value         | String     | AES KEY                  |
+| digest-algorithm-name | String     | AES KEY DIGEST ALGORITHM |
 
 ### Assisted Encrypt Algorithm
 
@@ -50,16 +50,19 @@ rules:
           cipher:
             name: username
             encryptorName: name_encryptor
-          likeQuery:
-            name: name_like
-            encryptorName: like_encryptor
+          assistedQuery:
+            name: assisted_username
+            encryptorName: assisted_encryptor
   encryptors:
-    like_encryptor:
-      type: CHAR_DIGEST_LIKE
     name_encryptor:
       type: AES
       props:
         aes-key-value: 123456abc
+        digest-algorithm-name: SHA-1
+    assisted_encryptor:
+      type: MD5
+      props:
+        salt: 123456
 ```
 
 ## Related References
