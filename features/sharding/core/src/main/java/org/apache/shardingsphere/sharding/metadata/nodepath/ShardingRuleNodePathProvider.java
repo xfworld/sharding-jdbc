@@ -17,8 +17,10 @@
 
 package org.apache.shardingsphere.sharding.metadata.nodepath;
 
-import org.apache.shardingsphere.mode.path.RuleNodePath;
+import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.mode.path.rule.RuleNodePath;
 import org.apache.shardingsphere.mode.spi.RuleNodePathProvider;
+import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 
 import java.util.Arrays;
 
@@ -35,7 +37,7 @@ public final class ShardingRuleNodePathProvider implements RuleNodePathProvider 
     
     public static final String BINDING_TABLES = "binding_tables";
     
-    public static final String ALGORITHMS = "algorithms";
+    public static final String SHARDING_ALGORITHMS = "sharding_algorithms";
     
     public static final String KEY_GENERATORS = "key_generators";
     
@@ -56,7 +58,7 @@ public final class ShardingRuleNodePathProvider implements RuleNodePathProvider 
     private static final String DEFAULT_STRATEGIES_PREFIX = "default_strategies.";
     
     private static final RuleNodePath INSTANCE = new RuleNodePath(RULE_TYPE,
-            Arrays.asList(TABLES, AUTO_TABLES, BINDING_TABLES, ALGORITHMS, KEY_GENERATORS, AUDITORS),
+            Arrays.asList(TABLES, AUTO_TABLES, BINDING_TABLES, SHARDING_ALGORITHMS, KEY_GENERATORS, AUDITORS),
             Arrays.asList(DEFAULT_STRATEGIES_PREFIX + DEFAULT_DATABASE_STRATEGY, DEFAULT_STRATEGIES_PREFIX + DEFAULT_TABLE_STRATEGY,
                     DEFAULT_STRATEGIES_PREFIX + DEFAULT_KEY_GENERATE_STRATEGY, DEFAULT_STRATEGIES_PREFIX + DEFAULT_AUDIT_STRATEGY, DEFAULT_STRATEGIES_PREFIX + DEFAULT_SHARDING_COLUMN,
                     SHARDING_CACHE));
@@ -64,5 +66,10 @@ public final class ShardingRuleNodePathProvider implements RuleNodePathProvider 
     @Override
     public RuleNodePath getRuleNodePath() {
         return INSTANCE;
+    }
+    
+    @Override
+    public Class<? extends RuleConfiguration> getType() {
+        return ShardingRuleConfiguration.class;
     }
 }

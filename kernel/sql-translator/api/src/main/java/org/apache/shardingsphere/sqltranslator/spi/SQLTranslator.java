@@ -17,25 +17,32 @@
 
 package org.apache.shardingsphere.sqltranslator.spi;
 
+import org.apache.shardingsphere.infra.algorithm.core.ShardingSphereAlgorithm;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
-import org.apache.shardingsphere.infra.spi.type.typed.TypedSPI;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sqltranslator.context.SQLTranslatorContext;
+
+import java.util.List;
 
 /**
  * SQL translator.
  */
 @SingletonSPI
-public interface SQLTranslator extends TypedSPI {
+public interface SQLTranslator extends ShardingSphereAlgorithm {
     
     /**
      * Translate SQL.
-     * 
+     *
      * @param sql to be translated SQL
-     * @param sqlStatement to be translated SQL statement
-     * @param protocolType protocol type
+     * @param parameters to be translated parameters
+     * @param queryContext query context
      * @param storageType storage type
-     * @return translated SQL
+     * @param database database
+     * @param globalRuleMetaData global rule meta data
+     * @return SQL translator context
      */
-    String translate(String sql, SQLStatement sqlStatement, DatabaseType protocolType, DatabaseType storageType);
+    SQLTranslatorContext translate(String sql, List<Object> parameters, QueryContext queryContext, DatabaseType storageType, ShardingSphereDatabase database, RuleMetaData globalRuleMetaData);
 }

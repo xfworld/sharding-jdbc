@@ -26,7 +26,7 @@ import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLConstants;
 import org.apache.shardingsphere.db.protocol.mysql.packet.generic.MySQLErrPacket;
 import org.apache.shardingsphere.db.protocol.mysql.payload.MySQLPacketPayload;
 import org.apache.shardingsphere.db.protocol.packet.DatabasePacket;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnknownSQLException;
+import org.apache.shardingsphere.infra.exception.generic.UnknownSQLException;
 
 import java.nio.charset.Charset;
 import java.util.Iterator;
@@ -97,7 +97,7 @@ public final class MySQLPacketCodecEngine implements DatabasePacketCodecEngine {
             new MySQLErrPacket(new UnknownSQLException(ex).toSQLException()).write(payload);
         } finally {
             if (out.readableBytes() - PAYLOAD_LENGTH - SEQUENCE_LENGTH < MAX_PACKET_LENGTH) {
-                updateMessageHeader(out, context.channel().attr(MySQLConstants.MYSQL_SEQUENCE_ID).get().getAndIncrement());
+                updateMessageHeader(out, context.channel().attr(MySQLConstants.SEQUENCE_ID_ATTRIBUTE_KEY).get().getAndIncrement());
             } else {
                 writeMultiPackets(context, out);
             }
@@ -116,7 +116,7 @@ public final class MySQLPacketCodecEngine implements DatabasePacketCodecEngine {
     private void writeMultiPackets(final ChannelHandlerContext context, final ByteBuf byteBuf) {
         int packetCount = byteBuf.skipBytes(PAYLOAD_LENGTH + SEQUENCE_LENGTH).readableBytes() / MAX_PACKET_LENGTH + 1;
         CompositeByteBuf result = context.alloc().compositeBuffer(packetCount * 2);
-        AtomicInteger sequenceId = context.channel().attr(MySQLConstants.MYSQL_SEQUENCE_ID).get();
+        AtomicInteger sequenceId = context.channel().attr(MySQLConstants.SEQUENCE_ID_ATTRIBUTE_KEY).get();
         for (int i = 0; i < packetCount; i++) {
             ByteBuf header = context.alloc().ioBuffer(4, 4);
             int packetLength = Math.min(byteBuf.readableBytes(), MAX_PACKET_LENGTH);

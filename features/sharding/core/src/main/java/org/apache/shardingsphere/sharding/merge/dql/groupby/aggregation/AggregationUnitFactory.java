@@ -19,8 +19,8 @@ package org.apache.shardingsphere.sharding.merge.dql.groupby.aggregation;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.AggregationType;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.AggregationType;
 
 /**
  * Aggregation unit factory.
@@ -30,13 +30,14 @@ public final class AggregationUnitFactory {
     
     /**
      * Create aggregation unit instance.
-     * 
+     *
      * @param type aggregation function type
      * @param isDistinct is distinct
+     * @param separator is separator for group_concat
      * @return aggregation unit instance
      * @throws UnsupportedSQLOperationException unsupported SQL operation exception
      */
-    public static AggregationUnit create(final AggregationType type, final boolean isDistinct) {
+    public static AggregationUnit create(final AggregationType type, final boolean isDistinct, final String separator) {
         switch (type) {
             case MAX:
                 return new ComparableAggregationUnit(false);
@@ -50,6 +51,8 @@ public final class AggregationUnitFactory {
                 return isDistinct ? new DistinctAverageAggregationUnit() : new AverageAggregationUnit();
             case BIT_XOR:
                 return new BitXorAggregationUnit();
+            case GROUP_CONCAT:
+                return isDistinct ? new DistinctGroupConcatAggregationUnit(separator) : new GroupConcatAggregationUnit(separator);
             default:
                 throw new UnsupportedSQLOperationException(type.name());
         }

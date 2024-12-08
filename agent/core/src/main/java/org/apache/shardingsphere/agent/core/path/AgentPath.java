@@ -19,7 +19,7 @@ package org.apache.shardingsphere.agent.core.path;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.agent.core.util.AgentPreconditions;
+import org.apache.shardingsphere.agent.core.preconditions.AgentPreconditions;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -35,7 +35,7 @@ public final class AgentPath {
     
     /**
      * Get agent root path.
-     * 
+     *
      * @return agent root path
      */
     public static File getRootPath() {

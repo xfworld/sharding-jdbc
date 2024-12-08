@@ -1,5 +1,5 @@
 +++
-title = "Code of Conduct" 
+title = "Code of Conduct"
 weight = 2
 chapter = true
 +++
@@ -8,40 +8,53 @@ The following code of conduct is based on full compliance with [ASF CODE OF COND
 
 ## Development Guidelines
 
- - Write codes with heart. Pursue clean, simplified and extremely elegant codes. Agree with concepts in &lt;Refactoring: Improving the Design of Existing Code&gt; and &lt;Clean Code: A Handbook of Agile Software Craftsmanship&gt;.
- - Be familiar with codes already had, to keep consistent with the style and use.
- - Highly reusable, no duplicated codes or configurations.
- - Delete codes out of use in time.
+- **Dedication** Uphold a sense of responsibility and awe, continuously honing your craft.
+- **Readability** Code should be self-explanatory, revealing its purpose through reading, not debugging.
+- **Cleanliness** Embrace the principles of "Refactoring" and "Clean Code", striving for clean and elegant code.
+- **Consistency** Maintain complete consistency in code style, naming, and usage.
+- **Simplicity** Strive for minimalist code, conveying the correct meaning with the least amount of code. Aim for high reusability, no duplicate code or configurations. Promptly remove unused code.
+- **Abstraction** Ensure clear division of levels, reasonable abstraction of concepts. Maintain methods, classes, packages, and modules at the same level of abstraction.
+- **Excellence** Reject arbitrariness, every line of code, every character, every space must have its purpose.
 
 ## Contributor Covenant Submitting of Conduct
 
  - Conform to `Contributor Covenant Code of Conduct` below.
  - Make sure Maven build process success. Run `./mvnw clean install -B -T1C -Pcheck` command in shell to start Maven build process.
+ - Through the uniform code style of spotless, execute the `./mvnw spotless:apply -Pcheck` formatted code.
  - Make sure the test coverage rate is not lower than the master branch.
  - Careful consideration for each `pull request`; Small and frequent `pull request` with complete unit function is welcomed.
- - Through the uniform code style of spotless, execute the `./mvnw spotless:apply -Pcheck` formatted code.
- - If using IDEA, you can import the recommended `src/resources/code-style-idea.xml`.
+ - If you are using IDEA, please import `src/resources/idea/code-style.xml` to maintain consistency in code style.
+ - If you are using IDEA, please import `src/resources/idea/inspections.xml` to detect potential issues in the code.
 
 ## Contributor Covenant Code of Conduct
 
  - Use linux line separators.
  - No meaningless blank lines. Please extract private methods to instead of blank lines if too long method body or different logic code fragments.
- - Use meaningful class, method and variable names, class and method name avoid to use abbreviation. Some variables could use abbreviation.
-   - Variable `arguments` could abbreviate to `args`;
-   - Variable `parameters` could abbreviate to `params`;
-   - Variable `environment` could abbreviate to `env`;
-   - Variable `properties` could abbreviate to `props`;
-   - Variable `configuration` could abbreviate to `config`.
- - Abbreviation composed less than 3 characters should be uppercase, more than 3 characters must use camel case naming rule.
-   - Example for abbreviation composed less than 3 characters: SQL92Lexer, XMLTransfer, MySQLAdminExecutorCreator;
-   - Example for abbreviation composed more than 3 characters: JdbcUrlAppender, YamlAgentConfigurationSwapper;
-   - A variable composed of abbreviation should use lower camel case: mysqlAuthenticationMethod, sqlStatement, mysqlConfig.
- - Except return an input parameter as result, returning variable should be named with `result`; Variables in the loop structure are named with `each`; Replace `each` with `entry` in map.
- - Exceptions when catch are named with `ex`; Exceptions when catch but do nothing are named with `ignored`.
- - Name property files with `Spinal Case`(a variant of `Snake Case` which uses hyphens `-` to separate words). 
+ - Naming covenant:
+   - Use meaningful names.
+   - Avoid to use abbreviation. Some variables could use abbreviation.
+     - Variable `arguments` could abbreviate to `args`;
+     - Variable `parameters` could abbreviate to `params`;
+     - Variable `environment` could abbreviate to `env`;
+     - Variable `properties` could abbreviate to `props`;
+     - Variable `configuration` could abbreviate to `config`.
+   - Abbreviation composed less than 3 characters should be uppercase, more than 3 characters must use camel case naming rule.
+     - Example for abbreviation composed less than 3 characters: SQL92Lexer, XMLTransfer, MySQLAdminExecutorCreator;
+     - Example for abbreviation composed more than 3 characters: JdbcUrlAppender, YamlAgentConfigurationSwapper;
+     - A variable composed of abbreviation should use lower camel case: mysqlAuthenticationMethod, sqlStatement, mysqlConfig.
+   - Local variables that meet the following conditions shall be named according to the following rules:
+     - Except return an input parameter as result, returning variable should be named with `result`;
+     - Variables in the loop structure are named with `each`;
+     - Replace `each` with `entry` in map;
+     - Exceptions when catch are named with `ex`;
+     - Exceptions when catch but do nothing are named with `ignored`.
+   - It is prohibited to use `result`, `each`, or `entry` as method parameter names.
+   - Utility class should be named in the form of `xxUtils`.
+   - Name property files with `Spinal Case`(a variant of `Snake Case` which uses hyphens `-` to separate words).
  - Split codes that need to add notes with it into small methods, which are explained with method names.
  - Have constants on the left and variable on the right in `=` and `equals` conditional expressions; Have variable on the left and constants on the right in `greater than` and `less than` conditional expressions.
  - Beside using same names as input parameters and global fields in assign statement, avoid using `this` modifier.
+ - Local variables should not be set as final.
  - Design class as `final` class except abstract class for extend.
  - Make nested loop structures a new method.
  - Order of members definition and parameters should be consistent during classes and methods.
@@ -52,15 +65,22 @@ The following code of conduct is based on full compliance with [ASF CODE OF COND
  - Replace constructors, getters, setter methods and log variable with lombok in priority.
  - Use `LinkedList`  in priority. Use `ArrayList` for use index to get element only.
  - Use capacity based `Collection` such as `ArrayList`, `HashMap` must indicate initial capacity to avoid recalculate capacity.
- - Use English in all the logs and javadoc.
- - Include Javadoc, todo and fixme only in the comments.
- - Only `public` classes and methods need javadoc, the Javadoc for the user API and SPI needs to be written clearly and comprehensively, other methods, classes and override methods do not need javadoc.
  - Replace if else return and assign statement with ternary operator in priority.
  - Nested using ternary operator is forbidden.
  - Use forward semantics in priority for better understanding code logic in conditional expressions. For example: `if (null == param) {} else {}`.
  - Use concentrate `@SuppressWarnings("xxx")` instead of `@SuppressWarnings("all")`.
- - Avoid using Java Stream in hot methods, unless the performance of using Stream is better than using loop in that situation.
- - Utility class should be named in the form of `xxUtils`.
+ - Reasonably use the @HighFrequencyInvocation annotation to focus on optimizing the performance of critical methods.
+   - Occasions for using the @HighFrequencyInvocation annotation:
+     - In frequently invoked requests, add annotation to classes, methods, or constructors with high frequency calls; precise matching within the scope of annotation;
+     - The `canBeCached` attribute being set as true indicates that the target is a reusable cached resource. For example: a database connection.
+   - Code segments with annotation @HighFrequencyInvocation must strictly guarantee code performance. The following are prohibited code segments within:
+     - It is prohibited to call Java Stream API;
+     - It is prohibited to concat String using "+";
+     - It is prohibited to call LinkedList's get(int index) method.
+ - Comments & Logs covenant:
+   - Use English in all the logs and javadoc.
+   - Include Javadoc, todo and fixme only in the comments.
+   - Only `public` classes and methods need javadoc, the Javadoc for the user API and SPI needs to be written clearly and comprehensively, other methods, classes and override methods do not need javadoc.
 
 ## Contributor Covenant Unit Test of Conduct
 
@@ -93,7 +113,32 @@ The following code of conduct is based on full compliance with [ASF CODE OF COND
    - When mocking static methods or constructors, it is recommended to use the testing framework's `AutoMockExtension` and `StaticMockSettings` to release resources automatically; If using Mockito's `mockStatic` and `mockConstruction` methods, please use `try-with-resource` or close them in the cleanup method to avoid resource leaks.
    - When verifying only one invocation, there is no need to use `times(1)` parameter, please use the single-argument method of `verify`.
 
-## Contributor Covenant G4 of Conduct
+## SQL Parser of Conduct
+
+### Common Conduct
+
+### Maintenance Conduct
+
+- The `G4` syntax files and `SQLVisitor` implementation classes involved in the SQL parsing module need to be marked with differential codes according to the following database relationships. When database A does not provide the corresponding database driver and protocol, but directly uses the driver and protocol of database B, database A can be considered to be a branch database of database B.
+  Usually branch databases will directly use the SQL parsing logic of the trunk database. However, in order to adapt to the unique syntax of the branch database, some branch databases will copy and maintain their own SQL parsing logic from the trunk database. At this time, for the unique syntax of the branch database, you need to use Comments are marked, and other parts need to be consistent with the implementation of the backbone database;
+
+  | Trunk Database | Branch Database |
+  |----------------|-----------------|
+  | MySQL          | MariaDB, Doris  |
+  | PostgreSQL     | -               |
+  | openGauss      | -               |
+  | Oracle         | -               |
+  | SQLServer      | -               |
+  | ClickHouse     | -               |
+  | Hive           | -               |
+  | Presto         | -               |
+  | SQL92          | -               |
+
+- Difference code markup syntax, when adding, replace `{DatabaseType}` with the uppercase name of the database type, for example: `DORIS`.
+    - New syntax: `//{DatabaseType} ADDED BEGIN` and `// {DatabaseType} ADDED END`;
+    - Modified syntax: `//{DatabaseType} CHANGED BEGIN` and `// {DatabaseType} CHANGED END`.
+
+### Contributor Covenant G4 of Conduct
 
  - Common Conduct
    - Every line cannot over `200` chars, guarantee every line have complete semantics.

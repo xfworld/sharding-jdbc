@@ -18,6 +18,7 @@
 package org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.impl;
 
 import com.google.common.base.Strings;
+import lombok.Setter;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.DockerITContainer;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.AdapterContainer;
@@ -30,6 +31,8 @@ import org.testcontainers.containers.BindMode;
 
 import javax.sql.DataSource;
 import java.sql.DriverManager;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -44,6 +47,9 @@ public final class ShardingSphereProxyClusterContainer extends DockerITContainer
     private final AdaptorContainerConfiguration config;
     
     private final AtomicReference<DataSource> targetDataSourceProvider = new AtomicReference<>();
+    
+    @Setter
+    private String abbreviation = ProxyContainerConstants.PROXY_CONTAINER_ABBREVIATION;
     
     public ShardingSphereProxyClusterContainer(final DatabaseType databaseType, final AdaptorContainerConfiguration config) {
         super(ProxyContainerConstants.PROXY_CONTAINER_NAME_PREFIX, config.getAdapterContainerImage());
@@ -69,10 +75,14 @@ public final class ShardingSphereProxyClusterContainer extends DockerITContainer
             setCommand(config.getContainerCommand());
         }
         withExposedPorts(3307, 33071, 3308);
+        if (!config.getPortBindings().isEmpty()) {
+            setPortBindings(config.getPortBindings());
+        }
         addEnv("TZ", "UTC");
         mountConfigurationFiles();
         setWaitStrategy(new JdbcConnectionWaitStrategy(() -> DriverManager.getConnection(DataSourceEnvironment.getURL(databaseType,
                 getHost(), getMappedPort(3307), config.getProxyDataSourceName()), ProxyContainerConstants.USERNAME, ProxyContainerConstants.PASSWORD)));
+        withStartupTimeout(Duration.of(120L, ChronoUnit.SECONDS));
     }
     
     private void mountConfigurationFiles() {
@@ -91,6 +101,6 @@ public final class ShardingSphereProxyClusterContainer extends DockerITContainer
     
     @Override
     public String getAbbreviation() {
-        return ProxyContainerConstants.PROXY_CONTAINER_ABBREVIATION;
+        return abbreviation;
     }
 }

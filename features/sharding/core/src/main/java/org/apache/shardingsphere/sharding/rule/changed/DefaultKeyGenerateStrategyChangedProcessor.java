@@ -18,8 +18,8 @@
 package org.apache.shardingsphere.sharding.rule.changed;
 
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.rule.event.rule.alter.AlterRuleItemEvent;
-import org.apache.shardingsphere.infra.rule.event.rule.drop.DropRuleItemEvent;
+import org.apache.shardingsphere.mode.event.dispatch.rule.alter.AlterRuleItemEvent;
+import org.apache.shardingsphere.mode.event.dispatch.rule.drop.DropRuleItemEvent;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.mode.spi.RuleItemConfigurationChangedProcessor;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
@@ -41,7 +41,7 @@ public final class DefaultKeyGenerateStrategyChangedProcessor implements RuleIte
     
     @Override
     public ShardingRuleConfiguration findRuleConfiguration(final ShardingSphereDatabase database) {
-        return database.getRuleMetaData().findSingleRule(ShardingRule.class).map(optional -> (ShardingRuleConfiguration) optional.getConfiguration()).orElseGet(ShardingRuleConfiguration::new);
+        return database.getRuleMetaData().findSingleRule(ShardingRule.class).map(ShardingRule::getConfiguration).orElseGet(ShardingRuleConfiguration::new);
     }
     
     @Override

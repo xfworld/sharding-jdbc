@@ -18,13 +18,12 @@
 package org.apache.shardingsphere.sharding.distsql.fixture.sharding;
 
 import com.google.common.base.Preconditions;
-import groovy.lang.Closure;
-import groovy.util.Expando;
 import org.apache.shardingsphere.infra.expr.core.InlineExpressionParserFactory;
 import org.apache.shardingsphere.sharding.api.sharding.hint.HintShardingAlgorithm;
 import org.apache.shardingsphere.sharding.api.sharding.hint.HintShardingValue;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -55,15 +54,7 @@ public final class CoreHintShardingAlgorithmFixture implements HintShardingAlgor
     }
     
     private String doSharding(final Comparable<?> shardingValue) {
-        Closure<?> closure = createClosure();
-        closure.setProperty(HINT_INLINE_VALUE_PROPERTY_NAME, shardingValue);
-        return closure.call().toString();
-    }
-    
-    private Closure<?> createClosure() {
-        Closure<?> result = InlineExpressionParserFactory.newInstance(algorithmExpression).evaluateClosure().rehydrate(new Expando(), null, null);
-        result.setResolveStrategy(Closure.DELEGATE_ONLY);
-        return result;
+        return InlineExpressionParserFactory.newInstance(algorithmExpression).evaluateWithArgs(Collections.singletonMap(HINT_INLINE_VALUE_PROPERTY_NAME, shardingValue));
     }
     
     @Override

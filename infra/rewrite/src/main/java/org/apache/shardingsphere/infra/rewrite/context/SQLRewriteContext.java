@@ -21,16 +21,16 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
-import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.ParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.impl.GroupedParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.impl.StandardParameterBuilder;
-import org.apache.shardingsphere.infra.rewrite.sql.token.generator.SQLTokenGenerator;
-import org.apache.shardingsphere.infra.rewrite.sql.token.generator.SQLTokenGenerators;
-import org.apache.shardingsphere.infra.rewrite.sql.token.generator.builder.DefaultTokenGeneratorBuilder;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.SQLToken;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.SQLTokenGenerator;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.SQLTokenGenerators;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.builder.DefaultTokenGeneratorBuilder;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
 import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
+import org.apache.shardingsphere.infra.session.query.QueryContext;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -59,19 +59,18 @@ public final class SQLRewriteContext {
     
     private final ConnectionContext connectionContext;
     
-    public SQLRewriteContext(final ShardingSphereDatabase database, final SQLStatementContext sqlStatementContext, final String sql, final List<Object> params,
-                             final ConnectionContext connectionContext, final HintValueContext hintValueContext) {
+    public SQLRewriteContext(final ShardingSphereDatabase database, final QueryContext queryContext) {
         this.database = database;
-        this.sqlStatementContext = sqlStatementContext;
-        this.sql = sql;
-        parameters = params;
-        this.connectionContext = connectionContext;
-        if (!hintValueContext.isSkipSQLRewrite()) {
+        sqlStatementContext = queryContext.getSqlStatementContext();
+        sql = queryContext.getSql();
+        parameters = queryContext.getParameters();
+        connectionContext = queryContext.getConnectionContext();
+        if (!queryContext.getHintValueContext().isSkipSQLRewrite()) {
             addSQLTokenGenerators(new DefaultTokenGeneratorBuilder(sqlStatementContext).getSQLTokenGenerators());
         }
         parameterBuilder = containsInsertValues(sqlStatementContext)
                 ? new GroupedParameterBuilder(((InsertStatementContext) sqlStatementContext).getGroupedParameters(), ((InsertStatementContext) sqlStatementContext).getOnDuplicateKeyUpdateParameters())
-                : new StandardParameterBuilder(params);
+                : new StandardParameterBuilder(parameters);
     }
     
     private boolean containsInsertValues(final SQLStatementContext sqlStatementContext) {
@@ -94,6 +93,6 @@ public final class SQLRewriteContext {
      * Generate SQL tokens.
      */
     public void generateSQLTokens() {
-        sqlTokens.addAll(sqlTokenGenerators.generateSQLTokens(database.getName(), database.getSchemas(), sqlStatementContext, parameters, connectionContext));
+        sqlTokens.addAll(sqlTokenGenerators.generateSQLTokens(database, sqlStatementContext, parameters, connectionContext));
     }
 }

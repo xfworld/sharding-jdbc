@@ -17,59 +17,41 @@
 
 package org.apache.shardingsphere.readwritesplitting.distsql.handler.converter;
 
-import org.apache.shardingsphere.distsql.parser.segment.AlgorithmSegment;
-import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
-import org.apache.shardingsphere.readwritesplitting.api.ReadwriteSplittingRuleConfiguration;
-import org.apache.shardingsphere.readwritesplitting.api.rule.ReadwriteSplittingDataSourceRuleConfiguration;
-import org.apache.shardingsphere.readwritesplitting.distsql.parser.segment.ReadwriteSplittingRuleSegment;
+import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
+import org.apache.shardingsphere.readwritesplitting.config.ReadwriteSplittingRuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.config.rule.ReadwriteSplittingDataSourceGroupRuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.distsql.segment.ReadwriteSplittingRuleSegment;
+import org.apache.shardingsphere.readwritesplitting.transaction.TransactionalReadQueryStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.apache.shardingsphere.test.matcher.ShardingSphereAssertionMatchers.deepEqual;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReadwriteSplittingRuleStatementConverterTest {
     
     @Test
-    void assertEmptyRuleSegmentConvertResult() {
-        ReadwriteSplittingRuleConfiguration actualEmptyRuleSegmentConvertResult = ReadwriteSplittingRuleStatementConverter
-                .convert(Collections.emptyList());
-        assertTrue(actualEmptyRuleSegmentConvertResult.getDataSources().isEmpty());
-        assertTrue(actualEmptyRuleSegmentConvertResult.getLoadBalancers().isEmpty());
+    void assertConvert() {
+        ReadwriteSplittingRuleSegment ruleSegment = new ReadwriteSplittingRuleSegment(
+                "foo_name", "write_ds", Arrays.asList("read_ds0", "read_ds1"), TransactionalReadQueryStrategy.FIXED.name(), new AlgorithmSegment("foo_algo", new Properties()));
+        ReadwriteSplittingRuleConfiguration actual = ReadwriteSplittingRuleStatementConverter.convert(Collections.singleton(ruleSegment));
+        ReadwriteSplittingDataSourceGroupRuleConfiguration expectedDataSourceGroupRuleConfig = new ReadwriteSplittingDataSourceGroupRuleConfiguration(
+                "foo_name", "write_ds", Arrays.asList("read_ds0", "read_ds1"), TransactionalReadQueryStrategy.FIXED, "foo_name_foo_algo");
+        assertThat(actual.getDataSourceGroups(), deepEqual(Collections.singletonList(expectedDataSourceGroupRuleConfig)));
+        assertThat(actual.getLoadBalancers(), deepEqual(Collections.singletonMap("foo_name_foo_algo", new AlgorithmConfiguration("foo_algo", new Properties()))));
     }
     
     @Test
-    void assertSingleRuleSegmentConvertResult() {
-        ReadwriteSplittingRuleSegment expectedSingleReadwriteSplittingRuleSegment = createReadwriteSplittingRuleSegment("write_ds", Arrays.asList("read_ds_01", "read_ds_02"),
-                "static_load_balancer_type", new Properties());
-        ReadwriteSplittingRuleConfiguration actualSingleRuleSegmentConvertResult = ReadwriteSplittingRuleStatementConverter
-                .convert(Collections.singleton(expectedSingleReadwriteSplittingRuleSegment));
-        Collection<ReadwriteSplittingDataSourceRuleConfiguration> actualSingleRuleSegmentConvertResultDataSources = actualSingleRuleSegmentConvertResult.getDataSources();
-        Map<String, AlgorithmConfiguration> actualSingleRuleSegmentConvertResultLoadBalancers = actualSingleRuleSegmentConvertResult.getLoadBalancers();
-        assertThat(actualSingleRuleSegmentConvertResultDataSources.size(), is(1));
-        assertThat(actualSingleRuleSegmentConvertResultLoadBalancers.size(), is(1));
-        ReadwriteSplittingDataSourceRuleConfiguration actualRuleConfig = actualSingleRuleSegmentConvertResultDataSources.iterator().next();
-        assertThat(actualRuleConfig.getName(), is(expectedSingleReadwriteSplittingRuleSegment.getName()));
-        String expectedLoadBalancerName = String.format("%s_%s", expectedSingleReadwriteSplittingRuleSegment.getName(), expectedSingleReadwriteSplittingRuleSegment.getLoadBalancer().getName());
-        assertThat(actualRuleConfig.getLoadBalancerName(), is(expectedLoadBalancerName));
-        assertThat(actualRuleConfig.getWriteDataSourceName(), is(expectedSingleReadwriteSplittingRuleSegment.getWriteDataSource()));
-        assertThat(actualRuleConfig.getReadDataSourceNames(), is(expectedSingleReadwriteSplittingRuleSegment.getReadDataSources()));
-        String actualLoadBalancerName = actualSingleRuleSegmentConvertResultLoadBalancers.keySet().iterator().next();
-        assertThat(actualLoadBalancerName, is(expectedLoadBalancerName));
-        AlgorithmConfiguration actualSphereAlgorithmConfig = actualSingleRuleSegmentConvertResultLoadBalancers.get(actualLoadBalancerName);
-        assertThat(actualSphereAlgorithmConfig.getType(), is(expectedSingleReadwriteSplittingRuleSegment.getLoadBalancer().getName()));
-        assertThat(actualSphereAlgorithmConfig.getProps(), is(expectedSingleReadwriteSplittingRuleSegment.getLoadBalancer().getProps()));
-    }
-    
-    private ReadwriteSplittingRuleSegment createReadwriteSplittingRuleSegment(final String writeDataSource, final List<String> readDataSources,
-                                                                              final String loadBalancerTypeName, final Properties props) {
-        return new ReadwriteSplittingRuleSegment("", writeDataSource, readDataSources, new AlgorithmSegment(loadBalancerTypeName, props));
+    void assertConvertWithoutTransactionalReadQueryStrategyAndLoadBalancer() {
+        ReadwriteSplittingRuleConfiguration actual = ReadwriteSplittingRuleStatementConverter.convert(
+                Collections.singleton(new ReadwriteSplittingRuleSegment("foo_name", "write_ds", Arrays.asList("read_ds0", "read_ds1"), null)));
+        assertThat(actual.getDataSourceGroups(), deepEqual(Collections.singletonList(
+                new ReadwriteSplittingDataSourceGroupRuleConfiguration("foo_name", "write_ds", Arrays.asList("read_ds0", "read_ds1"), null))));
+        assertTrue(actual.getLoadBalancers().isEmpty());
     }
 }

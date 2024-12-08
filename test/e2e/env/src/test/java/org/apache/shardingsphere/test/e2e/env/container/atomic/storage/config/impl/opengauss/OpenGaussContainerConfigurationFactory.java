@@ -28,7 +28,6 @@ import org.apache.shardingsphere.test.e2e.env.runtime.scenario.database.Database
 import org.apache.shardingsphere.test.e2e.env.runtime.scenario.path.ScenarioDataPath;
 import org.apache.shardingsphere.test.e2e.env.runtime.scenario.path.ScenarioDataPath.Type;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,11 +40,11 @@ public final class OpenGaussContainerConfigurationFactory {
     
     /**
      * Create new instance of openGauss container configuration.
-     * 
+     *
      * @return created instance
      */
     public static StorageContainerConfiguration newInstance() {
-        return new StorageContainerConfiguration(getCommand(), getContainerEnvironments(), getMountedResources(), new ArrayList<>(), new ArrayList<>());
+        return new StorageContainerConfiguration(getCommand(), getContainerEnvironments(), getMountedResources(), Collections.emptyMap(), Collections.emptyMap());
     }
     
     /**
@@ -55,8 +54,9 @@ public final class OpenGaussContainerConfigurationFactory {
      * @return created instance
      */
     public static StorageContainerConfiguration newInstance(final String scenario) {
-        return new StorageContainerConfiguration(getCommand(), getContainerEnvironments(), getMountedResources(scenario), DatabaseEnvironmentManager.getDatabaseNames(scenario),
-                DatabaseEnvironmentManager.getExpectedDatabaseNames(scenario));
+        return new StorageContainerConfiguration(getCommand(), getContainerEnvironments(), getMountedResources(scenario),
+                DatabaseEnvironmentManager.getDatabaseTypes(scenario, TypedSPILoader.getService(DatabaseType.class, "openGauss")),
+                DatabaseEnvironmentManager.getExpectedDatabaseTypes(scenario, TypedSPILoader.getService(DatabaseType.class, "openGauss")));
     }
     
     private static String getCommand() {

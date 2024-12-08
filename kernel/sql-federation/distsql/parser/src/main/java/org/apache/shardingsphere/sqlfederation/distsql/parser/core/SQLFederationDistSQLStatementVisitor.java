@@ -25,7 +25,7 @@ import org.apache.shardingsphere.distsql.parser.autogen.SQLFederationDistSQLStat
 import org.apache.shardingsphere.distsql.parser.autogen.SQLFederationDistSQLStatementParser.SqlFederationRuleDefinitionContext;
 import org.apache.shardingsphere.sql.parser.api.ASTNode;
 import org.apache.shardingsphere.sql.parser.api.visitor.SQLVisitor;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.apache.shardingsphere.sqlfederation.distsql.segment.CacheOptionSegment;
 import org.apache.shardingsphere.sqlfederation.distsql.statement.queryable.ShowSQLFederationRuleStatement;
 import org.apache.shardingsphere.sqlfederation.distsql.statement.updatable.AlterSQLFederationRuleStatement;
@@ -42,14 +42,15 @@ public final class SQLFederationDistSQLStatementVisitor extends SQLFederationDis
     
     @Override
     public ASTNode visitAlterSQLFederationRule(final AlterSQLFederationRuleContext ctx) {
-        return super.visit(ctx.sqlFederationRuleDefinition());
+        return visit(ctx.sqlFederationRuleDefinition());
     }
     
     @Override
     public ASTNode visitSqlFederationRuleDefinition(final SqlFederationRuleDefinitionContext ctx) {
         Boolean sqlFederationEnabled = null == ctx.sqlFederationEnabled() ? null : Boolean.parseBoolean(getIdentifierValue(ctx.sqlFederationEnabled().boolean_()));
+        Boolean allQueryUseSQLFederation = null == ctx.allQueryUseSQLFederation() ? null : Boolean.parseBoolean(getIdentifierValue(ctx.allQueryUseSQLFederation().boolean_()));
         CacheOptionSegment executionPlanCache = null == ctx.executionPlanCache() ? null : visitCacheOption(ctx.executionPlanCache().cacheOption());
-        return new AlterSQLFederationRuleStatement(sqlFederationEnabled, executionPlanCache);
+        return new AlterSQLFederationRuleStatement(sqlFederationEnabled, allQueryUseSQLFederation, executionPlanCache);
     }
     
     @Override
@@ -62,5 +63,4 @@ public final class SQLFederationDistSQLStatementVisitor extends SQLFederationDis
     private String getIdentifierValue(final ParseTree context) {
         return null == context ? null : new IdentifierValue(context.getText()).getValue();
     }
-    
 }

@@ -20,7 +20,7 @@ lexer grammar Keyword;
 import Alphabet, Number;
 
 WS
-    : [ \t\r\n] + ->skip
+    : [ \t\r\n\u3000] + ->skip
     ;
 
 SELECT
@@ -370,7 +370,7 @@ BOOLEAN
 BODY
     : B O D Y
     ;
-    
+
 DOUBLE
     : D O U B L E
     ;
@@ -463,19 +463,19 @@ SECOND
 MICROSECOND
     : M I C R O S E C O N D
     ;
-    
+
 TIMEZONE_HOUR
     : T I M E Z O N E UL_ H O U R
     ;
-    
+
 TIMEZONE_MINUTE
     : T I M E Z O N E UL_ M I N U T E
     ;
-    
+
 TIMEZONE_REGION
     : T I M E Z O N E UL_ R E G I O N
     ;
-    
+
 TIMEZONE_ABBR
     : T I M E Z O N E UL_ A B B R
     ;
@@ -487,7 +487,7 @@ MAX
 MIN
     : M I N
     ;
-    
+
 SUM
     : S U M
     ;
@@ -503,7 +503,7 @@ AVG
 DEFAULT
     : D E F A U L T
     ;
-    
+
 DEFAULTS
     : D E F A U L T S
     ;    
@@ -799,7 +799,7 @@ SHOW
 XMLTABLE
     : X M L T A B L E
     ;
-    
+
 ISSCHEMAVALID
     : I S S C H E M A V A L I D
     ;
@@ -819,19 +819,591 @@ PATH
 EXTRACT
     : E X T R A C T
     ;
-    
+
 ANYDATA
     : A N Y D A T A
     ;
-    
+
 ANYTYPE
     : A N Y T Y P E
     ;
-    
+
 ANYDATASET
     : A N Y D A T A S E T
     ;
 
 AUTONOMOUS_TRANSACTION
     : A U T O N O M O U S UL_ T R A N S A C T I O N
+    ;
+
+WM_CONCAT
+    : W M UL_ C O N C A T
+    ;
+
+DECLARE
+    : D E C L A R E
+    ;
+
+BULK
+    : B U L K
+    ;
+
+COLLECT
+    : C O L L E C T
+    ;    
+
+INSERTING
+    : I N S E R T I N G
+    ;
+
+UPDATING
+    : U P D A T I N G
+    ;
+
+DELETING
+    : D E L E T I N G
+    ;
+
+ROWCOUNT
+    : R O W C O U N T
+    ;
+
+BULK_ROWCOUNT
+    : B U L K UL_ R O W C O U N T
+    ;
+
+RAISE
+    : R A I S E
+    ;
+
+WHILE
+    : W H I L E
+    ;
+
+GOTO
+    : G O T O
+    ;
+
+MUTABLE
+    : M U T A B L E
+    ;
+
+IMMUTABLE
+    : I M M U T A B L E
+    ;
+
+INDICES
+    : I N D I C E S
+    ;
+
+PAIRS
+    : P A I R S
+    ;
+
+PIPE
+    : P I P E
+    ;
+
+FORALL
+    : F O R A L L
+    ;
+
+HTTP
+    : H T T P
+    ;
+
+DIGEST
+    : D I G E S T
+    ;
+
+CONTAINER_DATA
+    : C O N T A I N E R  UL_ D A T A
+    ;
+
+CONDITION
+    : C O N D I T I O N
+    ;
+
+EVALUATE
+    : E V A L U A T E
+    ;
+
+TERMINATED
+    : T E R M I N A T E D
+    ;
+
+WHITESPACE
+    : W H I T E S P A C E
+    ;
+
+OPTIONALLY
+    : O P T I O N A L L Y
+    ;
+
+ENCLOSED
+    : E N C L O S E D
+    ;
+
+LRTRIM
+    : L R T R I M
+    ;
+
+GETLENGTH
+    : G E T L E N G T H
+    ;
+
+APPI
+    : A P P I
+    ;
+
+APPINFO
+    : A P P I N F O
+    ;
+
+ARRAYSIZE
+    : A R R A Y S I Z E
+    ;
+
+AUTO
+    : A U T O
+    ;
+
+AUTOCOMMIT
+    : A U T O C O M M I T
+    ;
+
+AUTOP
+    : A U T O P
+    ;
+
+AUTOPN
+    : A U T O P N
+    ;
+
+AUTORECOVERY
+    : A U T O R E C O V E R Y
+    ;
+
+AUTOT
+    : A U T O T
+    ;
+
+AUTOTRACE
+    : A U T O T R A C E
+    ;
+
+BLO
+    : B L O
+    ;
+
+BLOCKTERMINATOR
+    : B L O C K T E R M I N A T O R
+    ;
+
+CMDS
+    : C M D S
+    ;
+
+CMDSEP
+    : C M D S E P
+    ;
+
+COLINVI
+    : C O L I N V I
+    ;
+
+COLINVISIBLE
+    : C O L I N V I S I B L E
+    ;
+
+COLSEP
+    : C O L S E P
+    ;
+
+CON
+    : C O N
+    ;
+
+CONCAT
+    : C O N C A T
+    ;
+
+COPYC
+    : C O P Y C
+    ;
+
+COPYCOMMIT
+    : C O P Y C O M M I T
+    ;
+
+COPYTYPECHECK
+    : C O P Y T Y P E C H E C K
+    ;
+
+DEF
+    : D E F
+    ;
+
+DEFINE
+    : D E F I N E
+    ;
+
+DESCRIBE
+    : D E S C R I B E
+    ;
+
+ECHO
+    : E C H O
+    ;
+
+EDITF
+    : E D I T F
+    ;
+
+EDITFILE
+    : E D I T F I L E
+    ;
+
+EMB
+    : E M B
+    ;
+
+EMBEDDED
+    : E M B E D D E D
+    ;
+
+ERRORDETAILS
+    : E R R O R D E T A I L S
+    ;
+
+ERRORL
+    : E R R O R L
+    ;
+
+ERRORLOGGING
+    : E R R O R L O G G I N G
+    ;
+
+ESC
+    : E S C
+    ;
+
+ESCAPE
+    : E S C A P E
+    ;
+
+ESCCHAR
+    : E S C C H A R
+    ;
+
+EXITCOMMIT
+    : E X I T C O M M I T
+    ;
+
+OMMIT
+    : O M M I T
+    ;
+
+FEEDBACK
+    : F E E D B A C K
+    ;
+
+FLAGGER
+    : F L A G G E R
+    ;
+
+FLU
+    : F L U
+    ;
+
+FLUSH
+    : F L U S H
+    ;
+
+HEADING
+    : H E A D I N G
+    ;
+
+HEA
+    : H E A
+    ;
+
+HISTORY
+    : H I S T O R Y
+    ;
+
+HIST
+    : H I S T
+    ;
+
+JSONPRINT
+    : J S O N P R I N T
+    ;
+
+LINESIZE
+    : L I N E S I Z E
+    ;
+
+LIN
+    : L I N
+    ;
+
+LOBOFFSET
+    : L O B O F F S E T
+    ;
+
+LOBOF
+    : L O B O F
+    ;
+
+LOGSOURCE
+    : L O G S O U R C E
+    ;
+
+LONG
+    : L O N G
+    ;
+
+LONGCHUNKSIZE
+    : L O N G C H U N K S I Z E
+    ;
+
+MARK
+    : M A R K
+    ;
+
+MARKUP
+    : M A R K U P
+    ;
+
+NEWPAGE
+    : N E W P A G E
+    ;
+
+NEWP
+    : N E W P
+    ;
+
+NUMFORMAT
+    : N U M F O R M A T
+    ;
+
+NUMF
+    : N U M F
+    ;
+
+NUMWIDTH
+    : N U M W I D T H
+    ;
+
+NUM
+    : N U M
+    ;
+
+PAGESIZE
+    : P A G E S I Z E
+    ;
+
+PAGES
+    : P A G E S
+    ;
+
+PAUSE
+    : P A U S E
+    ;
+
+PAU
+    : P A U
+    ;
+
+RECSEP
+    : R E C S E P
+    ;
+
+RECSEPCHAR
+    : R E C S E P C H A R
+    ;
+
+ROWLIMIT
+    : R O W L I M I T
+    ;
+
+ROWPREFETCH
+    : R O W P R E F E T C H
+    ;
+
+SECUREDCOL
+    : S E C U R E D C O L
+    ;
+
+SERVEROUTPUT
+    : S E R V E R O U T P U T
+    ;
+
+SERVEROUT
+    : S E R V E R O U T
+    ;
+
+SHIFTINOUT
+    : S H I F T I N O U T
+    ;
+
+SHIFT
+    : S H I F T
+    ;
+
+SHOWMODE
+    : S H O W M O D E
+    ;
+
+SQLBLANKLINES
+    : S Q L B L A N K L I N E S
+    ;
+
+SQLBL
+    : S Q L B L
+    ;
+
+SQLCASE
+    : S Q L C A S E
+    ;
+
+SQLC
+    : S Q L C
+    ;
+
+SQLCONTINUE
+    : S Q L C O N T I N U E
+    ;
+
+SQLCO
+    : S Q L C O
+    ;
+
+SQLNUMBER
+    : S Q L N U M B E R
+    ;
+
+SQLN
+    : S Q L N
+    ;
+
+SQLPLUSCOMPATIBILITY
+    : S Q L P L U S C O M P A T I B I L I T Y
+    ;
+
+SQLPLUSCOMPAT
+    : S Q L P L U S C O M P A T
+    ;
+
+SQLPREFIX
+    : S Q L P R E F I X
+    ;
+
+SQLPRE
+    : S Q L P R E
+    ;
+
+SQLPROMPT
+    : S Q L P R O M P T
+    ;
+
+SQLP
+    : S Q L P
+    ;
+
+SQLTERMINATOR
+    : S Q L T E R M I N A T O R
+    ;
+
+SQLT
+    : S Q L T
+    ;
+
+STATEMENTCACHE
+    : S T A T E M E N T C A C H E
+    ;
+
+STATEMENTC
+    : S T A T E M E N T C
+    ;
+
+SUFFIX
+    : S U F F I X
+    ;
+
+SUF
+    : S U F
+    ;
+
+TAB
+    : T A B
+    ;
+
+TERMOUT
+    : T E R M O U T
+    ;
+
+TERM
+    : T E R M
+    ;
+
+TI
+    : T I
+    ;
+
+TIMING
+    : T I M I N G
+    ;
+
+TIMI
+    : T I M I
+    ;
+
+TRIMOUT
+    : T R I M O U T
+    ;
+
+TRIMSPOOL
+    : T R I M S P O O L
+    ;
+
+TRIMS
+    : T R I M S
+    ;
+
+UNDERLINE
+    : U N D E R L I N E
+    ;
+
+UND
+    : U N D
+    ;
+
+VERIFY
+    : V E R I F Y
+    ;
+
+VER
+    : V E R
+    ;
+
+WRAP
+    : W R A P
+    ;
+
+WRA
+    : W R A
+    ;
+
+XMLOPTIMIZATIONCHECK
+    : X M L O P T I M I Z A T I O N C H E C K
+    ;
+
+XMLOPT
+    : X M L O P T
+    ;
+
+XQUERY
+    : X Q U E R Y
     ;

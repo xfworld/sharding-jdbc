@@ -18,29 +18,32 @@
 package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.queryable;
 
 import lombok.SneakyThrows;
-import org.apache.shardingsphere.distsql.parser.statement.ral.queryable.ExportDatabaseConfigurationStatement;
-import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
+import org.apache.shardingsphere.distsql.statement.ral.queryable.export.ExportDatabaseConfigurationStatement;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.datasource.pool.props.creator.DataSourcePoolPropertiesCreator;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
+import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.keygen.KeyGenerateStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.NoneShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DatabaseSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
 import org.apache.shardingsphere.test.util.PropertiesBuilder;
 import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -61,19 +64,14 @@ class ExportDatabaseConfigurationExecutorTest {
     private final ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
     
     @Test
-    void assertGetColumns() {
-        Collection<String> columns = new ExportDatabaseConfigurationExecutor().getColumnNames();
-        assertThat(columns.size(), is(1));
-        assertThat(columns.iterator().next(), is("result"));
-    }
-    
-    @Test
     void assertExecute() {
         when(database.getName()).thenReturn("normal_db");
         Map<String, StorageUnit> storageUnits = createStorageUnits();
         when(database.getResourceMetaData().getStorageUnits()).thenReturn(storageUnits);
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.singleton(createShardingRuleConfiguration()));
-        Collection<LocalDataQueryResultRow> actual = new ExportDatabaseConfigurationExecutor().getRows(database, new ExportDatabaseConfigurationStatement(mock(DatabaseSegment.class), null));
+        ExportDatabaseConfigurationExecutor executor = new ExportDatabaseConfigurationExecutor();
+        executor.setDatabase(database);
+        Collection<LocalDataQueryResultRow> actual = executor.getRows(new ExportDatabaseConfigurationStatement(mock(DatabaseSegment.class), null), mock(ContextManager.class));
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(1), is(loadExpectedRow()));
@@ -82,7 +80,7 @@ class ExportDatabaseConfigurationExecutorTest {
     private Map<String, StorageUnit> createStorageUnits() {
         Map<String, DataSourcePoolProperties> propsMap = createDataSourceMap().entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, entry -> DataSourcePoolPropertiesCreator.create(entry.getValue()), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
-        Map<String, StorageUnit> result = new LinkedHashMap<>();
+        Map<String, StorageUnit> result = new LinkedHashMap<>(propsMap.size(), 1F);
         for (Entry<String, DataSourcePoolProperties> entry : propsMap.entrySet()) {
             StorageUnit storageUnit = mock(StorageUnit.class, RETURNS_DEEP_STUBS);
             when(storageUnit.getDataSourcePoolProperties()).thenReturn(entry.getValue());
@@ -97,7 +95,9 @@ class ExportDatabaseConfigurationExecutorTest {
         when(database.getResourceMetaData().getStorageUnits()).thenReturn(Collections.emptyMap());
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.emptyList());
         ExportDatabaseConfigurationStatement sqlStatement = new ExportDatabaseConfigurationStatement(new DatabaseSegment(0, 0, new IdentifierValue("empty_db")), null);
-        Collection<LocalDataQueryResultRow> actual = new ExportDatabaseConfigurationExecutor().getRows(database, sqlStatement);
+        ExportDatabaseConfigurationExecutor executor = new ExportDatabaseConfigurationExecutor();
+        executor.setDatabase(database);
+        Collection<LocalDataQueryResultRow> actual = executor.getRows(sqlStatement, mock(ContextManager.class));
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(1), is("databaseName: empty_db" + System.lineSeparator()));
@@ -136,20 +136,10 @@ class ExportDatabaseConfigurationExecutorTest {
         return result;
     }
     
-    @SneakyThrows(IOException.class)
+    @SneakyThrows({IOException.class, URISyntaxException.class})
     private String loadExpectedRow() {
-        StringBuilder result = new StringBuilder();
-        String fileName = Objects.requireNonNull(ExportDatabaseConfigurationExecutorTest.class.getResource("/expected/export-database-configuration.yaml")).getFile();
-        try (
-                FileReader fileReader = new FileReader(fileName);
-                BufferedReader reader = new BufferedReader(fileReader)) {
-            String line;
-            while (null != (line = reader.readLine())) {
-                if (!line.startsWith("#") && !"".equals(line.trim())) {
-                    result.append(line).append(System.lineSeparator());
-                }
-            }
-        }
-        return result.toString();
+        URL url = Objects.requireNonNull(ConvertYamlConfigurationExecutorTest.class.getResource("/expected/export-database-configuration.yaml"));
+        return Files.readAllLines(Paths.get(url.toURI())).stream().filter(each -> !each.startsWith("#") && !each.trim().isEmpty()).collect(Collectors.joining(System.lineSeparator()))
+                + System.lineSeparator();
     }
 }

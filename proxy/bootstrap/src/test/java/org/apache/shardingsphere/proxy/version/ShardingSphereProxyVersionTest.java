@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.proxy.version;
 
+import org.apache.groovy.util.Maps;
 import org.apache.shardingsphere.db.protocol.constant.DatabaseProtocolServerInfo;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
@@ -67,7 +68,7 @@ class ShardingSphereProxyVersionTest {
     private ContextManager mockContextManager(final String databaseProductName, final String databaseProductVersion) throws SQLException {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
         ShardingSphereDatabase database = mockDatabase(databaseProductName, databaseProductVersion);
-        when(result.getMetaDataContexts().getMetaData().getDatabases()).thenReturn(Collections.singletonMap("foo_db", database));
+        when(result.getMetaDataContexts().getMetaData().getAllDatabases()).thenReturn(Collections.singleton(database));
         return result;
     }
     
@@ -84,7 +85,7 @@ class ShardingSphereProxyVersionTest {
         ResourceMetaData result = mock(ResourceMetaData.class, RETURNS_DEEP_STUBS);
         DataSource dataSource = createDataSource(databaseProductName, databaseProductVersion);
         DataSourcePoolProperties dataSourcePoolProps = mock(DataSourcePoolProperties.class, RETURNS_DEEP_STUBS);
-        when(dataSourcePoolProps.getConnectionPropertySynonyms().getStandardProperties()).thenReturn(Collections.singletonMap("url", "jdbc:mock://127.0.0.1/foo_db"));
+        when(dataSourcePoolProps.getConnectionPropertySynonyms().getStandardProperties()).thenReturn(Maps.of("url", "jdbc:mock://127.0.0.1/foo_db", "username", "test"));
         StorageUnit storageUnit = new StorageUnit(mock(StorageNode.class), dataSourcePoolProps, dataSource);
         when(result.getStorageUnits()).thenReturn(Collections.singletonMap("foo_ds", storageUnit));
         return result;

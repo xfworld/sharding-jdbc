@@ -18,6 +18,7 @@
 package org.apache.shardingsphere.test.e2e.env.container.atomic;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.DockerHealthcheckWaitStrategy;
@@ -33,10 +34,11 @@ import java.util.stream.Collectors;
  * Docker IT container.
  */
 @Getter
+@Setter
 @Slf4j
 public abstract class DockerITContainer extends GenericContainer<DockerITContainer> implements ITContainer {
     
-    private final String name;
+    private String name;
     
     protected DockerITContainer(final String name, final String containerImage) {
         super(new RemoteDockerImage(DockerImageName.parse(containerImage)));
@@ -51,7 +53,7 @@ public abstract class DockerITContainer extends GenericContainer<DockerITContain
     }
     
     private void startDependencies() {
-        Collection<DockerITContainer> dependencies = getDependencies().stream().filter(each -> each instanceof DockerITContainer).map(each -> (DockerITContainer) each).collect(Collectors.toList());
+        Collection<DockerITContainer> dependencies = getDependencies().stream().filter(DockerITContainer.class::isInstance).map(DockerITContainer.class::cast).collect(Collectors.toList());
         dependencies.stream().filter(each -> !each.isCreated()).forEach(GenericContainer::start);
         dependencies.stream()
                 .filter(each -> {
@@ -60,7 +62,7 @@ public abstract class DockerITContainer extends GenericContainer<DockerITContain
                         // CHECKSTYLE:OFF
                     } catch (final Exception ex) {
                         // CHECKSTYLE:ON
-                        log.info("Failed to check container {} healthy.", each.getName(), ex);
+                        log.info("Failed to check container {} healthy.", each.getName());
                         return false;
                     }
                 })

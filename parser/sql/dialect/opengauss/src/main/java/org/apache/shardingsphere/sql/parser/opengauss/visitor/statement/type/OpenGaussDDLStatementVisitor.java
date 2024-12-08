@@ -17,6 +17,8 @@
 
 package org.apache.shardingsphere.sql.parser.opengauss.visitor.statement.type;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.misc.Interval;
 import org.apache.shardingsphere.sql.parser.api.ASTNode;
 import org.apache.shardingsphere.sql.parser.api.visitor.statement.type.DDLStatementVisitor;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.AbsoluteCountContext;
@@ -138,113 +140,113 @@ import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.Tab
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.TruncateTableContext;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.ValidateConstraintSpecificationContext;
 import org.apache.shardingsphere.sql.parser.opengauss.visitor.statement.OpenGaussStatementVisitor;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.DirectionType;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.AlterDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.CreateDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.ColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.AddColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.DropColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.ModifyColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.RenameColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.ConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.ConstraintSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.alter.AddConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.alter.DropConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.alter.ModifyConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.alter.ValidateConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.cursor.CursorNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.cursor.DirectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.table.RenameTableDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.FunctionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DataTypeSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.NameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OwnerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DeleteStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.InsertStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.UpdateStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.value.collection.CollectionValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.literal.impl.NumberLiteralValue;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterAggregateStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterConversionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterDefaultPrivilegesStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterDirectoryStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterDomainStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterExtensionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterForeignTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterFunctionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterGroupStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterIndexStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterLanguageStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterMaterializedViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterPackageStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterProcedureStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterRuleStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterSchemaStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterSequenceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterSynonymStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterTablespaceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterTextSearchStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterTypeStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussAlterViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCloseStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCommentStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateAggregateStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateCastStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateConversionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateDatabaseStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateDirectoryStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateDomainStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateExtensionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateFunctionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateIndexStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateLanguageStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateProcedureStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreatePublicationStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateRuleStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateSchemaStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateSequenceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateSynonymStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateTablespaceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateTextSearchStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateTypeStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCreateViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussCursorStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDeallocateStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDeclareStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropCastStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropConversionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropDatabaseStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropDirectoryStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropDomainStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropExtensionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropFunctionStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropIndexStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropLanguageStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropProcedureStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropPublicationStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropRuleStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropSchemaStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropSequenceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropServerStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropSynonymStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropTablespaceStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropTypeStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussDropViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussFetchStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussMoveStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussPrepareStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.ddl.OpenGaussTruncateStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.DirectionType;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.AlterDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.CreateDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.ColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.AddColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.DropColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.ModifyColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.RenameColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.AddConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.DropConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.ModifyConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.ValidateConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.cursor.CursorNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.cursor.DirectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.RenameTableDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.FunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DataTypeSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.NameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OwnerSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.DeleteStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.UpdateStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.collection.CollectionValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl.NumberLiteralValue;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterAggregateStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterConversionStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterDefaultPrivilegesStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterDirectoryStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterDomainStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterExtensionStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterForeignTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterFunctionStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterGroupStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterLanguageStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterMaterializedViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterPackageStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterProcedureStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterRuleStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterSchemaStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterSequenceStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterSynonymStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterTablespaceStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterTextSearchStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterTypeStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussAlterViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCloseStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCommentStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateAggregateStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateCastStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateConversionStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateDatabaseStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateDirectoryStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateDomainStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateExtensionStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateFunctionStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateLanguageStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateProcedureStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreatePublicationStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateRuleStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateSchemaStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateSequenceStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateSynonymStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateTablespaceStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateTextSearchStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateTypeStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCreateViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussCursorStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDeallocateStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDeclareStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropCastStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropConversionStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropDatabaseStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropDirectoryStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropDomainStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropExtensionStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropFunctionStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropLanguageStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropProcedureStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropPublicationStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropRuleStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropSchemaStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropSequenceStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropServerStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropSynonymStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropTablespaceStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropTypeStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussDropViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussFetchStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussMoveStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussPrepareStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.ddl.OpenGaussTruncateStatement;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -445,13 +447,17 @@ public final class OpenGaussDDLStatementVisitor extends OpenGaussStatementVisito
         DataTypeSegment dataType = (DataTypeSegment) visit(ctx.dataType());
         boolean isPrimaryKey = ctx.columnConstraint().stream().anyMatch(each -> null != each.columnConstraintOption() && null != each.columnConstraintOption().primaryKey());
         // TODO parse not null
-        ColumnDefinitionSegment result = new ColumnDefinitionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), column, dataType, isPrimaryKey, false);
+        ColumnDefinitionSegment result = new ColumnDefinitionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), column, dataType, isPrimaryKey, false, getText(ctx));
         for (ColumnConstraintContext each : ctx.columnConstraint()) {
             if (null != each.columnConstraintOption().tableName()) {
                 result.getReferencedTables().add((SimpleTableSegment) visit(each.columnConstraintOption().tableName()));
             }
         }
         return result;
+    }
+    
+    private String getText(final ParserRuleContext ctx) {
+        return ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
     }
     
     @Override
@@ -487,7 +493,7 @@ public final class OpenGaussDDLStatementVisitor extends OpenGaussStatementVisito
         // TODO visit pk and table ref
         ColumnSegment column = (ColumnSegment) visit(ctx.modifyColumn().columnName());
         DataTypeSegment dataType = null == ctx.dataType() ? null : (DataTypeSegment) visit(ctx.dataType());
-        ColumnDefinitionSegment columnDefinition = new ColumnDefinitionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), column, dataType, false, false);
+        ColumnDefinitionSegment columnDefinition = new ColumnDefinitionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), column, dataType, false, false, getText(ctx));
         return new ModifyColumnDefinitionSegment(ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex(), columnDefinition);
     }
     
@@ -995,6 +1001,7 @@ public final class OpenGaussDDLStatementVisitor extends OpenGaussStatementVisito
         Iterator<NameSegment> nameSegmentIterator = ((CollectionValue<NameSegment>) visit(ctx.commentClauses().anyName())).getValue().iterator();
         Optional<NameSegment> columnName = nameSegmentIterator.hasNext() ? Optional.of(nameSegmentIterator.next()) : Optional.empty();
         columnName.ifPresent(optional -> result.setColumn(new ColumnSegment(optional.getStartIndex(), optional.getStopIndex(), optional.getIdentifier())));
+        result.setComment(new IdentifierValue(ctx.commentClauses().commentText().getText()));
         setTableSegment(result, nameSegmentIterator);
         return result;
     }
@@ -1003,6 +1010,7 @@ public final class OpenGaussDDLStatementVisitor extends OpenGaussStatementVisito
     private OpenGaussCommentStatement commentOnTable(final CommentContext ctx) {
         OpenGaussCommentStatement result = new OpenGaussCommentStatement();
         Iterator<NameSegment> nameSegmentIterator = ((CollectionValue<NameSegment>) visit(ctx.commentClauses().anyName())).getValue().iterator();
+        result.setComment(new IdentifierValue(ctx.commentClauses().commentText().getText()));
         setTableSegment(result, nameSegmentIterator);
         return result;
     }
@@ -1062,104 +1070,71 @@ public final class OpenGaussDDLStatementVisitor extends OpenGaussStatementVisito
     
     @Override
     public ASTNode visitNext(final NextContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.NEXT);
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.NEXT);
     }
     
     @Override
     public ASTNode visitPrior(final PriorContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.PRIOR);
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.PRIOR);
     }
     
     @Override
     public ASTNode visitFirst(final FirstContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.FIRST);
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.FIRST);
     }
     
     @Override
     public ASTNode visitLast(final LastContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.LAST);
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.LAST);
     }
     
     @Override
     public ASTNode visitAbsoluteCount(final AbsoluteCountContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.ABSOLUTE_COUNT);
-        result.setCount(((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.ABSOLUTE_COUNT, ((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
     }
     
     @Override
     public ASTNode visitRelativeCount(final RelativeCountContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.RELATIVE_COUNT);
-        result.setCount(((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.RELATIVE_COUNT, ((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
     }
     
     @Override
     public ASTNode visitCount(final CountContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.COUNT);
-        result.setCount(((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.COUNT, ((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
     }
     
     @Override
     public ASTNode visitAll(final AllContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.ALL);
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.ALL);
     }
     
     @Override
     public ASTNode visitForward(final ForwardContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.FORWARD);
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.FORWARD);
     }
     
     @Override
     public ASTNode visitForwardCount(final ForwardCountContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.FORWARD_COUNT);
-        result.setCount(((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.FORWARD_COUNT, ((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
     }
     
     @Override
     public ASTNode visitForwardAll(final ForwardAllContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.FORWARD_ALL);
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.FORWARD_ALL);
     }
     
     @Override
     public ASTNode visitBackward(final BackwardContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.BACKWARD);
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.BACKWARD);
     }
     
     @Override
     public ASTNode visitBackwardCount(final BackwardCountContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.BACKWARD_COUNT);
-        result.setCount(((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.BACKWARD_COUNT, ((NumberLiteralValue) visit(ctx.signedIconst())).getValue().longValue());
     }
     
     @Override
     public ASTNode visitBackwardAll(final BackwardAllContext ctx) {
-        DirectionSegment result = new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-        result.setDirectionType(DirectionType.BACKWARD_ALL);
-        return result;
+        return new DirectionSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(), DirectionType.BACKWARD_ALL);
     }
 }

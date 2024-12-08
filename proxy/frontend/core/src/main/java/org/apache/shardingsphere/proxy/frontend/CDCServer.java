@@ -31,7 +31,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.proxy.frontend.netty.CDCServerHandlerInitializer;
 
 import java.util.ArrayList;
@@ -40,9 +39,8 @@ import java.util.List;
 /**
  * CDC server.
  */
-@Slf4j
 @RequiredArgsConstructor
-public final class CDCServer extends Thread {
+public final class CDCServer implements Runnable {
     
     private final List<String> addressed;
     
@@ -78,11 +76,11 @@ public final class CDCServer extends Thread {
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(new CDCServerHandlerInitializer());
-        List<ChannelFuture> futures = new ArrayList<>();
-        for (String address : addresses) {
-            futures.add(bootstrap.bind(address, port).sync());
+        List<ChannelFuture> result = new ArrayList<>(addresses.size());
+        for (String each : addresses) {
+            result.add(bootstrap.bind(each, port).sync());
         }
-        return futures;
+        return result;
     }
     
     private void createEventLoopGroup() {

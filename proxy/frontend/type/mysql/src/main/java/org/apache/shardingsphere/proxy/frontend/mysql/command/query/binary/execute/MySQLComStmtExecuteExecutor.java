@@ -33,6 +33,7 @@ import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementCont
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.handler.ProxyBackendHandler;
 import org.apache.shardingsphere.proxy.backend.handler.ProxyBackendHandlerFactory;
 import org.apache.shardingsphere.proxy.backend.response.data.QueryResponseCell;
@@ -76,7 +77,8 @@ public final class MySQLComStmtExecuteExecutor implements QueryCommandExecutor {
         if (sqlStatementContext instanceof ParameterAware) {
             ((ParameterAware) sqlStatementContext).setUpParameters(params);
         }
-        QueryContext queryContext = new QueryContext(sqlStatementContext, preparedStatement.getSql(), params, preparedStatement.getHintValueContext(), true);
+        QueryContext queryContext = new QueryContext(sqlStatementContext, preparedStatement.getSql(), params, preparedStatement.getHintValueContext(), connectionSession.getConnectionContext(),
+                ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData(), true);
         connectionSession.setQueryContext(queryContext);
         proxyBackendHandler = ProxyBackendHandlerFactory.newInstance(TypedSPILoader.getService(DatabaseType.class, "MySQL"), queryContext, connectionSession, true);
         ResponseHeader responseHeader = proxyBackendHandler.execute();
@@ -94,13 +96,13 @@ public final class MySQLComStmtExecuteExecutor implements QueryCommandExecutor {
     
     private Collection<DatabasePacket> processQuery(final QueryResponseHeader queryResponseHeader) {
         responseType = ResponseType.QUERY;
-        int characterSet = connectionSession.getAttributeMap().attr(MySQLConstants.MYSQL_CHARACTER_SET_ATTRIBUTE_KEY).get().getId();
-        return ResponsePacketBuilder.buildQueryResponsePackets(queryResponseHeader, characterSet, ServerStatusFlagCalculator.calculateFor(connectionSession));
+        int characterSet = connectionSession.getAttributeMap().attr(MySQLConstants.CHARACTER_SET_ATTRIBUTE_KEY).get().getId();
+        return ResponsePacketBuilder.buildQueryResponsePackets(queryResponseHeader, characterSet, ServerStatusFlagCalculator.calculateFor(connectionSession, true));
     }
     
     private Collection<DatabasePacket> processUpdate(final UpdateResponseHeader updateResponseHeader) {
         responseType = ResponseType.UPDATE;
-        return ResponsePacketBuilder.buildUpdateResponsePackets(updateResponseHeader, ServerStatusFlagCalculator.calculateFor(connectionSession));
+        return ResponsePacketBuilder.buildUpdateResponsePackets(updateResponseHeader, ServerStatusFlagCalculator.calculateFor(connectionSession, true));
     }
     
     @Override
@@ -124,6 +126,8 @@ public final class MySQLComStmtExecuteExecutor implements QueryCommandExecutor {
     
     @Override
     public void close() throws SQLException {
-        proxyBackendHandler.close();
+        if (null != proxyBackendHandler) {
+            proxyBackendHandler.close();
+        }
     }
 }

@@ -24,6 +24,7 @@ import org.apache.shardingsphere.infra.database.core.metadata.data.model.Constra
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.IndexMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
+import org.apache.shardingsphere.infra.database.core.metadata.database.datatype.DataTypeRegistry;
 import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.database.postgresql.type.PostgreSQLDatabaseType;
@@ -91,7 +92,8 @@ class PostgreSQLMetaDataLoaderTest {
         when(dataSource.getConnection().prepareStatement(BASIC_CONSTRAINT_META_DATA_SQL).executeQuery()).thenReturn(constraintResultSet);
         ResultSet roleTableGrantsResultSet = mockRoleTableGrantsResultSet();
         when(dataSource.getConnection().prepareStatement(startsWith(LOAD_ALL_ROLE_TABLE_GRANTS_SQL)).executeQuery()).thenReturn(roleTableGrantsResultSet);
-        assertTableMetaDataMap(getDialectTableMetaDataLoader().load(new MetaDataLoaderMaterial(Collections.emptyList(), dataSource, new PostgreSQLDatabaseType(), "sharding_db")));
+        DataTypeRegistry.load(dataSource, "PostgreSQL");
+        assertTableMetaDataMap(getDialectTableMetaDataLoader().load(new MetaDataLoaderMaterial(Collections.emptyList(), "foo_ds", dataSource, new PostgreSQLDatabaseType(), "sharding_db")));
     }
     
     private ResultSet mockSchemaMetaDataResultSet() throws SQLException {
@@ -118,7 +120,8 @@ class PostgreSQLMetaDataLoaderTest {
         when(dataSource.getConnection().prepareStatement(BASIC_CONSTRAINT_META_DATA_SQL).executeQuery()).thenReturn(constraintResultSet);
         ResultSet roleTableGrantsResultSet = mockRoleTableGrantsResultSet();
         when(dataSource.getConnection().prepareStatement(startsWith(LOAD_ALL_ROLE_TABLE_GRANTS_SQL)).executeQuery()).thenReturn(roleTableGrantsResultSet);
-        assertTableMetaDataMap(getDialectTableMetaDataLoader().load(new MetaDataLoaderMaterial(Collections.singletonList("tbl"), dataSource, new PostgreSQLDatabaseType(), "sharding_db")));
+        DataTypeRegistry.load(dataSource, "PostgreSQL");
+        assertTableMetaDataMap(getDialectTableMetaDataLoader().load(new MetaDataLoaderMaterial(Collections.singletonList("tbl"), "foo_ds", dataSource, new PostgreSQLDatabaseType(), "sharding_db")));
     }
     
     private ResultSet mockRoleTableGrantsResultSet() throws SQLException {
@@ -211,12 +214,11 @@ class PostgreSQLMetaDataLoaderTest {
         assertThat(columnsIterator.next(), is(new ColumnMetaData("name", Types.VARCHAR, false, false, true, true, false, true)));
         assertThat(actualTableMetaData.getIndexes().size(), is(1));
         Iterator<IndexMetaData> indexesIterator = actualTableMetaData.getIndexes().iterator();
-        IndexMetaData indexMetaData = new IndexMetaData("id");
+        IndexMetaData indexMetaData = new IndexMetaData("id", Collections.singletonList("id"));
         indexMetaData.setUnique(true);
-        indexMetaData.getColumns().add("id");
         assertThat(indexesIterator.next(), is(indexMetaData));
         assertThat(actualTableMetaData.getConstraints().size(), is(1));
-        Iterator<ConstraintMetaData> constrainsIterator = actualTableMetaData.getConstraints().iterator();
-        assertThat(constrainsIterator.next(), is(new ConstraintMetaData("tbl_con", "refer_tbl")));
+        Iterator<ConstraintMetaData> constrainsMetaDataList = actualTableMetaData.getConstraints().iterator();
+        assertThat(constrainsMetaDataList.next(), is(new ConstraintMetaData("tbl_con", "refer_tbl")));
     }
 }

@@ -76,7 +76,7 @@ public final class SQLCases {
     }
     
     private Collection<String> getAllDatabaseTypes() {
-        return Arrays.asList("H2", "MySQL", "PostgreSQL", "Oracle", "SQLServer", "SQL92", "openGauss");
+        return Arrays.asList("H2", "MySQL", "PostgreSQL", "Oracle", "SQLServer", "SQL92", "openGauss", "Doris", "Firebird");
     }
     
     private boolean containsSQLCaseType(final SQLCase sqlCase, final SQLCaseType caseType) {
@@ -85,7 +85,7 @@ public final class SQLCases {
     
     /**
      * Get SQL.
-     * 
+     *
      * @param caseId SQL case ID
      * @param caseType SQL case type
      * @param params parameters

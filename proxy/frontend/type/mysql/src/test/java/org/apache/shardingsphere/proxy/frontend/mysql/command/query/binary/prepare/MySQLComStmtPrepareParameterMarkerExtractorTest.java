@@ -24,41 +24,38 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.parser.ShardingSphereSQLParserEngine;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sql.parser.api.CacheOption;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.ParameterMarkerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.AbstractSQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Types;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 class MySQLComStmtPrepareParameterMarkerExtractorTest {
     
+    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "MySQL");
+    
     @Test
     void assertFindColumnsOfParameterMarkersForInsertStatement() {
-        String sql = "insert into user (id, name, age) values (1, ?, ?), (?, 'bar', ?)";
-        SQLStatement sqlStatement = new ShardingSphereSQLParserEngine(TypedSPILoader.getService(DatabaseType.class, "MySQL"), new CacheOption(0, 0), new CacheOption(0, 0), false).parse(sql, false);
-        ShardingSphereSchema schema = prepareSchema();
-        Map<ParameterMarkerSegment, ShardingSphereColumn> actual = MySQLComStmtPrepareParameterMarkerExtractor.findColumnsOfParameterMarkers(sqlStatement, schema);
-        List<ParameterMarkerSegment> parameterMarkerSegments = new ArrayList<>(((AbstractSQLStatement) sqlStatement).getParameterMarkerSegments());
-        assertThat(actual.get(parameterMarkerSegments.get(0)), is(schema.getTable("user").getColumn("name")));
-        assertThat(actual.get(parameterMarkerSegments.get(1)), is(schema.getTable("user").getColumn("age")));
-        assertThat(actual.get(parameterMarkerSegments.get(2)), is(schema.getTable("user").getColumn("id")));
-        assertThat(actual.get(parameterMarkerSegments.get(3)), is(schema.getTable("user").getColumn("age")));
+        String sql = "INSERT INTO user (id, name, age) VALUES (1, ?, ?), (?, 'bar', ?)";
+        SQLStatement sqlStatement = new ShardingSphereSQLParserEngine(databaseType, new CacheOption(0, 0L), new CacheOption(0, 0L)).parse(sql, false);
+        ShardingSphereSchema schema = createSchema();
+        List<ShardingSphereColumn> actual = MySQLComStmtPrepareParameterMarkerExtractor.findColumnsOfParameterMarkers(sqlStatement, schema);
+        assertThat(actual.get(0), is(schema.getTable("user").getColumn("name")));
+        assertThat(actual.get(1), is(schema.getTable("user").getColumn("age")));
+        assertThat(actual.get(2), is(schema.getTable("user").getColumn("id")));
+        assertThat(actual.get(3), is(schema.getTable("user").getColumn("age")));
     }
     
-    private ShardingSphereSchema prepareSchema() {
-        ShardingSphereTable table = new ShardingSphereTable();
-        table.putColumn(new ShardingSphereColumn("id", Types.BIGINT, true, false, false, false, true, false));
-        table.putColumn(new ShardingSphereColumn("name", Types.VARCHAR, false, false, false, false, false, false));
-        table.putColumn(new ShardingSphereColumn("age", Types.SMALLINT, false, false, false, false, true, false));
-        ShardingSphereSchema result = new ShardingSphereSchema();
-        result.getTables().put("user", table);
-        return result;
+    private ShardingSphereSchema createSchema() {
+        ShardingSphereTable table = new ShardingSphereTable("user", Arrays.asList(
+                new ShardingSphereColumn("id", Types.BIGINT, true, false, false, false, true, false),
+                new ShardingSphereColumn("name", Types.VARCHAR, false, false, false, false, false, false),
+                new ShardingSphereColumn("age", Types.SMALLINT, false, false, false, false, true, false)), Collections.emptyList(), Collections.emptyList());
+        return new ShardingSphereSchema("foo_db", Collections.singleton(table), Collections.emptyList());
     }
 }

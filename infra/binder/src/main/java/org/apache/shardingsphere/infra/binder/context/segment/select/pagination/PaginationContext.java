@@ -19,10 +19,11 @@ package org.apache.shardingsphere.infra.binder.context.segment.select.pagination
 
 import lombok.Getter;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.NumberLiteralPaginationValueSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.PaginationValueSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.ParameterMarkerPaginationValueSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.pagination.limit.LimitValueSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.NumberLiteralPaginationValueSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.PaginationValueSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.ParameterMarkerPaginationValueSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.limit.LimitValueSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.rownum.ExpressionRowNumberValueSegment;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,7 +40,7 @@ public final class PaginationContext {
     
     private final PaginationValueSegment rowCountSegment;
     
-    private final long actualOffset;
+    private final Long actualOffset;
     
     private final Long actualRowCount;
     
@@ -47,21 +48,27 @@ public final class PaginationContext {
         hasPagination = null != offsetSegment || null != rowCountSegment;
         this.offsetSegment = offsetSegment;
         this.rowCountSegment = rowCountSegment;
-        actualOffset = null == offsetSegment ? 0L : getValue(offsetSegment, params);
+        actualOffset = null == offsetSegment ? Long.valueOf(0L) : getValue(offsetSegment, params);
         actualRowCount = null == rowCountSegment ? null : getValue(rowCountSegment, params);
     }
     
-    private long getValue(final PaginationValueSegment paginationValueSegment, final List<Object> params) {
+    private Long getValue(final PaginationValueSegment paginationValueSegment, final List<Object> params) {
         if (paginationValueSegment instanceof ParameterMarkerPaginationValueSegment) {
             Object obj = null == params || params.isEmpty() ? 0L : params.get(((ParameterMarkerPaginationValueSegment) paginationValueSegment).getParameterIndex());
+            if (null == obj) {
+                return null;
+            }
             return obj instanceof Long ? (long) obj : (int) obj;
+        }
+        if (paginationValueSegment instanceof ExpressionRowNumberValueSegment) {
+            return ((ExpressionRowNumberValueSegment) paginationValueSegment).getValue(params);
         }
         return ((NumberLiteralPaginationValueSegment) paginationValueSegment).getValue();
     }
     
     /**
      * Get offset segment.
-     * 
+     *
      * @return offset segment
      */
     public Optional<PaginationValueSegment> getOffsetSegment() {
@@ -79,7 +86,7 @@ public final class PaginationContext {
     
     /**
      * Get actual offset.
-     * 
+     *
      * @return actual offset
      */
     public long getActualOffset() {
@@ -107,6 +114,7 @@ public final class PaginationContext {
      * @return offset parameter index
      */
     public Optional<Integer> getOffsetParameterIndex() {
+        // TODO handle offsetSegment instance of ExpressionRowNumberValueSegment
         return offsetSegment instanceof ParameterMarkerPaginationValueSegment ? Optional.of(((ParameterMarkerPaginationValueSegment) offsetSegment).getParameterIndex()) : Optional.empty();
     }
     
@@ -116,6 +124,7 @@ public final class PaginationContext {
      * @return row count parameter index
      */
     public Optional<Integer> getRowCountParameterIndex() {
+        // TODO handle offsetSegment instance of ExpressionRowNumberValueSegment
         return rowCountSegment instanceof ParameterMarkerPaginationValueSegment
                 ? Optional.of(((ParameterMarkerPaginationValueSegment) rowCountSegment).getParameterIndex())
                 : Optional.empty();
@@ -132,7 +141,7 @@ public final class PaginationContext {
     
     /**
      * Get revised row count.
-     * 
+     *
      * @param selectStatementContext select statement context
      * @return revised row count
      */

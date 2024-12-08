@@ -18,9 +18,9 @@
 package org.apache.shardingsphere.shadow.rule;
 
 import lombok.Getter;
-import org.apache.shardingsphere.shadow.api.shadow.ShadowOperationType;
-import org.apache.shardingsphere.shadow.api.shadow.column.ColumnShadowAlgorithm;
-import org.apache.shardingsphere.shadow.api.shadow.hint.HintShadowAlgorithm;
+import org.apache.shardingsphere.shadow.spi.ShadowOperationType;
+import org.apache.shardingsphere.shadow.spi.column.ColumnShadowAlgorithm;
+import org.apache.shardingsphere.shadow.spi.hint.HintShadowAlgorithm;
 import org.apache.shardingsphere.shadow.spi.ShadowAlgorithm;
 
 import java.util.Collection;
@@ -35,19 +35,19 @@ import java.util.stream.Collectors;
 @Getter
 public final class ShadowTableRule {
     
-    private final String tableName;
+    private final String name;
     
-    private final Collection<String> shadowDataSources;
+    private final Collection<String> logicDataSourceNames;
     
     private final Collection<String> hintShadowAlgorithmNames;
     
     private final Map<ShadowOperationType, Collection<ShadowAlgorithmNameRule>> columnShadowAlgorithmNames;
     
-    public ShadowTableRule(final String tableName, final Collection<String> shadowDataSources, final Collection<String> shadowAlgorithmNames, final Map<String, ShadowAlgorithm> shadowAlgorithms) {
-        this.tableName = tableName;
-        this.shadowDataSources = shadowDataSources;
-        this.hintShadowAlgorithmNames = getHintShadowAlgorithmNames(shadowAlgorithmNames, shadowAlgorithms);
-        this.columnShadowAlgorithmNames = getColumnShadowAlgorithmRules(shadowAlgorithmNames, shadowAlgorithms);
+    public ShadowTableRule(final String tableName, final Collection<String> logicDataSourceNames, final Collection<String> shadowAlgorithmNames, final Map<String, ShadowAlgorithm> shadowAlgorithms) {
+        this.name = tableName;
+        this.logicDataSourceNames = logicDataSourceNames;
+        hintShadowAlgorithmNames = getHintShadowAlgorithmNames(shadowAlgorithmNames, shadowAlgorithms);
+        columnShadowAlgorithmNames = getColumnShadowAlgorithmRules(shadowAlgorithmNames, shadowAlgorithms);
     }
     
     private Collection<String> getHintShadowAlgorithmNames(final Collection<String> shadowAlgorithmNames, final Map<String, ShadowAlgorithm> shadowAlgorithms) {

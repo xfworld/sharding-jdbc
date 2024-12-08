@@ -30,9 +30,8 @@ import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.infra.merge.result.impl.transparent.TransparentMergedResult;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.DatabaseAdminQueryExecutor;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ShorthandProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ShorthandProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -58,9 +57,8 @@ public final class NoResourceShowExecutor implements DatabaseAdminQueryExecutor 
     
     @Override
     public void execute(final ConnectionSession connectionSession) {
-        TableSegment tableSegment = sqlStatement.getFrom();
         expressions = sqlStatement.getProjections().getProjections().stream().filter(each -> !(each instanceof ShorthandProjectionSegment))
-                .map(each -> new ProjectionEngine(null).createProjection(tableSegment, each))
+                .map(each -> new ProjectionEngine(null).createProjection(each))
                 .filter(Optional::isPresent).map(each -> each.get().getAlias().isPresent() ? each.get().getAlias().get() : each.get().getExpression()).collect(Collectors.toList());
         mergedResult = new TransparentMergedResult(getQueryResult());
     }

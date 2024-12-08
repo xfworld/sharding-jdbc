@@ -19,12 +19,12 @@ package org.apache.shardingsphere.proxy.backend.mysql.handler.admin.executor;
 
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResultMetaData;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ExpressionProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionsSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.AliasSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ExpressionProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionsSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.AliasSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
@@ -47,7 +47,7 @@ class ShowConnectionIdExecutorTest {
         assertThat(metaData.getColumnName(1), is(ShowConnectionIdExecutor.FUNCTION_NAME));
         assertThat(metaData.getColumnLabel(1), is(ShowConnectionIdExecutor.FUNCTION_NAME));
         while (executor.getMergedResult().next()) {
-            assertThat(executor.getMergedResult().getValue(1, Object.class), is(109));
+            assertThat(executor.getMergedResult().getValue(1, Object.class), is("109"));
         }
     }
     
@@ -60,7 +60,7 @@ class ShowConnectionIdExecutorTest {
         assertThat(metaData.getColumnName(1), is(ShowConnectionIdExecutor.FUNCTION_NAME));
         assertThat(metaData.getColumnLabel(1), is("test_alias"));
         while (executor.getMergedResult().next()) {
-            assertThat(executor.getMergedResult().getValue(1, Object.class), is(109));
+            assertThat(executor.getMergedResult().getValue(1, Object.class), is("109"));
         }
     }
     

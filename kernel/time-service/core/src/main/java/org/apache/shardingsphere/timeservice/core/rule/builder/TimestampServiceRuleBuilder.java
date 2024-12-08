@@ -20,11 +20,11 @@ package org.apache.shardingsphere.timeservice.core.rule.builder;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rule.builder.global.GlobalRuleBuilder;
-import org.apache.shardingsphere.timeservice.api.config.TimestampServiceRuleConfiguration;
+import org.apache.shardingsphere.timeservice.config.TimestampServiceRuleConfiguration;
 import org.apache.shardingsphere.timeservice.core.rule.TimestampServiceRule;
 import org.apache.shardingsphere.timeservice.core.rule.constant.TimestampServiceOrder;
 
-import java.util.Map;
+import java.util.Collection;
 
 /**
  * Timestamp service rule builder.
@@ -32,7 +32,7 @@ import java.util.Map;
 public final class TimestampServiceRuleBuilder implements GlobalRuleBuilder<TimestampServiceRuleConfiguration> {
     
     @Override
-    public TimestampServiceRule build(final TimestampServiceRuleConfiguration ruleConfig, final Map<String, ShardingSphereDatabase> databases, final ConfigurationProperties props) {
+    public TimestampServiceRule build(final TimestampServiceRuleConfiguration ruleConfig, final Collection<ShardingSphereDatabase> databases, final ConfigurationProperties props) {
         return new TimestampServiceRule(ruleConfig);
     }
     

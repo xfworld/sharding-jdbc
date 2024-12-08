@@ -17,56 +17,58 @@
 
 package org.apache.shardingsphere.single.distsql.segment;
 
-import com.google.common.base.Objects;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.sql.parser.api.ASTNode;
-
-import java.util.Optional;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.shardingsphere.distsql.segment.DistSQLSegment;
 
 /**
  * Single table segment.
  */
 @RequiredArgsConstructor
-@Getter
-public final class SingleTableSegment implements ASTNode {
+public final class SingleTableSegment implements DistSQLSegment {
     
+    @Getter
     private final String storageUnitName;
     
     private final String schemaName;
     
+    @Getter
     private final String tableName;
     
+    public SingleTableSegment(final String storageUnitName, final String tableName) {
+        this(storageUnitName, null, tableName);
+    }
+    
     /**
-     * Get schema name.
+     * Whether to contain schema.
      *
-     * @return schema name
+     * @return contains schema or not
      */
-    public Optional<String> getSchemaName() {
-        return Optional.ofNullable(schemaName);
+    public boolean containsSchema() {
+        return null != schemaName;
     }
     
     @Override
-    public String toString() {
-        return null == schemaName ? storageUnitName + "." + tableName : storageUnitName + "." + schemaName + "." + tableName;
-    }
-    
-    @Override
-    public boolean equals(final Object object) {
-        if (this == object) {
-            return true;
-        }
-        if (null == object || getClass() != object.getClass()) {
+    public boolean equals(final Object obj) {
+        if (!(obj instanceof SingleTableSegment)) {
             return false;
         }
-        SingleTableSegment segment = (SingleTableSegment) object;
-        return Objects.equal(storageUnitName.toUpperCase(), segment.storageUnitName.toUpperCase())
-                && Objects.equal(tableName.toUpperCase(), segment.tableName.toUpperCase())
-                && Objects.equal(null == schemaName ? null : schemaName.toUpperCase(), null == segment.schemaName ? null : segment.schemaName.toUpperCase());
+        if (null == schemaName) {
+            return storageUnitName.equalsIgnoreCase(((SingleTableSegment) obj).storageUnitName) && tableName.equalsIgnoreCase(((SingleTableSegment) obj).tableName)
+                    && null == ((SingleTableSegment) obj).schemaName;
+        }
+        return storageUnitName.equalsIgnoreCase(((SingleTableSegment) obj).storageUnitName)
+                && schemaName.equalsIgnoreCase(((SingleTableSegment) obj).schemaName) && tableName.equalsIgnoreCase(((SingleTableSegment) obj).tableName);
     }
     
     @Override
     public int hashCode() {
-        return Objects.hashCode(storageUnitName.toUpperCase(), tableName.toUpperCase(), null == schemaName ? null : schemaName.toUpperCase());
+        return new HashCodeBuilder().append(storageUnitName).append(schemaName).append(tableName).toHashCode();
+    }
+    
+    @Override
+    public String toString() {
+        return null == schemaName ? String.join(".", storageUnitName, tableName) : String.join(".", storageUnitName, schemaName, tableName);
     }
 }

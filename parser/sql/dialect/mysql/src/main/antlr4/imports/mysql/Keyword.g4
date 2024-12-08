@@ -60,6 +60,10 @@ SUBSTR
     : S U B S T R
     ;
 
+MID
+    : M I D
+    ;
+
 EXTRACT
     : E X T R A C T
     ;
@@ -111,7 +115,7 @@ AUTOCOMMIT
 REDO_LOG
     : 'REDO_LOG'
     ;
-    
+
 DELIMITER
     : D E L I M I T E R
     ;

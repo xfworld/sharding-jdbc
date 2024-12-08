@@ -19,21 +19,24 @@ package org.apache.shardingsphere.proxy.frontend.mysql.command.query.binary.prep
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.postgresql.exception.metadata.ColumnNotFoundException;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.assignment.InsertValuesSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.ParameterMarkerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.InsertStatement;
+import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.ColumnAssignmentSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.InsertValuesSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.InsertStatement;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -48,34 +51,59 @@ public final class MySQLComStmtPrepareParameterMarkerExtractor {
      *
      * @param sqlStatement SQL statement
      * @param schema schema
-     * @return map parameter marker segment to column
+     * @return corresponding columns of parameter markers
      */
-    public static Map<ParameterMarkerSegment, ShardingSphereColumn> findColumnsOfParameterMarkers(final SQLStatement sqlStatement, final ShardingSphereSchema schema) {
-        return sqlStatement instanceof InsertStatement ? findColumnsOfParameterMarkersForInsert((InsertStatement) sqlStatement, schema) : Collections.emptyMap();
+    public static List<ShardingSphereColumn> findColumnsOfParameterMarkers(final SQLStatement sqlStatement, final ShardingSphereSchema schema) {
+        return sqlStatement instanceof InsertStatement && ((InsertStatement) sqlStatement).getTable().isPresent()
+                ? findColumnsOfParameterMarkersForInsert((InsertStatement) sqlStatement, schema)
+                : Collections.emptyList();
     }
     
-    private static Map<ParameterMarkerSegment, ShardingSphereColumn> findColumnsOfParameterMarkersForInsert(final InsertStatement insertStatement, final ShardingSphereSchema schema) {
-        ShardingSphereTable table = schema.getTable(insertStatement.getTable().getTableName().getIdentifier().getValue());
+    private static List<ShardingSphereColumn> findColumnsOfParameterMarkersForInsert(final InsertStatement insertStatement, final ShardingSphereSchema schema) {
+        ShardingSphereTable table = schema.getTable(insertStatement.getTable().map(optional -> optional.getTableName().getIdentifier().getValue()).orElse(""));
         List<String> columnNamesOfInsert = getColumnNamesOfInsertStatement(insertStatement, table);
-        Map<ParameterMarkerSegment, ShardingSphereColumn> result = new LinkedHashMap<>(insertStatement.getParameterMarkerSegments().size(), 1F);
-        for (InsertValuesSegment each : insertStatement.getValues()) {
-            ListIterator<ExpressionSegment> listIterator = each.getValues().listIterator();
-            for (int columnIndex = listIterator.nextIndex(); listIterator.hasNext(); columnIndex = listIterator.nextIndex()) {
-                ExpressionSegment value = listIterator.next();
-                if (!(value instanceof ParameterMarkerExpressionSegment)) {
-                    continue;
-                }
-                String columnName = columnNamesOfInsert.get(columnIndex);
-                ShardingSphereColumn column = table.getColumn(columnName);
-                if (null != column) {
-                    result.put((ParameterMarkerSegment) value, column);
-                }
-            }
-        }
+        List<ShardingSphereColumn> result = getParameterMarkerColumns(insertStatement, table, columnNamesOfInsert);
+        insertStatement.getOnDuplicateKeyColumns().ifPresent(optional -> result.addAll(getOnDuplicateKeyParameterMarkerColumns(optional.getColumns(), table)));
         return result;
     }
     
     private static List<String> getColumnNamesOfInsertStatement(final InsertStatement insertStatement, final ShardingSphereTable table) {
-        return insertStatement.getColumns().isEmpty() ? table.getColumnNames() : insertStatement.getColumns().stream().map(each -> each.getIdentifier().getValue()).collect(Collectors.toList());
+        return insertStatement.getColumns().isEmpty()
+                ? table.getColumnNames().stream().map(ShardingSphereIdentifier::getValue).collect(Collectors.toList())
+                : insertStatement.getColumns().stream().map(each -> each.getIdentifier().getValue()).collect(Collectors.toList());
+    }
+    
+    private static List<ShardingSphereColumn> getParameterMarkerColumns(final InsertStatement insertStatement, final ShardingSphereTable table, final List<String> columnNamesOfInsert) {
+        List<ShardingSphereColumn> result = new ArrayList<>(insertStatement.getParameterMarkerSegments().size());
+        for (InsertValuesSegment each : insertStatement.getValues()) {
+            result.addAll(getParameterMarkerColumns(table, columnNamesOfInsert, each));
+        }
+        return result;
+    }
+    
+    private static List<ShardingSphereColumn> getParameterMarkerColumns(final ShardingSphereTable table, final List<String> columnNamesOfInsert, final InsertValuesSegment segment) {
+        List<ShardingSphereColumn> result = new LinkedList<>();
+        int index = 0;
+        for (ExpressionSegment each : segment.getValues()) {
+            if (each instanceof ParameterMarkerExpressionSegment) {
+                String columnName = columnNamesOfInsert.get(index);
+                ShardingSpherePreconditions.checkState(table.containsColumn(columnName), () -> new ColumnNotFoundException(table.getName(), columnName));
+                result.add(table.getColumn(columnName));
+            }
+            index++;
+        }
+        return result;
+    }
+    
+    private static List<ShardingSphereColumn> getOnDuplicateKeyParameterMarkerColumns(final Collection<ColumnAssignmentSegment> onDuplicateKeyColumns, final ShardingSphereTable table) {
+        List<ShardingSphereColumn> result = new LinkedList<>();
+        for (ColumnAssignmentSegment each : onDuplicateKeyColumns) {
+            if (each.getValue() instanceof ParameterMarkerExpressionSegment) {
+                String columnName = each.getColumns().iterator().next().getIdentifier().getValue();
+                ShardingSpherePreconditions.checkState(table.containsColumn(columnName), () -> new ColumnNotFoundException(table.getName(), columnName));
+                result.add(table.getColumn(columnName));
+            }
+        }
+        return result;
     }
 }

@@ -19,9 +19,9 @@ package org.apache.shardingsphere.test.e2e.framework.param.array;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.test.e2e.cases.SQLCommandType;
+import org.apache.shardingsphere.test.e2e.framework.type.SQLCommandType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.enums.AdapterMode;
-import org.apache.shardingsphere.test.e2e.env.runtime.IntegrationTestEnvironment;
+import org.apache.shardingsphere.test.e2e.env.runtime.E2ETestEnvironment;
 import org.apache.shardingsphere.test.e2e.framework.param.model.AssertionTestParameter;
 import org.apache.shardingsphere.test.e2e.framework.param.model.E2ETestParameter;
 
@@ -33,7 +33,7 @@ import java.util.Collection;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProxyStandaloneTestParameterGenerator {
     
-    private static final IntegrationTestEnvironment ENV = IntegrationTestEnvironment.getInstance();
+    private static final E2ETestEnvironment ENV = E2ETestEnvironment.getInstance();
     
     /**
      * Get assertion test parameters.
@@ -43,7 +43,7 @@ public final class ProxyStandaloneTestParameterGenerator {
      */
     public static Collection<AssertionTestParameter> getAssertionTestParameter(final SQLCommandType sqlCommandType) {
         return new E2ETestParameterGenerator(ENV.getClusterEnvironment().getAdapters(),
-                ENV.getScenarios(), AdapterMode.STANDALONE.getValue(), ENV.getClusterEnvironment().getDatabaseTypes()).getAssertionTestParameter(sqlCommandType);
+                ENV.getScenarios(), AdapterMode.STANDALONE.getValue(), ENV.getClusterEnvironment().getDatabaseTypes(), ENV.isSmoke()).getAssertionTestParameter(sqlCommandType);
     }
     
     /**
@@ -54,6 +54,6 @@ public final class ProxyStandaloneTestParameterGenerator {
      */
     public static Collection<E2ETestParameter> getCaseTestParameter(final SQLCommandType sqlCommandType) {
         return new E2ETestParameterGenerator(ENV.getClusterEnvironment().getAdapters(),
-                ENV.getScenarios(), AdapterMode.STANDALONE.getValue(), ENV.getClusterEnvironment().getDatabaseTypes()).getCaseTestParameter(sqlCommandType);
+                ENV.getScenarios(), AdapterMode.STANDALONE.getValue(), ENV.getClusterEnvironment().getDatabaseTypes(), ENV.isSmoke()).getCaseTestParameter(sqlCommandType);
     }
 }

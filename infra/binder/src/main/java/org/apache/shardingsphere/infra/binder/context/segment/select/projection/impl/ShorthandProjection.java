@@ -22,7 +22,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -41,29 +41,9 @@ public final class ShorthandProjection implements Projection {
     
     private final Collection<Projection> actualColumns;
     
-    @Override
-    public String getColumnName() {
-        return null == owner ? "*" : owner.getValue() + ".*";
-    }
-    
-    @Override
-    public String getColumnLabel() {
-        return "*";
-    }
-    
-    @Override
-    public String getExpression() {
-        return null == owner ? "*" : owner.getValue() + ".*";
-    }
-    
-    @Override
-    public Optional<IdentifierValue> getAlias() {
-        return Optional.empty();
-    }
-    
     /**
      * Get owner.
-     * 
+     *
      * @return owner
      */
     public Optional<IdentifierValue> getOwner() {
@@ -83,5 +63,25 @@ public final class ShorthandProjection implements Projection {
             }
         }
         return result;
+    }
+    
+    @Override
+    public String getColumnName() {
+        return null == owner ? "*" : owner.getValue() + ".*";
+    }
+    
+    @Override
+    public String getColumnLabel() {
+        return "*";
+    }
+    
+    @Override
+    public String getExpression() {
+        return null == owner ? "*" : owner.getValue() + ".*";
+    }
+    
+    @Override
+    public Optional<IdentifierValue> getAlias() {
+        return Optional.empty();
     }
 }

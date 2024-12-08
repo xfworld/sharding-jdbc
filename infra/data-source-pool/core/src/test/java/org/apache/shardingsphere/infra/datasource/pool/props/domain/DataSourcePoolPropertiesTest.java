@@ -22,6 +22,7 @@ import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,8 +32,8 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,6 +50,7 @@ class DataSourcePoolPropertiesTest {
         actualDataSource.setConnectionInitSqls(Arrays.asList("set names utf8mb4;", "set names utf8;"));
         DataSourcePoolProperties actual = DataSourcePoolPropertiesCreator.create(actualDataSource);
         assertThat(actual.getPoolClassName(), is(MockedDataSource.class.getName()));
+        assertThat(actual.getAllLocalProperties().get("driverClassName").toString(), is(MockedDataSource.class.getName()));
         assertThat(actual.getAllLocalProperties().get("url").toString(), is("jdbc:mock://127.0.0.1/foo_ds"));
         assertThat(actual.getAllLocalProperties().get("username").toString(), is("root"));
         assertThat(actual.getAllLocalProperties().get("password").toString(), is("root"));
@@ -100,12 +102,12 @@ class DataSourcePoolPropertiesTest {
     
     @Test
     void assertNotEqualsWithNullValue() {
-        assertNotEquals(null, new DataSourcePoolProperties(MockedDataSource.class.getName(), new HashMap<>()));
+        assertThat(new DataSourcePoolProperties(MockedDataSource.class.getName(), Collections.emptyMap()), not(nullValue()));
     }
     
     @Test
     void assertNotEqualsWithDifferentDataSourceClassName() {
-        assertThat(new DataSourcePoolProperties("FooDataSourceClass", new HashMap<>()), not(new DataSourcePoolProperties("BarDataSourceClass", new HashMap<>())));
+        assertThat(new DataSourcePoolProperties("FooDataSourceClass", Collections.emptyMap()), not(new DataSourcePoolProperties("BarDataSourceClass", Collections.emptyMap())));
     }
     
     @Test

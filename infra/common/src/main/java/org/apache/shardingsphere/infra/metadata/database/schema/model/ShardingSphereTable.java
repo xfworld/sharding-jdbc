@@ -17,16 +17,22 @@
 
 package org.apache.shardingsphere.infra.metadata.database.schema.model;
 
+import com.cedarsoftware.util.CaseInsensitiveMap;
+import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.shardingsphere.infra.database.core.metadata.database.enums.TableType;
+import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * ShardingSphere table.
@@ -38,153 +44,153 @@ public final class ShardingSphereTable {
     
     private final String name;
     
-    private final Map<String, ShardingSphereColumn> columns;
+    @Getter(AccessLevel.NONE)
+    private final Map<ShardingSphereIdentifier, ShardingSphereColumn> columns;
     
-    private final Map<String, ShardingSphereIndex> indexes;
-    
-    private final Map<String, ShardingSphereConstraint> constraints;
-    
-    private final List<String> columnNames = new ArrayList<>();
-    
-    private final List<String> visibleColumns = new ArrayList<>();
+    private final List<ShardingSphereIdentifier> columnNames = new ArrayList<>();
     
     private final List<String> primaryKeyColumns = new ArrayList<>();
     
-    public ShardingSphereTable() {
-        this("", Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
-    }
+    private final List<String> visibleColumns = new ArrayList<>();
+    
+    private final Map<String, Integer> visibleColumnAndIndexMap = new CaseInsensitiveMap<>();
+    
+    @Getter(AccessLevel.NONE)
+    private final Map<ShardingSphereIdentifier, ShardingSphereIndex> indexes;
+    
+    @Getter(AccessLevel.NONE)
+    private final Map<ShardingSphereIdentifier, ShardingSphereConstraint> constraints;
+    
+    private final TableType type;
     
     public ShardingSphereTable(final String name, final Collection<ShardingSphereColumn> columns,
                                final Collection<ShardingSphereIndex> indexes, final Collection<ShardingSphereConstraint> constraints) {
+        this(name, columns, indexes, constraints, TableType.TABLE);
+    }
+    
+    public ShardingSphereTable(final String name, final Collection<ShardingSphereColumn> columns,
+                               final Collection<ShardingSphereIndex> indexes, final Collection<ShardingSphereConstraint> constraints, final TableType type) {
         this.name = name;
         this.columns = createColumns(columns);
         this.indexes = createIndexes(indexes);
         this.constraints = createConstraints(constraints);
+        this.type = type;
     }
     
-    private Map<String, ShardingSphereColumn> createColumns(final Collection<ShardingSphereColumn> columns) {
-        Map<String, ShardingSphereColumn> result = new LinkedHashMap<>(columns.size(), 1F);
+    private Map<ShardingSphereIdentifier, ShardingSphereColumn> createColumns(final Collection<ShardingSphereColumn> columns) {
+        Map<ShardingSphereIdentifier, ShardingSphereColumn> result = new LinkedHashMap<>(columns.size(), 1F);
+        int index = 0;
         for (ShardingSphereColumn each : columns) {
-            String lowerColumnName = each.getName().toLowerCase();
-            result.put(lowerColumnName, each);
-            columnNames.add(each.getName());
+            ShardingSphereIdentifier columnName = new ShardingSphereIdentifier(each.getName());
+            result.put(columnName, each);
+            columnNames.add(columnName);
             if (each.isPrimaryKey()) {
-                primaryKeyColumns.add(lowerColumnName);
+                primaryKeyColumns.add(each.getName());
             }
             if (each.isVisible()) {
                 visibleColumns.add(each.getName());
+                visibleColumnAndIndexMap.put(each.getName(), index++);
             }
         }
         return result;
     }
     
-    private Map<String, ShardingSphereIndex> createIndexes(final Collection<ShardingSphereIndex> indexes) {
-        Map<String, ShardingSphereIndex> result = new LinkedHashMap<>(indexes.size(), 1F);
-        for (ShardingSphereIndex each : indexes) {
-            result.put(each.getName().toLowerCase(), each);
-        }
-        return result;
+    private Map<ShardingSphereIdentifier, ShardingSphereIndex> createIndexes(final Collection<ShardingSphereIndex> indexes) {
+        return indexes.stream().collect(Collectors.toMap(each -> new ShardingSphereIdentifier(each.getName()), each -> each, (a, b) -> b, () -> new LinkedHashMap<>(indexes.size(), 1F)));
     }
     
-    private Map<String, ShardingSphereConstraint> createConstraints(final Collection<ShardingSphereConstraint> constraints) {
-        Map<String, ShardingSphereConstraint> result = new LinkedHashMap<>(constraints.size(), 1F);
-        for (ShardingSphereConstraint each : constraints) {
-            result.put(each.getName().toLowerCase(), each);
-        }
-        return result;
+    private Map<ShardingSphereIdentifier, ShardingSphereConstraint> createConstraints(final Collection<ShardingSphereConstraint> constraints) {
+        return constraints.stream()
+                .collect(Collectors.toMap(each -> new ShardingSphereIdentifier(each.getName()), each -> each, (a, b) -> b, () -> new LinkedHashMap<>(constraints.size(), 1F)));
     }
     
     /**
-     * Put column meta data.
-     * 
-     * @param column column meta data
-     */
-    public void putColumn(final ShardingSphereColumn column) {
-        columns.put(column.getName().toLowerCase(), column);
-    }
-    
-    /**
-     * Get column meta data via column name.
+     * Judge whether contains column.
      *
      * @param columnName column name
-     * @return column meta data
+     * @return contains column or not
      */
-    public ShardingSphereColumn getColumn(final String columnName) {
-        return columns.get(columnName.toLowerCase());
+    public boolean containsColumn(final String columnName) {
+        return null != columnName && columns.containsKey(new ShardingSphereIdentifier(columnName));
     }
     
     /**
-     * Get column meta data collection.
+     * Get column.
      *
-     * @return column meta data collection
+     * @param columnName column name
+     * @return column
      */
-    public Collection<ShardingSphereColumn> getColumnValues() {
+    public ShardingSphereColumn getColumn(final String columnName) {
+        return columns.get(new ShardingSphereIdentifier(columnName));
+    }
+    
+    /**
+     * Get all columns.
+     *
+     * @return columns
+     */
+    public Collection<ShardingSphereColumn> getAllColumns() {
         return columns.values();
     }
     
     /**
-     * Judge whether contains column or not.
+     * Find column names If not existed from passing by column names.
      *
-     * @param columnName column name
-     * @return whether contains column or not
+     * @param columnNames column names
+     * @return found column names
      */
-    public boolean containsColumn(final String columnName) {
-        return null != columnName && columns.containsKey(columnName.toLowerCase());
+    public Collection<String> findColumnNamesIfNotExistedFrom(final Collection<String> columnNames) {
+        if (columnNames.size() == columns.size()) {
+            return Collections.emptyList();
+        }
+        Collection<ShardingSphereIdentifier> result = new LinkedHashSet<>(columns.keySet());
+        result.removeAll(columnNames.stream().map(ShardingSphereIdentifier::new).collect(Collectors.toSet()));
+        return result.stream().map(ShardingSphereIdentifier::getValue).collect(Collectors.toList());
     }
     
     /**
-     * Put index meta data.
-     * 
-     * @param index index meta data
-     */
-    public void putIndex(final ShardingSphereIndex index) {
-        indexes.put(index.getName().toLowerCase(), index);
-    }
-    
-    /**
-     * Remove index meta data via index name.
-     * 
-     * @param indexName index name
-     */
-    public void removeIndex(final String indexName) {
-        indexes.remove(indexName.toLowerCase());
-    }
-    
-    /**
-     * Get index meta data via index name.
+     * Judge whether contains index.
      *
      * @param indexName index name
-     * @return index meta data
+     * @return contains index or not
      */
-    public ShardingSphereIndex getIndex(final String indexName) {
-        return indexes.get(indexName.toLowerCase());
+    public boolean containsIndex(final String indexName) {
+        return null != indexName && indexes.containsKey(new ShardingSphereIdentifier(indexName));
     }
     
     /**
-     * Get index meta data collection.
+     * Get all indexes.
      *
-     * @return index meta data collection
+     * @return indexes
      */
-    public Collection<ShardingSphereIndex> getIndexValues() {
+    public Collection<ShardingSphereIndex> getAllIndexes() {
         return indexes.values();
     }
     
     /**
-     * Judge whether contains index or not.
+     * Put index.
      *
-     * @param indexName index name
-     * @return whether contains index or not
+     * @param index index
      */
-    public boolean containsIndex(final String indexName) {
-        return null != indexName && indexes.containsKey(indexName.toLowerCase());
+    public void putIndex(final ShardingSphereIndex index) {
+        indexes.put(new ShardingSphereIdentifier(index.getName()), index);
     }
     
     /**
-     * Get constraint meta data collection.
+     * Remove index.
      *
-     * @return constraint meta data collection
+     * @param indexName index name
      */
-    public Collection<ShardingSphereConstraint> getConstraintValues() {
+    public void removeIndex(final String indexName) {
+        indexes.remove(new ShardingSphereIdentifier(indexName));
+    }
+    
+    /**
+     * Get all constraint.
+     *
+     * @return constraint
+     */
+    public Collection<ShardingSphereConstraint> getAllConstraints() {
         return constraints.values();
     }
 }

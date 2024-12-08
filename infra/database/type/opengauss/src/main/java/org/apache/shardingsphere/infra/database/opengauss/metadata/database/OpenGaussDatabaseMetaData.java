@@ -17,12 +17,15 @@
 
 package org.apache.shardingsphere.infra.database.opengauss.metadata.database;
 
+import com.cedarsoftware.util.CaseInsensitiveMap;
 import org.apache.shardingsphere.infra.database.core.metadata.database.DialectDatabaseMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.NullsOrderType;
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
 
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -51,8 +54,22 @@ public final class OpenGaussDatabaseMetaData implements DialectDatabaseMetaData 
     }
     
     @Override
+    public Map<String, Integer> getExtraDataTypes() {
+        Map<String, Integer> result = new CaseInsensitiveMap<>();
+        result.put("SMALLINT", Types.SMALLINT);
+        result.put("INT", Types.INTEGER);
+        result.put("INTEGER", Types.INTEGER);
+        result.put("BIGINT", Types.BIGINT);
+        result.put("DECIMAL", Types.DECIMAL);
+        result.put("NUMERIC", Types.NUMERIC);
+        result.put("REAL", Types.REAL);
+        result.put("BOOL", Types.BOOLEAN);
+        return result;
+    }
+    
+    @Override
     public NullsOrderType getDefaultNullsOrderType() {
-        return NullsOrderType.LAST;
+        return NullsOrderType.HIGH;
     }
     
     @Override
@@ -68,6 +85,11 @@ public final class OpenGaussDatabaseMetaData implements DialectDatabaseMetaData 
     @Override
     public Optional<String> getDefaultSchema() {
         return Optional.of("public");
+    }
+    
+    @Override
+    public boolean isSupportGlobalCSN() {
+        return true;
     }
     
     @Override

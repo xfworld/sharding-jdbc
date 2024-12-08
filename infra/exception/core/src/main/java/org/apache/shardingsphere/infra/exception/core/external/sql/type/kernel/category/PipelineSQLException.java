@@ -34,6 +34,6 @@ public abstract class PipelineSQLException extends KernelSQLException {
     }
     
     protected PipelineSQLException(final SQLState sqlState, final int errorCode, final String reason, final Exception cause) {
-        super(sqlState, KERNEL_CODE, errorCode, reason, cause);
+        super(sqlState, KERNEL_CODE, errorCode, cause, reason);
     }
 }

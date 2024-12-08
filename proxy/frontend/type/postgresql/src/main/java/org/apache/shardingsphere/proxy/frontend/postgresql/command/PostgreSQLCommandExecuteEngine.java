@@ -31,8 +31,6 @@ import org.apache.shardingsphere.db.protocol.postgresql.packet.generic.PostgreSQ
 import org.apache.shardingsphere.db.protocol.postgresql.packet.generic.PostgreSQLReadyForQueryPacket;
 import org.apache.shardingsphere.db.protocol.postgresql.payload.PostgreSQLPacketPayload;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
-import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
-import org.apache.shardingsphere.parser.rule.SQLParserRule;
 import org.apache.shardingsphere.proxy.backend.connector.ProxyDatabaseConnectionManager;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
@@ -58,9 +56,7 @@ public final class PostgreSQLCommandExecuteEngine implements CommandExecuteEngin
     
     @Override
     public PostgreSQLCommandPacket getCommandPacket(final PacketPayload payload, final CommandPacketType type, final ConnectionSession connectionSession) {
-        MetaDataContexts metaDataContexts = ProxyContext.getInstance().getContextManager().getMetaDataContexts();
-        SQLParserRule sqlParserRule = metaDataContexts.getMetaData().getGlobalRuleMetaData().getSingleRule(SQLParserRule.class);
-        return PostgreSQLCommandPacketFactory.newInstance((PostgreSQLCommandPacketType) type, (PostgreSQLPacketPayload) payload, sqlParserRule.isSqlCommentParseEnabled());
+        return PostgreSQLCommandPacketFactory.newInstance((PostgreSQLCommandPacketType) type, (PostgreSQLPacketPayload) payload);
     }
     
     @Override
@@ -83,7 +79,7 @@ public final class PostgreSQLCommandExecuteEngine implements CommandExecuteEngin
     public void writeQueryData(final ChannelHandlerContext context,
                                final ProxyDatabaseConnectionManager databaseConnectionManager, final QueryCommandExecutor queryCommandExecutor, final int headerPackagesCount) throws SQLException {
         if (ResponseType.QUERY == queryCommandExecutor.getResponseType() && !context.channel().isActive()) {
-            context.write(new PostgreSQLCommandCompletePacket(PostgreSQLCommand.SELECT.name(), 0));
+            context.write(new PostgreSQLCommandCompletePacket(PostgreSQLCommand.SELECT.name(), 0L));
             return;
         }
         processSimpleQuery(context, databaseConnectionManager, queryCommandExecutor);
@@ -106,7 +102,7 @@ public final class PostgreSQLCommandExecuteEngine implements CommandExecuteEngin
     
     private long writeDataPackets(final ChannelHandlerContext context, final ProxyDatabaseConnectionManager databaseConnectionManager,
                                   final QueryCommandExecutor queryCommandExecutor) throws SQLException {
-        long dataRows = 0;
+        long dataRows = 0L;
         int flushCount = 0;
         int proxyFrontendFlushThreshold = ProxyContext.getInstance()
                 .getContextManager().getMetaDataContexts().getMetaData().getProps().<Integer>getValue(ConfigurationPropertyKey.PROXY_FRONTEND_FLUSH_THRESHOLD);

@@ -19,10 +19,9 @@ package org.apache.shardingsphere.mask.merge.dql;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.merge.engine.decorator.ResultDecorator;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
-import org.apache.shardingsphere.infra.merge.result.impl.transparent.TransparentMergedResult;
 import org.apache.shardingsphere.mask.rule.MaskRule;
 
 /**
@@ -31,15 +30,10 @@ import org.apache.shardingsphere.mask.rule.MaskRule;
 @RequiredArgsConstructor
 public final class MaskDQLResultDecorator implements ResultDecorator<MaskRule> {
     
-    private final MaskAlgorithmMetaData metaData;
-    
-    @Override
-    public MergedResult decorate(final QueryResult queryResult, final SQLStatementContext sqlStatementContext, final MaskRule rule) {
-        return new MaskMergedResult(metaData, new TransparentMergedResult(queryResult));
-    }
+    private final SelectStatementContext selectStatementContext;
     
     @Override
     public MergedResult decorate(final MergedResult mergedResult, final SQLStatementContext sqlStatementContext, final MaskRule rule) {
-        return new MaskMergedResult(metaData, mergedResult);
+        return new MaskMergedResult(rule, selectStatementContext, mergedResult);
     }
 }

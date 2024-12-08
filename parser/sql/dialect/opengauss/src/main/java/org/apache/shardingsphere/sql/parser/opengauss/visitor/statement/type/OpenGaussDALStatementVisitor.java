@@ -33,21 +33,21 @@ import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.Vac
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.VacuumRelationContext;
 import org.apache.shardingsphere.sql.parser.autogen.OpenGaussStatementParser.VacuumRelationListContext;
 import org.apache.shardingsphere.sql.parser.opengauss.visitor.statement.OpenGaussStatementVisitor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableAssignSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.value.collection.CollectionValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dal.OpenGaussAnalyzeTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dal.OpenGaussEmptyStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dal.OpenGaussExplainStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dal.OpenGaussLoadStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dal.OpenGaussResetParameterStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dal.OpenGaussSetStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dal.OpenGaussShowStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.opengauss.dal.OpenGaussVacuumStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.VariableAssignSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.VariableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.collection.CollectionValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dal.OpenGaussAnalyzeTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dal.OpenGaussEmptyStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dal.OpenGaussExplainStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dal.OpenGaussLoadStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dal.OpenGaussResetParameterStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dal.OpenGaussSetStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dal.OpenGaussShowStatement;
+import org.apache.shardingsphere.sql.parser.statement.opengauss.dal.OpenGaussVacuumStatement;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -91,17 +91,18 @@ public final class OpenGaussDALStatementVisitor extends OpenGaussStatementVisito
     
     @Override
     public ASTNode visitConfigurationParameterClause(final ConfigurationParameterClauseContext ctx) {
-        VariableAssignSegment result = new VariableAssignSegment();
-        result.setStartIndex(ctx.start.getStartIndex());
-        result.setStopIndex(ctx.stop.getStopIndex());
-        result.setVariable(new VariableSegment(ctx.varName().start.getStartIndex(), ctx.varName().stop.getStopIndex(), ctx.varName().getText()));
+        return new VariableAssignSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(),
+                new VariableSegment(ctx.varName().start.getStartIndex(), ctx.varName().stop.getStopIndex(), ctx.varName().getText()), getAssignValue(ctx));
+    }
+    
+    private String getAssignValue(final ConfigurationParameterClauseContext ctx) {
         if (null != ctx.varList()) {
-            result.setAssignValue(ctx.varList().getText());
+            return ctx.varList().getText();
         }
         if (null != ctx.DEFAULT()) {
-            result.setAssignValue(ctx.DEFAULT().getText());
+            return ctx.DEFAULT().getText();
         }
-        return result;
+        return null;
     }
     
     @Override
@@ -143,7 +144,7 @@ public final class OpenGaussDALStatementVisitor extends OpenGaussStatementVisito
     @Override
     public ASTNode visitExplain(final ExplainContext ctx) {
         OpenGaussExplainStatement result = new OpenGaussExplainStatement();
-        result.setStatement((SQLStatement) visit(ctx.explainableStmt()));
+        result.setSqlStatement((SQLStatement) visit(ctx.explainableStmt()));
         return result;
     }
     

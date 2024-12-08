@@ -30,8 +30,38 @@
     <create-procedure sql-case-id="create_procedure_with_create_view_as_select_into_outfile" />
     <create-procedure sql-case-id="create_procedure_with_sqlexception_and_create_view" />
     <create-procedure sql-case-id="create_procedure_with_deterministic_create_view" />
-    <create-procedure sql-case-id="create_procedure_with_update_statement_oracle" />
+    <create-procedure sql-case-id="create_procedure_with_update_statement_oracle">
+        <procedure-name name="update_order" />
+        <sql-statements>
+            <sql-statement start-index="95" stop-index="154" statement-class-simple-name="OracleUpdateStatement" />
+        </sql-statements>
+    </create-procedure>
     <create-procedure sql-case-id="create_procedure_with_prepare_commit" />
-    <create-procedure sql-case-id="create_procedure_with_cursor_definition" />
-    <create-procedure sql-case-id="create_procedure_with_collection_type_definition" />
+    <create-procedure sql-case-id="create_procedure_with_cursor_definition">
+        <procedure-name name="my_proc" />
+        <sql-statements>
+            <sql-statement start-index="69" stop-index="94" statement-class-simple-name="OracleSelectStatement" />
+            <sql-statement start-index="143" stop-index="175" statement-class-simple-name="OracleInsertStatement" />
+        </sql-statements>
+    </create-procedure>
+    <create-procedure sql-case-id="create_procedure_with_collection_type_definition">
+        <procedure-name name="my_proc" />
+        <sql-statements>
+            <sql-statement start-index="100" stop-index="132" statement-class-simple-name="OracleInsertStatement" />
+        </sql-statements>
+    </create-procedure>
+    <create-procedure sql-case-id="create_plsql_block" />
+    <create-procedure sql-case-id="create_procedure_with_insert_into_values">
+        <procedure-name name="T522_PROC" />
+        <sql-statements>
+            <sql-statement start-index="41" stop-index="85" statement-class-simple-name="FirebirdInsertStatement" />
+        </sql-statements>
+    </create-procedure>
+    <create-procedure sql-case-id="create_procedure_with_declare_and_cursor_for_in_select_and_open">
+        <procedure-name name="F865_PROC" />
+        <sql-statements>
+            <sql-statement start-index="53" stop-index="146" statement-class-simple-name="FirebirdDeclareCursorStatement" />
+            <sql-statement start-index="152" stop-index="169" statement-class-simple-name="FirebirdOpenCursorStatement" />
+        </sql-statements>
+    </create-procedure>
 </sql-parser-test-cases>

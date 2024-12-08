@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.sharding.merge.dal.show;
 
+import com.cedarsoftware.util.CaseInsensitiveMap;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
@@ -26,39 +27,74 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.infra.metadata.database.schema.util.IndexMetaDataUtils;
+import org.apache.shardingsphere.sharding.rule.BindingTableRule;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sharding.rule.TableRule;
+import org.apache.shardingsphere.sharding.rule.ShardingTable;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Merged result for show create table.
  */
 public final class ShowCreateTableMergedResult extends LogicTablesMergedResult {
     
-    public ShowCreateTableMergedResult(final ShardingRule shardingRule,
+    public ShowCreateTableMergedResult(final ShardingRule rule,
                                        final SQLStatementContext sqlStatementContext, final ShardingSphereSchema schema, final List<QueryResult> queryResults) throws SQLException {
-        super(shardingRule, sqlStatementContext, schema, queryResults);
+        super(rule, sqlStatementContext, schema, queryResults);
     }
     
     @Override
     protected void setCellValue(final MemoryQueryResultRow memoryResultSetRow, final String logicTableName, final String actualTableName,
-                                final ShardingSphereTable table, final ShardingRule shardingRule) {
+                                final ShardingSphereTable table, final ShardingRule rule) {
+        replaceTables(memoryResultSetRow, logicTableName, actualTableName);
+        replaceBindingTables(memoryResultSetRow, logicTableName, actualTableName, rule);
+        replaceIndexes(memoryResultSetRow, actualTableName, table);
+        replaceConstraints(memoryResultSetRow, actualTableName, table, rule);
+    }
+    
+    private void replaceTables(final MemoryQueryResultRow memoryResultSetRow, final String logicTableName, final String actualTableName) {
         memoryResultSetRow.setCell(2, memoryResultSetRow.getCell(2).toString().replaceFirst(actualTableName, logicTableName));
-        for (ShardingSphereIndex each : table.getIndexValues()) {
+    }
+    
+    private void replaceBindingTables(final MemoryQueryResultRow memoryResultSetRow, final String logicTableName, final String actualTableName, final ShardingRule rule) {
+        Optional<ShardingTable> shardingTable = rule.findShardingTable(logicTableName);
+        Optional<BindingTableRule> bindingTableRule = rule.findBindingTableRule(logicTableName);
+        if (!shardingTable.isPresent() || !bindingTableRule.isPresent()) {
+            return;
+        }
+        Collection<DataNode> actualDataNodes = shardingTable.get().getActualDataNodes().stream().filter(each -> each.getTableName().equalsIgnoreCase(actualTableName)).collect(Collectors.toList());
+        Map<String, String> logicAndActualTablesFromBindingTables = new CaseInsensitiveMap<>();
+        for (DataNode each : actualDataNodes) {
+            logicAndActualTablesFromBindingTables
+                    .putAll(rule.getLogicAndActualTablesFromBindingTable(each.getDataSourceName(), logicTableName, actualTableName, bindingTableRule.get().getAllLogicTables()));
+        }
+        for (Entry<String, String> entry : logicAndActualTablesFromBindingTables.entrySet()) {
+            memoryResultSetRow.setCell(2, memoryResultSetRow.getCell(2).toString().replaceFirst(entry.getValue(), entry.getKey()));
+        }
+    }
+    
+    private void replaceIndexes(final MemoryQueryResultRow memoryResultSetRow, final String actualTableName, final ShardingSphereTable table) {
+        for (ShardingSphereIndex each : table.getAllIndexes()) {
             String actualIndexName = IndexMetaDataUtils.getActualIndexName(each.getName(), actualTableName);
             memoryResultSetRow.setCell(2, memoryResultSetRow.getCell(2).toString().replace(actualIndexName, each.getName()));
         }
-        for (ShardingSphereConstraint each : table.getConstraintValues()) {
+    }
+    
+    private void replaceConstraints(final MemoryQueryResultRow memoryResultSetRow, final String actualTableName, final ShardingSphereTable table, final ShardingRule rule) {
+        for (ShardingSphereConstraint each : table.getAllConstraints()) {
             String actualIndexName = IndexMetaDataUtils.getActualIndexName(each.getName(), actualTableName);
             memoryResultSetRow.setCell(2, memoryResultSetRow.getCell(2).toString().replace(actualIndexName, each.getName()));
-            Optional<TableRule> tableRule = shardingRule.findTableRule(each.getReferencedTableName());
-            if (!tableRule.isPresent()) {
+            Optional<ShardingTable> shardingTable = rule.findShardingTable(each.getReferencedTableName());
+            if (!shardingTable.isPresent()) {
                 continue;
             }
-            for (DataNode dataNode : tableRule.get().getActualDataNodes()) {
+            for (DataNode dataNode : shardingTable.get().getActualDataNodes()) {
                 memoryResultSetRow.setCell(2, memoryResultSetRow.getCell(2).toString().replace(dataNode.getTableName(), each.getReferencedTableName()));
             }
         }

@@ -31,7 +31,7 @@ import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.proxy.backend.connector.DatabaseConnector;
 import org.apache.shardingsphere.proxy.backend.connector.sane.SaneQueryResultEngine;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -111,9 +111,9 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
         if (null != configuredDatabaseType) {
             return configuredDatabaseType;
         }
-        if (ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getDatabases().isEmpty()) {
+        if (ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getAllDatabases().isEmpty()) {
             return TypedSPILoader.getService(DatabaseType.class, "MySQL");
         }
-        return ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getDatabases().values().iterator().next().getProtocolType();
+        return ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getAllDatabases().iterator().next().getProtocolType();
     }
 }

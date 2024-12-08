@@ -18,11 +18,14 @@
 package org.apache.shardingsphere.proxy.backend.mysql.handler.admin.executor;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.mode.process.event.KillProcessRequestEvent;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.DatabaseAdminExecutor;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLKillStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.KillStatement;
+
+import java.sql.SQLException;
 
 /**
  * Kill process executor.
@@ -30,7 +33,9 @@ import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQ
 @RequiredArgsConstructor
 public final class KillProcessExecutor implements DatabaseAdminExecutor {
     
-    private final MySQLKillStatement killStatement;
+    private static final String QUERY_SCOPE = "QUERY";
+    
+    private final KillStatement killStatement;
     
     /**
      * Execute.
@@ -38,8 +43,10 @@ public final class KillProcessExecutor implements DatabaseAdminExecutor {
      * @param connectionSession connection session
      */
     @Override
-    public void execute(final ConnectionSession connectionSession) {
+    public void execute(final ConnectionSession connectionSession) throws SQLException {
+        ShardingSpherePreconditions.checkState(QUERY_SCOPE.equalsIgnoreCase(killStatement.getScope()),
+                () -> new UnsupportedSQLOperationException("Only `KILL QUERY <processId>` SQL syntax is supported"));
         String processId = killStatement.getProcessId();
-        ProxyContext.getInstance().getContextManager().getInstanceContext().getEventBusContext().post(new KillProcessRequestEvent(processId));
+        ProxyContext.getInstance().getContextManager().getPersistServiceFacade().getProcessPersistService().killProcess(processId);
     }
 }

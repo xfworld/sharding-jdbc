@@ -30,3 +30,134 @@ dbLinkInfo
 explain
     : EXPLAIN PLAN (SET STATEMENT_ID EQ_ stringLiterals)? (INTO (schemaName DOT_)? tableName (AT_ dbLinkInfo)? )? FOR (insert | delete | update | select)
     ;
+
+schema
+    : identifier
+    ;
+
+parameterName
+    : identifier
+    ;
+
+originalName
+    : identifier
+    ;
+
+systemVariable
+    : (APPI | APPINFO)
+    | (ARRAY | ARRAYSIZE)
+    | (AUTO | AUTOCOMMIT)
+    | (AUTOP | AUTOPN)
+    | AUTORECOVERY
+    | (AUTOT | AUTOTRACE)
+    | (BLO | BLOCKTERMINATOR)
+    | (CMDS | CMDSEP)
+    | (COLINVI | COLINVISIBLE)
+    | COLSEP
+    | (CON | CONCAT)
+    | (COPYC | COPYCOMMIT)
+    | COPYTYPECHECK
+    | (DEF | DEFINE)
+    | DESCRIBE
+    | ECHO
+    | (EDITF | EDITFILE)
+    | (EMB | EMBEDDED)
+    | ERRORDETAILS
+    | (ERRORL | ERRORLOGGING)
+    | (ESC | ESCAPE)
+    | ESCCHAR
+    | (EXITCOMMIT | OMMIT)
+    | FEEDBACK
+    | FLAGGER
+    | (FLU | FLUSH)
+    | (HEADING | HEA)
+    | (HISTORY | HIST)
+    | INSTANCE
+    | JSONPRINT
+    | (LINESIZE | LIN)
+    | (LOBOFFSET | LOBOF)
+    | LOGSOURCE
+    | LONG
+    | LONGCHUNKSIZE
+    | (MARK | MARKUP)
+    | (NEWPAGE | NEWP)
+    | NULL
+    | (NUMFORMAT | NUMF)
+    | (NUMWIDTH | NUM)
+    | (PAGESIZE | PAGES)
+    | (PAUSE | PAU)
+    | RECSEP
+    | RECSEPCHAR
+    | ROWLIMIT
+    | ROWPREFETCH
+    | SECUREDCOL
+    | (SERVEROUTPUT | SERVEROUT)
+    | (SHIFTINOUT | SHIFT)
+    | (SHOWMODE | SHOW)
+    | (SQLBLANKLINES | SQLBL)
+    | (SQLCASE | SQLC)
+    | (SQLCONTINUE | SQLCO)
+    | (SQLNUMBER | SQLN)
+    | (SQLPLUSCOMPATIBILITY | SQLPLUSCOMPAT)
+    | (SQLPREFIX | SQLPRE)
+    | (SQLPROMPT | SQLP)
+    | (SQLTERMINATOR | SQLT)
+    | (STATEMENTCACHE | STATEMENTC)
+    | (SUFFIX | SUF)
+    | TAB
+    | (TERMOUT | TERM)
+    | (TIME | TI)
+    | (TIMING | TIMI)
+    | (TRIMOUT | TRIM)
+    | (TRIMSPOOL | TRIMS)
+    | (UNDERLINE | UND)
+    | (VERIFY | VER)
+    | (WRAP | WRA)
+    | (XMLOPTIMIZATIONCHECK | XMLOPT)
+    | XQUERY
+    ;
+
+showOptions
+    : systemVariable
+    | ALL
+    | CON_ID
+    | CON_NAME
+    | EDITION
+    | (BTI | BTITLE)
+    | (ERR | ERRORS) ((ANALYTIC VIEW | ATTRIBUTE DIMENSION | HIERARCHY | FUNCTION | PROCEDURE | PACKAGE | PACKAGE BODY | TRIGGER  | VIEW | TYPE | TYPE BODY | DIMENSION | JAVA CLASS) (schema DOT_)? name)?
+    | HISTORY
+    | LNO
+    | LOBPREFETCH
+    | (PARAMETER | PARAMETERS) parameterName?
+    | PDBS
+    | PNO
+    | (RECYC | RECYCLEBIN) originalName?
+    | (REL | RELEASE)
+    | (REPF | REPFOOTER)
+    | (REPH | REPHEADER)
+    | (ROWPREF | ROWPREFETCH)
+    | SGA
+    | (SPOO | SPOOL)
+    | (SPPARAMETER | SPPARAMETERS) parameterName?
+    | SQLCODE
+    | (STATEMENTC | STATEMENTCACHE)
+    | (TTI | TLE)
+    | USER
+    | XQUERY
+    ;
+
+show
+    : (SHO | SHOW) showOptions
+    ;
+
+fileExt
+    : DOT_ identifier
+    ;
+
+spoolFileName
+    : identifier fileExt?
+    ;
+
+spool
+    : (SPOOL | SPO) (spoolFileName (CRE | CREATE | REP | REPLACE | APP | APPEND)?) | OFF | OUT
+    ;

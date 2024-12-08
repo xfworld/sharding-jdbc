@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 grammar BaseRule;
 
 import Symbol, Keyword, Literals;
@@ -47,6 +47,10 @@ properties
 
 property
     : key=STRING_ EQ_ value=literal
+    ;
+
+tableName
+    : IDENTIFIER_
     ;
 
 ruleName

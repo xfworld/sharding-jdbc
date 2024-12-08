@@ -19,6 +19,7 @@ package org.apache.shardingsphere.sharding.merge.dal;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.merge.engine.merger.ResultMerger;
@@ -34,12 +35,12 @@ import org.apache.shardingsphere.sharding.merge.dal.show.ShowCreateTableMergedRe
 import org.apache.shardingsphere.sharding.merge.dal.show.ShowIndexMergedResult;
 import org.apache.shardingsphere.sharding.merge.dal.show.ShowTableStatusMergedResult;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowCreateTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowDatabasesStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowIndexStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowTableStatusStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowTablesStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ShowCreateTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ShowDatabasesStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ShowIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ShowTableStatusStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ShowTablesStatement;
 
 import java.sql.SQLException;
 import java.util.Collections;
@@ -59,24 +60,29 @@ public final class ShardingDALResultMerger implements ResultMerger {
     public MergedResult merge(final List<QueryResult> queryResults, final SQLStatementContext sqlStatementContext,
                               final ShardingSphereDatabase database, final ConnectionContext connectionContext) throws SQLException {
         SQLStatement dalStatement = sqlStatementContext.getSqlStatement();
-        if (dalStatement instanceof MySQLShowDatabasesStatement) {
+        if (dalStatement instanceof ShowDatabasesStatement) {
             return new LocalDataMergedResult(Collections.singleton(new LocalDataQueryResultRow(databaseName)));
         }
-        String schemaName = sqlStatementContext.getTablesContext().getSchemaName()
-                .orElseGet(() -> new DatabaseTypeRegistry(sqlStatementContext.getDatabaseType()).getDefaultSchemaName(database.getName()));
-        ShardingSphereSchema schema = database.getSchema(schemaName);
-        if (dalStatement instanceof MySQLShowTablesStatement) {
+        ShardingSphereSchema schema = getSchema(sqlStatementContext, database);
+        if (dalStatement instanceof ShowTablesStatement) {
             return new LogicTablesMergedResult(shardingRule, sqlStatementContext, schema, queryResults);
         }
-        if (dalStatement instanceof MySQLShowTableStatusStatement) {
+        if (dalStatement instanceof ShowTableStatusStatement) {
             return new ShowTableStatusMergedResult(shardingRule, sqlStatementContext, schema, queryResults);
         }
-        if (dalStatement instanceof MySQLShowIndexStatement) {
+        if (dalStatement instanceof ShowIndexStatement) {
             return new ShowIndexMergedResult(shardingRule, sqlStatementContext, schema, queryResults);
         }
-        if (dalStatement instanceof MySQLShowCreateTableStatement) {
+        if (dalStatement instanceof ShowCreateTableStatement) {
             return new ShowCreateTableMergedResult(shardingRule, sqlStatementContext, schema, queryResults);
         }
         return new TransparentMergedResult(queryResults.get(0));
+    }
+    
+    private ShardingSphereSchema getSchema(final SQLStatementContext sqlStatementContext, final ShardingSphereDatabase database) {
+        String defaultSchemaName = new DatabaseTypeRegistry(sqlStatementContext.getDatabaseType()).getDefaultSchemaName(database.getName());
+        return sqlStatementContext instanceof TableAvailable
+                ? ((TableAvailable) sqlStatementContext).getTablesContext().getSchemaName().map(database::getSchema).orElseGet(() -> database.getSchema(defaultSchemaName))
+                : database.getSchema(defaultSchemaName);
     }
 }

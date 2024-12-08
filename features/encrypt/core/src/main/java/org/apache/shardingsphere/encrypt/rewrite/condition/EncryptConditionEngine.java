@@ -22,24 +22,27 @@ import org.apache.shardingsphere.encrypt.exception.syntax.UnsupportedEncryptSQLE
 import org.apache.shardingsphere.encrypt.rewrite.condition.impl.EncryptBinaryCondition;
 import org.apache.shardingsphere.encrypt.rewrite.condition.impl.EncryptInCondition;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
-import org.apache.shardingsphere.encrypt.rule.EncryptTable;
+import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BetweenExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BinaryOperationExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.InExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ListExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.LiteralExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.simple.SimpleExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.subquery.SubqueryExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.AndPredicate;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.WhereSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.util.ColumnExtractor;
-import org.apache.shardingsphere.sql.parser.sql.common.util.ExpressionExtractUtils;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BetweenExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BinaryOperationExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.InExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ListExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.LiteralExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.SimpleExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubqueryExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.AndPredicate;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.WhereSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.extractor.ColumnExtractor;
+import org.apache.shardingsphere.sql.parser.statement.core.extractor.ExpressionExtractor;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -53,6 +56,7 @@ import java.util.TreeSet;
 /**
  * Encrypt condition engine.
  */
+@HighFrequencyInvocation
 @RequiredArgsConstructor
 public final class EncryptConditionEngine {
     
@@ -60,9 +64,9 @@ public final class EncryptConditionEngine {
     
     private static final Set<String> SUPPORTED_COMPARE_OPERATOR = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     
-    private final EncryptRule encryptRule;
+    private final EncryptRule rule;
     
-    private final Map<String, ShardingSphereSchema> schemas;
+    private final ShardingSphereDatabase database;
     
     static {
         LOGICAL_OPERATOR.add("AND");
@@ -93,10 +97,10 @@ public final class EncryptConditionEngine {
                                                                 final SQLStatementContext sqlStatementContext, final String databaseName) {
         Collection<EncryptCondition> result = new LinkedList<>();
         String defaultSchema = new DatabaseTypeRegistry(sqlStatementContext.getDatabaseType()).getDefaultSchemaName(databaseName);
-        ShardingSphereSchema schema = sqlStatementContext.getTablesContext().getSchemaName().map(schemas::get).orElseGet(() -> schemas.get(defaultSchema));
-        Map<String, String> expressionTableNames = sqlStatementContext.getTablesContext().findTableNamesByColumnSegment(columnSegments, schema);
+        ShardingSphereSchema schema = ((TableAvailable) sqlStatementContext).getTablesContext().getSchemaName().map(database::getSchema).orElseGet(() -> database.getSchema(defaultSchema));
+        Map<String, String> expressionTableNames = ((TableAvailable) sqlStatementContext).getTablesContext().findTableNames(columnSegments, schema);
         for (WhereSegment each : whereSegments) {
-            Collection<AndPredicate> andPredicates = ExpressionExtractUtils.getAndPredicates(each.getExpr());
+            Collection<AndPredicate> andPredicates = ExpressionExtractor.extractAndPredicates(each.getExpr());
             for (AndPredicate predicate : andPredicates) {
                 addEncryptConditions(result, predicate.getPredicates(), expressionTableNames);
             }
@@ -119,7 +123,7 @@ public final class EncryptConditionEngine {
         }
         for (ColumnSegment each : ColumnExtractor.extract(expression)) {
             String tableName = expressionTableNames.getOrDefault(each.getExpression(), "");
-            Optional<EncryptTable> encryptTable = encryptRule.findEncryptTable(tableName);
+            Optional<EncryptTable> encryptTable = rule.findEncryptTable(tableName);
             if (encryptTable.isPresent() && encryptTable.get().isEncryptColumn(each.getIdentifier().getValue())) {
                 createEncryptCondition(expression, tableName).ifPresent(encryptConditions::add);
             }
@@ -162,7 +166,7 @@ public final class EncryptConditionEngine {
         if (LOGICAL_OPERATOR.contains(operator)) {
             return Optional.empty();
         }
-        ShardingSpherePreconditions.checkState(SUPPORTED_COMPARE_OPERATOR.contains(operator), () -> new UnsupportedEncryptSQLException(operator));
+        ShardingSpherePreconditions.checkContains(SUPPORTED_COMPARE_OPERATOR, operator, () -> new UnsupportedEncryptSQLException(operator));
         return createCompareEncryptCondition(tableName, expression, expression.getRight());
     }
     

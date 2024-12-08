@@ -26,13 +26,13 @@ import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
 import org.apache.shardingsphere.test.mock.AutoMockExtension;
 import org.apache.shardingsphere.test.mock.StaticMockSettings;
-import org.apache.shardingsphere.transaction.api.TransactionType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.internal.configuration.plugins.Plugins;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -46,12 +46,12 @@ import static org.mockito.Mockito.when;
 class ShowProcessListExecutorTest {
     
     @Test
-    void assertExecute() throws SQLException, ReflectiveOperationException {
+    void assertExecute() throws SQLException {
         ContextManager contextManager = mock(ContextManager.class, RETURNS_DEEP_STUBS);
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
-        ShowProcessListExecutor showProcessListExecutor = new ShowProcessListExecutor();
-        setupProcesses(showProcessListExecutor);
-        showProcessListExecutor.execute(new ConnectionSession(mock(MySQLDatabaseType.class), TransactionType.LOCAL, new DefaultAttributeMap()));
+        when(contextManager.getPersistServiceFacade().getProcessPersistService().getProcessList()).thenReturn(mockProcessList());
+        ShowProcessListExecutor showProcessListExecutor = new ShowProcessListExecutor(false);
+        showProcessListExecutor.execute(new ConnectionSession(mock(MySQLDatabaseType.class), new DefaultAttributeMap()));
         assertThat(showProcessListExecutor.getQueryResultMetaData().getColumnCount(), is(8));
         MergedResult mergedResult = showProcessListExecutor.getMergedResult();
         while (mergedResult.next()) {
@@ -64,10 +64,10 @@ class ShowProcessListExecutorTest {
         }
     }
     
-    private void setupProcesses(final ShowProcessListExecutor showProcessListExecutor) throws ReflectiveOperationException {
+    private Collection<Process> mockProcessList() {
         Process process = new Process("f6c2336a-63ba-41bf-941e-2e3504eb2c80", 1617939785160L,
-                "ALTER TABLE t_order ADD COLUMN a varchar(64) AFTER order_id", "foo_db", "root", "127.0.0.1", 2, Collections.emptyList(), new AtomicInteger(1), false, false);
-        Plugins.getMemberAccessor().set(
-                showProcessListExecutor.getClass().getDeclaredField("processes"), showProcessListExecutor, Collections.singleton(process));
+                "ALTER TABLE t_order ADD COLUMN a varchar(64) AFTER order_id", "foo_db", "root", "127.0.0.1", new AtomicInteger(2), new AtomicInteger(1), new AtomicBoolean(false),
+                new AtomicBoolean());
+        return Collections.singleton(process);
     }
 }

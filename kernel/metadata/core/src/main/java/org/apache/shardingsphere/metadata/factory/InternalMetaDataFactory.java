@@ -21,12 +21,11 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.config.database.DatabaseConfiguration;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.database.DatabaseTypeEngine;
-import org.apache.shardingsphere.infra.instance.InstanceContext;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.rule.builder.database.DatabaseRulesBuilder;
-import org.apache.shardingsphere.metadata.persist.MetaDataBasedPersistService;
+import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,45 +38,45 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class InternalMetaDataFactory {
     
     /**
-     * Create database meta data for governance center.
+     * Create database meta data from governance center.
      *
      * @param databaseName database name
      * @param persistService meta data persist service
      * @param databaseConfig database configuration
      * @param props configuration properties
-     * @param instanceContext instance context
-     * @return database meta data
+     * @param computeNodeInstanceContext compute node instance context
+     * @return database
      */
-    public static ShardingSphereDatabase create(final String databaseName, final MetaDataBasedPersistService persistService, final DatabaseConfiguration databaseConfig,
-                                                final ConfigurationProperties props, final InstanceContext instanceContext) {
-        return ShardingSphereDatabase.create(databaseName, DatabaseTypeEngine.getProtocolType(databaseName, databaseConfig, props), databaseConfig,
-                DatabaseRulesBuilder.build(databaseName, databaseConfig, instanceContext), persistService.getDatabaseMetaDataService().loadSchemas(databaseName));
+    public static ShardingSphereDatabase create(final String databaseName, final MetaDataPersistService persistService, final DatabaseConfiguration databaseConfig,
+                                                final ConfigurationProperties props, final ComputeNodeInstanceContext computeNodeInstanceContext) {
+        DatabaseType protocolType = DatabaseTypeEngine.getProtocolType(databaseConfig, props);
+        return ShardingSphereDatabase.create(databaseName,
+                protocolType, databaseConfig, computeNodeInstanceContext, persistService.getDatabaseMetaDataFacade().getSchema().load(databaseName));
     }
     
     /**
-     * Create databases meta data for governance center.
+     * Create databases meta data from governance center.
      *
      * @param persistService meta data persist service
      * @param databaseConfigMap database configuration map
      * @param props properties
-     * @param instanceContext instance context
+     * @param computeNodeInstanceContext compute node instance context
      * @return databases
      */
-    public static Map<String, ShardingSphereDatabase> create(final MetaDataBasedPersistService persistService, final Map<String, DatabaseConfiguration> databaseConfigMap,
-                                                             final ConfigurationProperties props, final InstanceContext instanceContext) {
-        return createDatabases(persistService, databaseConfigMap, DatabaseTypeEngine.getProtocolType(databaseConfigMap, props), props, instanceContext);
+    public static Map<String, ShardingSphereDatabase> create(final MetaDataPersistService persistService, final Map<String, DatabaseConfiguration> databaseConfigMap,
+                                                             final ConfigurationProperties props, final ComputeNodeInstanceContext computeNodeInstanceContext) {
+        return createDatabases(persistService, databaseConfigMap, DatabaseTypeEngine.getProtocolType(databaseConfigMap, props), props, computeNodeInstanceContext);
     }
     
-    private static Map<String, ShardingSphereDatabase> createDatabases(final MetaDataBasedPersistService persistService, final Map<String, DatabaseConfiguration> databaseConfigMap,
-                                                                       final DatabaseType protocolType, final ConfigurationProperties props, final InstanceContext instanceContext) {
+    private static Map<String, ShardingSphereDatabase> createDatabases(final MetaDataPersistService persistService, final Map<String, DatabaseConfiguration> databaseConfigMap,
+                                                                       final DatabaseType protocolType, final ConfigurationProperties props,
+                                                                       final ComputeNodeInstanceContext computeNodeInstanceContext) {
         Map<String, ShardingSphereDatabase> result = new ConcurrentHashMap<>(databaseConfigMap.size(), 1F);
         for (Entry<String, DatabaseConfiguration> entry : databaseConfigMap.entrySet()) {
             String databaseName = entry.getKey();
-            if (entry.getValue().getStorageUnits().isEmpty()) {
-                result.put(databaseName.toLowerCase(), ShardingSphereDatabase.create(databaseName, protocolType, props));
-            } else {
-                result.put(databaseName.toLowerCase(), create(databaseName, persistService, entry.getValue(), props, instanceContext));
-            }
+            result.put(databaseName.toLowerCase(), entry.getValue().getStorageUnits().isEmpty()
+                    ? ShardingSphereDatabase.create(databaseName, protocolType, props)
+                    : create(databaseName, persistService, entry.getValue(), props, computeNodeInstanceContext));
         }
         return result;
     }

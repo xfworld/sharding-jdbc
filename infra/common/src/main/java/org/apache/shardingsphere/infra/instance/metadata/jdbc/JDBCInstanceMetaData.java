@@ -35,16 +35,20 @@ public final class JDBCInstanceMetaData implements InstanceMetaData {
     
     private final String version;
     
-    public JDBCInstanceMetaData(final String id) {
+    private final String databaseName;
+    
+    public JDBCInstanceMetaData(final String id, final String databaseName) {
         this.id = id;
         ip = IpUtils.getIp();
-        this.version = ShardingSphereVersion.VERSION;
+        version = ShardingSphereVersion.VERSION;
+        this.databaseName = databaseName;
     }
     
-    public JDBCInstanceMetaData(final String id, final String version) {
+    public JDBCInstanceMetaData(final String id, final String attributes, final String version, final String databaseName) {
         this.id = id;
-        ip = IpUtils.getIp();
+        ip = attributes;
         this.version = version;
+        this.databaseName = databaseName;
     }
     
     @Override
@@ -54,6 +58,12 @@ public final class JDBCInstanceMetaData implements InstanceMetaData {
     
     @Override
     public String getAttributes() {
-        return "";
+        return ip;
     }
+    
+    @Override
+    public String getDatabaseName() {
+        return databaseName;
+    }
+    
 }

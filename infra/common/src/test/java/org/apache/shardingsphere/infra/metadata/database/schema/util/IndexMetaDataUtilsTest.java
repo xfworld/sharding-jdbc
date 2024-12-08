@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.infra.metadata.database.schema.util;
 
-import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
@@ -27,26 +26,21 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 class IndexMetaDataUtilsTest {
-    
-    private static final String TABLE_NAME = "t_order";
-    
-    private static final String INDEX_NAME = "user_id_idx";
     
     @Test
     void assertGetLogicIndexNameWithIndexNameSuffix() {
@@ -82,17 +76,17 @@ class IndexMetaDataUtilsTest {
     
     @Test
     void assertGetTableNames() {
-        IndexSegment indexSegment = new IndexSegment(0, 0, new IndexNameSegment(0, 0, new IdentifierValue(INDEX_NAME)));
+        IndexSegment indexSegment = new IndexSegment(0, 0, new IndexNameSegment(0, 0, new IdentifierValue("foo_idx")));
         Collection<QualifiedTable> actual = IndexMetaDataUtils.getTableNames(buildDatabase(), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"), Collections.singleton(indexSegment));
         assertThat(actual.size(), is(1));
-        assertThat(actual.iterator().next().getSchemaName(), is(DefaultDatabase.LOGIC_NAME));
-        assertThat(actual.iterator().next().getTableName(), is(TABLE_NAME));
+        assertThat(actual.iterator().next().getSchemaName(), is("foo_db"));
+        assertThat(actual.iterator().next().getTableName(), is("foo_tbl"));
     }
     
     private ShardingSphereDatabase buildDatabase() {
-        ShardingSphereTable table = new ShardingSphereTable(TABLE_NAME, Collections.emptyList(), Collections.singleton(new ShardingSphereIndex(INDEX_NAME)), Collections.emptyList());
-        Map<String, ShardingSphereTable> tables = Collections.singletonMap(TABLE_NAME, table);
-        Map<String, ShardingSphereSchema> schemas = Collections.singletonMap(DefaultDatabase.LOGIC_NAME, new ShardingSphereSchema(tables, Collections.emptyMap()));
-        return new ShardingSphereDatabase(DefaultDatabase.LOGIC_NAME, mock(DatabaseType.class), mock(ResourceMetaData.class), mock(RuleMetaData.class), schemas);
+        ShardingSphereTable table = new ShardingSphereTable(
+                "foo_tbl", Collections.emptyList(), Collections.singleton(new ShardingSphereIndex("foo_idx", Collections.emptyList(), false)), Collections.emptyList());
+        Collection<ShardingSphereSchema> schemas = Collections.singleton(new ShardingSphereSchema("foo_db", Collections.singleton(table), Collections.emptyList()));
+        return new ShardingSphereDatabase("foo_db", mock(DatabaseType.class), mock(ResourceMetaData.class), mock(RuleMetaData.class), schemas);
     }
 }

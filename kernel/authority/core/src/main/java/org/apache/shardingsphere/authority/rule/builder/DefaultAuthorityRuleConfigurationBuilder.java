@@ -18,12 +18,14 @@
 package org.apache.shardingsphere.authority.rule.builder;
 
 import org.apache.shardingsphere.authority.config.AuthorityRuleConfiguration;
+import org.apache.shardingsphere.authority.config.UserConfiguration;
 import org.apache.shardingsphere.authority.constant.AuthorityOrder;
-import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
-import org.apache.shardingsphere.infra.metadata.user.ShardingSphereUser;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.rule.builder.global.DefaultGlobalRuleConfigurationBuilder;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Properties;
 
@@ -34,13 +36,10 @@ public final class DefaultAuthorityRuleConfigurationBuilder implements DefaultGl
     
     @Override
     public AuthorityRuleConfiguration build() {
-        return new AuthorityRuleConfiguration(createDefaultUsers(), new AlgorithmConfiguration("ALL_PERMITTED", new Properties()), null);
-    }
-    
-    private Collection<ShardingSphereUser> createDefaultUsers() {
-        Collection<ShardingSphereUser> result = new LinkedHashSet<>();
-        result.add(new ShardingSphereUser(DefaultUser.USER_NAME, DefaultUser.USER_PASSWORD, DefaultUser.USER_HOSTNAME));
-        return result;
+        Collection<UserConfiguration> defaultUserConfigs = new LinkedHashSet<>(
+                Collections.singleton(new UserConfiguration(DefaultUser.USERNAME, DefaultUser.PASSWORD, DefaultUser.HOSTNAME, "", true)));
+        AlgorithmConfiguration authorityProviderConfig = new AlgorithmConfiguration("ALL_PERMITTED", new Properties());
+        return new AuthorityRuleConfiguration(defaultUserConfigs, authorityProviderConfig, new LinkedHashMap<>(), null);
     }
     
     @Override

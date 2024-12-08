@@ -28,6 +28,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Calendar;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -115,7 +118,7 @@ class JDBCStreamQueryResultTest {
     @Test
     void assertGetValueByBytes() throws SQLException {
         ResultSet resultSet = mock(ResultSet.class);
-        byte[] value = {1};
+        byte[] value = {(byte) 1};
         when(resultSet.getBytes(1)).thenReturn(value);
         assertThat(new JDBCStreamQueryResult(resultSet).getValue(1, byte[].class), is(value));
     }
@@ -163,6 +166,13 @@ class JDBCStreamQueryResultTest {
         ResultSet resultSet = mock(ResultSet.class);
         when(resultSet.getTimestamp(1)).thenReturn(new Timestamp(0L));
         assertThat(new JDBCStreamQueryResult(resultSet).getValue(1, Timestamp.class), is(new Timestamp(0L)));
+    }
+    
+    @Test
+    void assertGetValueByZonedDateTime() throws SQLException {
+        ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.getObject(1, ZonedDateTime.class)).thenReturn(ZonedDateTime.ofInstant(Instant.ofEpochSecond(1), ZoneId.systemDefault()));
+        assertThat(new JDBCStreamQueryResult(resultSet).getValue(1, ZonedDateTime.class), is(ZonedDateTime.ofInstant(Instant.ofEpochSecond(1), ZoneId.systemDefault())));
     }
     
     @Test
@@ -264,6 +274,14 @@ class JDBCStreamQueryResultTest {
         assertFalse(actual.wasNull());
         actual.next();
         assertTrue(actual.wasNull());
+    }
+    
+    @Test
+    void assertClose() throws SQLException {
+        ResultSet resultSet = getResultSet();
+        JDBCStreamQueryResult queryResult = new JDBCStreamQueryResult(resultSet);
+        queryResult.close();
+        verify(resultSet).close();
     }
     
     private ResultSet getResultSet() throws SQLException {

@@ -15,7 +15,7 @@ ShardingSphere provides a JDBC driver. To use ShardingSphere, developers can con
 ```xml
 <dependency>
     <groupId>org.apache.shardingsphere</groupId>
-    <artifactId>shardingsphere-jdbc-core</artifactId>
+    <artifactId>shardingsphere-jdbc</artifactId>
     <version>${shardingsphere.version}</version>
 </dependency>
 ```
@@ -37,7 +37,7 @@ ShardingSphere provides a JDBC driver. To use ShardingSphere, developers can con
        xsi:schemaLocation="http://www.springframework.org/schema/beans 
                            http://www.springframework.org/schema/beans/spring-beans.xsd">
     
-    <bean id="shardingDataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
+    <bean id="shardingDataSource" class="com.zaxxer.hikari.HikariDataSource">
         <property name="driverClass" value="org.apache.shardingsphere.driver.ShardingSphereDriver" />
         <property name="url" value="jdbc:shardingsphere:classpath:xxx.yaml" />
     </bean>

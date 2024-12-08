@@ -22,14 +22,14 @@ import org.apache.shardingsphere.infra.binder.context.segment.table.TablesContex
 import org.apache.shardingsphere.infra.binder.context.statement.CommonSQLStatementContext;
 import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.binder.context.type.WhereAvailable;
-import org.apache.shardingsphere.sql.parser.sql.common.extractor.TableExtractor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BinaryOperationExpression;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.predicate.WhereSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.UpdateStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.util.ColumnExtractor;
-import org.apache.shardingsphere.sql.parser.sql.common.util.ExpressionExtractUtils;
+import org.apache.shardingsphere.sql.parser.statement.core.extractor.TableExtractor;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BinaryOperationExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.WhereSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.UpdateStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.extractor.ColumnExtractor;
+import org.apache.shardingsphere.sql.parser.statement.core.extractor.ExpressionExtractor;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -48,12 +48,12 @@ public final class UpdateStatementContext extends CommonSQLStatementContext impl
     
     private final Collection<BinaryOperationExpression> joinConditions = new LinkedList<>();
     
-    public UpdateStatementContext(final UpdateStatement sqlStatement) {
+    public UpdateStatementContext(final UpdateStatement sqlStatement, final String currentDatabaseName) {
         super(sqlStatement);
-        tablesContext = new TablesContext(getAllSimpleTableSegments(), getDatabaseType());
+        tablesContext = new TablesContext(getAllSimpleTableSegments(), getDatabaseType(), currentDatabaseName);
         getSqlStatement().getWhere().ifPresent(whereSegments::add);
         ColumnExtractor.extractColumnSegments(columnSegments, whereSegments);
-        ExpressionExtractUtils.extractJoinConditions(joinConditions, whereSegments);
+        ExpressionExtractor.extractJoinConditions(joinConditions, whereSegments);
     }
     
     private Collection<SimpleTableSegment> getAllSimpleTableSegments() {
@@ -65,11 +65,6 @@ public final class UpdateStatementContext extends CommonSQLStatementContext impl
     @Override
     public UpdateStatement getSqlStatement() {
         return (UpdateStatement) super.getSqlStatement();
-    }
-    
-    @Override
-    public Collection<SimpleTableSegment> getAllTables() {
-        return tablesContext.getSimpleTableSegments();
     }
     
     @Override

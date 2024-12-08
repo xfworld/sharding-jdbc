@@ -23,7 +23,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.transaction.xa.jta.datasource.properties.XADataSourceDefinition;
 import org.apache.shardingsphere.transaction.xa.jta.datasource.swapper.DataSourceSwapper;
 
@@ -61,8 +61,8 @@ public final class DataSourceUtils {
         result.setPassword("root");
         result.setMaximumPoolSize(10);
         result.setMinimumIdle(2);
-        result.setConnectionTimeout(15 * 1000L);
-        result.setIdleTimeout(40 * 1000L);
+        result.setConnectionTimeout(15L * 1000L);
+        result.setIdleTimeout(40L * 1000L);
         return result;
     }
     

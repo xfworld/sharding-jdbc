@@ -33,21 +33,21 @@ import org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementParser.Va
 import org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementParser.VacuumRelationContext;
 import org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementParser.VacuumRelationListContext;
 import org.apache.shardingsphere.sql.parser.postgresql.visitor.statement.PostgreSQLStatementVisitor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableAssignSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.value.collection.CollectionValue;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLAnalyzeTableStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLEmptyStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLExplainStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLLoadStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLResetParameterStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLSetStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLShowStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLVacuumStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.VariableAssignSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.VariableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.collection.CollectionValue;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.dal.PostgreSQLAnalyzeTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.dal.PostgreSQLEmptyStatement;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.dal.PostgreSQLExplainStatement;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.dal.PostgreSQLLoadStatement;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.dal.PostgreSQLResetParameterStatement;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.dal.PostgreSQLSetStatement;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.dal.PostgreSQLShowStatement;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.dal.PostgreSQLVacuumStatement;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -86,11 +86,9 @@ public final class PostgreSQLDALStatementVisitor extends PostgreSQLStatementVisi
             variableAssigns.add(variableAssignSegment);
         }
         if (null != ctx.encoding()) {
-            VariableAssignSegment variableAssignSegment = new VariableAssignSegment();
-            variableAssignSegment.setVariable(new VariableSegment(ctx.NAMES().getSymbol().getStartIndex(), ctx.NAMES().getSymbol().getStopIndex(), "client_encoding"));
-            String value = ctx.encoding().getText();
-            variableAssignSegment.setAssignValue(value);
-            variableAssigns.add(variableAssignSegment);
+            VariableSegment variable = new VariableSegment(ctx.NAMES().getSymbol().getStartIndex(), ctx.NAMES().getSymbol().getStopIndex(), "client_encoding");
+            VariableAssignSegment variableAssign = new VariableAssignSegment(ctx.encoding().start.getStartIndex(), ctx.encoding().stop.getStopIndex(), variable, ctx.encoding().getText());
+            variableAssigns.add(variableAssign);
         }
         result.getVariableAssigns().addAll(variableAssigns);
         return result;
@@ -98,17 +96,18 @@ public final class PostgreSQLDALStatementVisitor extends PostgreSQLStatementVisi
     
     @Override
     public ASTNode visitConfigurationParameterClause(final ConfigurationParameterClauseContext ctx) {
-        VariableAssignSegment result = new VariableAssignSegment();
-        result.setStartIndex(ctx.start.getStartIndex());
-        result.setStopIndex(ctx.stop.getStopIndex());
-        result.setVariable(new VariableSegment(ctx.varName().start.getStartIndex(), ctx.varName().stop.getStopIndex(), ctx.varName().getText()));
+        return new VariableAssignSegment(ctx.start.getStartIndex(), ctx.stop.getStopIndex(),
+                new VariableSegment(ctx.varName().start.getStartIndex(), ctx.varName().stop.getStopIndex(), ctx.varName().getText()), getAssignValue(ctx));
+    }
+    
+    private String getAssignValue(final ConfigurationParameterClauseContext ctx) {
         if (null != ctx.varList()) {
-            result.setAssignValue(ctx.varList().getText());
+            return ctx.varList().getText();
         }
         if (null != ctx.DEFAULT()) {
-            result.setAssignValue(ctx.DEFAULT().getText());
+            return ctx.DEFAULT().getText();
         }
-        return result;
+        return null;
     }
     
     @Override
@@ -150,7 +149,7 @@ public final class PostgreSQLDALStatementVisitor extends PostgreSQLStatementVisi
     @Override
     public ASTNode visitExplain(final ExplainContext ctx) {
         PostgreSQLExplainStatement result = new PostgreSQLExplainStatement();
-        result.setStatement((SQLStatement) visit(ctx.explainableStmt()));
+        result.setSqlStatement((SQLStatement) visit(ctx.explainableStmt()));
         return result;
     }
     
