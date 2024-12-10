@@ -22,12 +22,13 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.AliasSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.OwnerSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.AliasSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OwnerSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -35,8 +36,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -48,10 +47,22 @@ import static org.mockito.Mockito.when;
 
 class TablesContextTest {
     
+    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "FIXTURE");
+    
+    @Test
+    void assertGetTableNamesWithoutTableSegments() {
+        assertTrue(new TablesContext(Collections.emptyList(), Collections.emptyMap(), databaseType, "foo_db").getTableNames().isEmpty());
+    }
+    
+    @Test
+    void assertGetTableNamesWithoutSimpleTableSegments() {
+        assertTrue(new TablesContext(Collections.singleton(mock(TableSegment.class)), Collections.emptyMap(), databaseType, "foo_db").getTableNames().isEmpty());
+    }
+    
     @Test
     void assertGetTableNames() {
-        TablesContext tablesContext = new TablesContext(Arrays.asList(createTableSegment("table_1", "tbl_1"),
-                createTableSegment("table_2", "tbl_2")), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        TablesContext tablesContext = new TablesContext(
+                Arrays.asList(createTableSegment("table_1", "tbl_1"), createTableSegment("table_2", "tbl_2"), createTableSegment("DUAL", "dual")), databaseType, "foo_db");
         assertThat(tablesContext.getTableNames(), is(new HashSet<>(Arrays.asList("table_1", "table_2"))));
     }
     
@@ -59,19 +70,17 @@ class TablesContextTest {
     void assertInstanceCreatedWhenNoExceptionThrown() {
         SimpleTableSegment tableSegment = new SimpleTableSegment(new TableNameSegment(0, 10, new IdentifierValue("tbl")));
         tableSegment.setOwner(new OwnerSegment(0, 0, new IdentifierValue("schema")));
-        TablesContext tablesContext = new TablesContext(Collections.singleton(tableSegment), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        TablesContext tablesContext = new TablesContext(Collections.singleton(tableSegment), databaseType, "foo_db");
         assertThat(tablesContext.getDatabaseName(), is(Optional.of("schema")));
         assertThat(tablesContext.getSchemaName(), is(Optional.of("schema")));
         assertThat(tablesContext.getTableNames(), is(Collections.singleton("tbl")));
-        assertTrue(tablesContext.getSubqueryTables().isEmpty());
     }
     
     @Test
     void assertFindTableNameWhenSingleTable() {
         SimpleTableSegment tableSegment = createTableSegment("table_1", "tbl_1");
         ColumnSegment columnSegment = createColumnSegment(null, "col");
-        Map<String, String> actual = new TablesContext(Collections.singletonList(tableSegment), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"))
-                .findTableNamesByColumnSegment(Collections.singletonList(columnSegment), mock(ShardingSphereSchema.class));
+        Map<String, String> actual = new TablesContext(Collections.singletonList(tableSegment), databaseType, "foo_db").findTableNames(Collections.singletonList(columnSegment), mock());
         assertFalse(actual.isEmpty());
         assertThat(actual.get("col"), is("table_1"));
     }
@@ -81,8 +90,7 @@ class TablesContextTest {
         SimpleTableSegment tableSegment1 = createTableSegment("table_1", "tbl_1");
         SimpleTableSegment tableSegment2 = createTableSegment("table_2", "tbl_2");
         ColumnSegment columnSegment = createColumnSegment("table_1", "col");
-        Map<String, String> actual = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"))
-                .findTableNamesByColumnSegment(Collections.singletonList(columnSegment), mock(ShardingSphereSchema.class));
+        Map<String, String> actual = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), databaseType, "foo_db").findTableNames(Collections.singletonList(columnSegment), mock());
         assertFalse(actual.isEmpty());
         assertThat(actual.get("table_1.col"), is("table_1"));
     }
@@ -92,8 +100,7 @@ class TablesContextTest {
         SimpleTableSegment tableSegment1 = createTableSegment("table_1", "tbl_1");
         SimpleTableSegment tableSegment2 = createTableSegment("table_2", "tbl_2");
         ColumnSegment columnSegment = createColumnSegment(null, "col");
-        Map<String, String> actual = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"))
-                .findTableNamesByColumnSegment(Collections.singletonList(columnSegment), mock(ShardingSphereSchema.class));
+        Map<String, String> actual = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), databaseType, "foo_db").findTableNames(Collections.singletonList(columnSegment), mock());
         assertTrue(actual.isEmpty());
     }
     
@@ -102,11 +109,12 @@ class TablesContextTest {
         SimpleTableSegment tableSegment1 = createTableSegment("table_1", "tbl_1");
         SimpleTableSegment tableSegment2 = createTableSegment("table_2", "tbl_2");
         ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
-        when(schema.getAllColumnNames("table_1")).thenReturn(Collections.singletonList("col"));
+        when(schema.containsTable("table_1")).thenReturn(true);
+        ShardingSphereTable table = mock(ShardingSphereTable.class);
+        when(table.containsColumn("col")).thenReturn(true);
+        when(schema.getTable("table_1")).thenReturn(table);
         ColumnSegment columnSegment = createColumnSegment(null, "col");
-        Map<String, String> actual = new TablesContext(Arrays.asList(tableSegment1, tableSegment2),
-                TypedSPILoader.getService(DatabaseType.class, "FIXTURE")).findTableNamesByColumnSegment(Collections.singletonList(columnSegment), schema);
-        assertFalse(actual.isEmpty());
+        Map<String, String> actual = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), databaseType, "foo_db").findTableNames(Collections.singletonList(columnSegment), schema);
         assertThat(actual.get("col"), is("table_1"));
     }
     
@@ -116,10 +124,9 @@ class TablesContextTest {
         SimpleTableSegment tableSegment2 = createTableSegment("TABLE_2", "TBL_2");
         ShardingSphereTable table = new ShardingSphereTable("TABLE_1",
                 Collections.singletonList(new ShardingSphereColumn("COL", 0, false, false, true, true, false, false)), Collections.emptyList(), Collections.emptyList());
-        ShardingSphereSchema schema = new ShardingSphereSchema(Stream.of(table).collect(Collectors.toMap(ShardingSphereTable::getName, value -> value)), Collections.emptyMap());
+        ShardingSphereSchema schema = new ShardingSphereSchema("foo_db", Collections.singleton(table), Collections.emptyList());
         ColumnSegment columnSegment = createColumnSegment(null, "COL");
-        Map<String, String> actual = new TablesContext(Arrays.asList(tableSegment1, tableSegment2),
-                TypedSPILoader.getService(DatabaseType.class, "FIXTURE")).findTableNamesByColumnSegment(Collections.singletonList(columnSegment), schema);
+        Map<String, String> actual = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), databaseType, "foo_db").findTableNames(Collections.singletonList(columnSegment), schema);
         assertFalse(actual.isEmpty());
         assertThat(actual.get("col"), is("TABLE_1"));
     }
@@ -145,7 +152,7 @@ class TablesContextTest {
         tableSegment1.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_1")));
         SimpleTableSegment tableSegment2 = createTableSegment("table_1", "tbl_1");
         tableSegment2.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_1")));
-        TablesContext tablesContext = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        TablesContext tablesContext = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), databaseType, "foo_db");
         assertTrue(tablesContext.getDatabaseName().isPresent());
         assertThat(tablesContext.getDatabaseName().get(), is("sharding_db_1"));
     }
@@ -156,7 +163,7 @@ class TablesContextTest {
         tableSegment1.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_1")));
         SimpleTableSegment tableSegment2 = createTableSegment("table_2", "tbl_2");
         tableSegment2.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_1")));
-        TablesContext tablesContext = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        TablesContext tablesContext = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), databaseType, "foo_db");
         assertTrue(tablesContext.getDatabaseName().isPresent());
         assertThat(tablesContext.getDatabaseName().get(), is("sharding_db_1"));
     }
@@ -167,7 +174,7 @@ class TablesContextTest {
         tableSegment1.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_1")));
         SimpleTableSegment tableSegment2 = createTableSegment("table_1", "tbl_1");
         tableSegment2.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_2")));
-        assertThrows(IllegalStateException.class, () -> new TablesContext(Arrays.asList(tableSegment1, tableSegment2), TypedSPILoader.getService(DatabaseType.class, "FIXTURE")).getDatabaseName());
+        assertThrows(IllegalStateException.class, () -> new TablesContext(Arrays.asList(tableSegment1, tableSegment2), databaseType, "foo_db").getDatabaseName());
     }
     
     @Test
@@ -176,7 +183,7 @@ class TablesContextTest {
         tableSegment1.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_1")));
         SimpleTableSegment tableSegment2 = createTableSegment("table_2", "tbl_2");
         tableSegment2.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_2")));
-        assertThrows(IllegalStateException.class, () -> new TablesContext(Arrays.asList(tableSegment1, tableSegment2), TypedSPILoader.getService(DatabaseType.class, "FIXTURE")).getDatabaseName());
+        assertThrows(IllegalStateException.class, () -> new TablesContext(Arrays.asList(tableSegment1, tableSegment2), databaseType, "foo_db").getDatabaseName());
     }
     
     @Test
@@ -185,7 +192,7 @@ class TablesContextTest {
         tableSegment1.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_1")));
         SimpleTableSegment tableSegment2 = createTableSegment("table_2", "tbl_2");
         tableSegment2.setOwner(new OwnerSegment(0, 0, new IdentifierValue("sharding_db_1")));
-        TablesContext tablesContext = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        TablesContext tablesContext = new TablesContext(Arrays.asList(tableSegment1, tableSegment2), databaseType, "foo_db");
         assertTrue(tablesContext.getSchemaName().isPresent());
         assertThat(tablesContext.getSchemaName().get(), is("sharding_db_1"));
     }

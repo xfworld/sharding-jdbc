@@ -24,7 +24,7 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.yaml.config.pojo.YamlRootConfiguration;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 import org.apache.shardingsphere.test.it.rewrite.engine.SQLRewriterIT;
 import org.apache.shardingsphere.test.it.rewrite.engine.SQLRewriterITSettings;
 import org.apache.shardingsphere.test.it.rewrite.engine.parameter.SQLRewriteEngineTestParameters;
@@ -37,7 +37,7 @@ import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 
@@ -51,26 +51,25 @@ class MixSQLRewriterIT extends SQLRewriterIT {
     }
     
     @Override
-    protected Map<String, ShardingSphereSchema> mockSchemas(final String schemaName) {
-        Map<String, ShardingSphereTable> tables = new LinkedHashMap<>();
-        tables.put("t_account", new ShardingSphereTable("t_account", Arrays.asList(
+    protected Collection<ShardingSphereSchema> mockSchemas(final String schemaName) {
+        Collection<ShardingSphereTable> tables = new LinkedList<>();
+        tables.add(new ShardingSphereTable("t_account", Arrays.asList(
                 new ShardingSphereColumn("account_id", Types.INTEGER, true, true, false, true, false, false),
                 new ShardingSphereColumn("password", Types.VARCHAR, false, false, false, true, false, false),
                 new ShardingSphereColumn("amount", Types.DECIMAL, false, false, false, true, false, false),
                 new ShardingSphereColumn("status", Types.TINYINT, false, false, false, false, false, false)),
-                Collections.singletonList(new ShardingSphereIndex("index_name")), Collections.emptyList()));
-        tables.put("t_account_bak", new ShardingSphereTable("t_account_bak", Arrays.asList(
+                Collections.singletonList(new ShardingSphereIndex("index_name", Collections.emptyList(), false)), Collections.emptyList()));
+        tables.add(new ShardingSphereTable("t_account_bak", Arrays.asList(
                 new ShardingSphereColumn("account_id", Types.INTEGER, true, true, false, true, false, false),
                 new ShardingSphereColumn("password", Types.VARCHAR, false, false, false, true, false, false),
                 new ShardingSphereColumn("amount", Types.DECIMAL, false, false, false, true, false, false),
                 new ShardingSphereColumn("status", Types.TINYINT, false, false, false, false, false, false)), Collections.emptyList(), Collections.emptyList()));
-        tables.put("t_account_detail", new ShardingSphereTable("t_account_detail", Arrays.asList(
+        tables.add(new ShardingSphereTable("t_account_detail", Arrays.asList(
                 new ShardingSphereColumn("account_id", Types.INTEGER, false, false, false, true, false, false),
                 new ShardingSphereColumn("password", Types.VARCHAR, false, false, false, true, false, false),
                 new ShardingSphereColumn("amount", Types.DECIMAL, false, false, false, true, false, false),
                 new ShardingSphereColumn("status", Types.TINYINT, false, false, false, false, false, false)), Collections.emptyList(), Collections.emptyList()));
-        ShardingSphereSchema result = new ShardingSphereSchema(tables, Collections.emptyMap());
-        return Collections.singletonMap(schemaName, result);
+        return Collections.singleton(new ShardingSphereSchema(schemaName, tables, Collections.emptyList()));
     }
     
     @Override

@@ -18,9 +18,9 @@
 package org.apache.shardingsphere.sharding.rewrite.token.pojo;
 
 import lombok.Getter;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.Attachable;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.SQLToken;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.OrderDirection;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.Attachable;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.OrderDirection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +37,11 @@ public final class OrderByToken extends SQLToken implements Attachable {
     
     public OrderByToken(final int startIndex) {
         super(startIndex);
+    }
+    
+    @Override
+    public int getStopIndex() {
+        return getStartIndex();
     }
     
     @Override

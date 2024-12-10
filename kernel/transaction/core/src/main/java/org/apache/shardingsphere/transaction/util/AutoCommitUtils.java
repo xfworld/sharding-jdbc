@@ -19,10 +19,10 @@ package org.apache.shardingsphere.transaction.util;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.DDLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DMLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.DDLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.DMLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
 
 /**
  * Auto commit utility class.
@@ -37,7 +37,7 @@ public final class AutoCommitUtils {
      * @return need to open a new transaction.
      */
     public static boolean needOpenTransaction(final SQLStatement sqlStatement) {
-        if (sqlStatement instanceof SelectStatement && null == ((SelectStatement) sqlStatement).getFrom()) {
+        if (sqlStatement instanceof SelectStatement && !((SelectStatement) sqlStatement).getFrom().isPresent()) {
             return false;
         }
         return sqlStatement instanceof DDLStatement || sqlStatement instanceof DMLStatement;

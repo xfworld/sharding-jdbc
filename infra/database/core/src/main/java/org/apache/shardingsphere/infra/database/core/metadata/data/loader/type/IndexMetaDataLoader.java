@@ -25,7 +25,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -40,8 +42,8 @@ public final class IndexMetaDataLoader {
     
     /**
      * Load index meta data list.
-     * In a few jdbc implementation(eg. oracle), return value of getIndexInfo contains a statistics record that not a index itself and INDEX_NAME is null.
-     * 
+     * In a few jdbc implementation(eg. oracle), return value of getIndexInfo contains a statistics record that not an index itself and INDEX_NAME is null.
+     *
      * @param connection connection
      * @param table table name
      * @return index meta data list
@@ -57,8 +59,7 @@ public final class IndexMetaDataLoader {
                     continue;
                 }
                 if (!result.containsKey(indexName)) {
-                    IndexMetaData indexMetaData = new IndexMetaData(indexName);
-                    indexMetaData.getColumns().add(resultSet.getString("COLUMN_NAME"));
+                    IndexMetaData indexMetaData = new IndexMetaData(indexName, new LinkedList<>(Collections.singleton(resultSet.getString("COLUMN_NAME"))));
                     indexMetaData.setUnique(!resultSet.getBoolean("NON_UNIQUE"));
                     result.put(indexName, indexMetaData);
                 } else {

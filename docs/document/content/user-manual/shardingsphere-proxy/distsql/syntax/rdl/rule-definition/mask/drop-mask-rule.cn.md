@@ -12,13 +12,13 @@ weight = 3
 {{< tabs >}}
 {{% tab name="语法" %}}
 ```sql
-DropEncryptRule ::=
-  'DROP' 'MASK' 'RULE' ifExists? maskRuleName (',' maskRuleName)*
+DropMaskRule ::=
+  'DROP' 'MASK' 'RULE' ifExists? ruleName (',' ruleName)*
 
 ifExists ::=
   'IF' 'EXISTS'
 
-maskRuleName ::=
+ruleName ::=
   identifier
 ```
 {{% /tab %}}

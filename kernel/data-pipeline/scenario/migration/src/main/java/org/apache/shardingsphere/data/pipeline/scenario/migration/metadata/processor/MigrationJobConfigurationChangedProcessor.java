@@ -18,33 +18,43 @@
 package org.apache.shardingsphere.data.pipeline.scenario.migration.metadata.processor;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.data.pipeline.common.job.type.JobType;
-import org.apache.shardingsphere.data.pipeline.common.metadata.node.config.processor.impl.AbstractJobConfigurationChangedProcessor;
-import org.apache.shardingsphere.data.pipeline.core.job.AbstractPipelineJob;
+import org.apache.shardingsphere.data.pipeline.api.PipelineDataSourceConfiguration;
+import org.apache.shardingsphere.data.pipeline.core.job.PipelineJob;
+import org.apache.shardingsphere.data.pipeline.core.metadata.node.config.processor.JobConfigurationChangedProcessor;
+import org.apache.shardingsphere.data.pipeline.core.preparer.incremental.IncrementalTaskPositionManager;
 import org.apache.shardingsphere.data.pipeline.scenario.migration.MigrationJob;
-import org.apache.shardingsphere.data.pipeline.scenario.migration.MigrationJobType;
-import org.apache.shardingsphere.data.pipeline.scenario.migration.prepare.MigrationJobPreparer;
-import org.apache.shardingsphere.data.pipeline.yaml.job.YamlMigrationJobConfigurationSwapper;
+import org.apache.shardingsphere.data.pipeline.scenario.migration.config.MigrationJobConfiguration;
+import org.apache.shardingsphere.data.pipeline.scenario.migration.config.yaml.swapper.YamlMigrationJobConfigurationSwapper;
 import org.apache.shardingsphere.elasticjob.api.JobConfiguration;
+
+import java.sql.SQLException;
+import java.util.Map.Entry;
 
 /**
  * Migration job configuration changed processor.
  */
 @Slf4j
-public final class MigrationJobConfigurationChangedProcessor extends AbstractJobConfigurationChangedProcessor {
+public final class MigrationJobConfigurationChangedProcessor implements JobConfigurationChangedProcessor<MigrationJobConfiguration> {
     
     @Override
-    protected void onDeleted(final JobConfiguration jobConfig) {
-        new MigrationJobPreparer().cleanup(new YamlMigrationJobConfigurationSwapper().swapToObject(jobConfig.getJobParameter()));
+    public PipelineJob createJob(final MigrationJobConfiguration jobConfig) {
+        return new MigrationJob();
     }
     
     @Override
-    protected AbstractPipelineJob buildPipelineJob(final String jobId) {
-        return new MigrationJob(jobId);
+    public void clean(final JobConfiguration jobConfig) {
+        MigrationJobConfiguration migrationJobConfig = new YamlMigrationJobConfigurationSwapper().swapToObject(jobConfig.getJobParameter());
+        for (Entry<String, PipelineDataSourceConfiguration> entry : migrationJobConfig.getSources().entrySet()) {
+            try {
+                new IncrementalTaskPositionManager(entry.getValue().getDatabaseType()).destroyPosition(migrationJobConfig.getJobId(), entry.getValue());
+            } catch (final SQLException ex) {
+                log.warn("Job destroying failed, jobId={}, dataSourceName={}", migrationJobConfig.getJobId(), entry.getKey(), ex);
+            }
+        }
     }
     
     @Override
-    protected JobType getJobType() {
-        return new MigrationJobType();
+    public String getType() {
+        return "MIGRATION";
     }
 }

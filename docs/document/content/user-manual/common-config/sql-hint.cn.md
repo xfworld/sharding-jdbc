@@ -18,21 +18,22 @@ ShardingSphere 的 SQL Hint 语法格式如下：
 /* SHARDINGSPHERE_HINT: {key} = {value}, {key} = {value} */ SELECT * FROM t_order;
 ```
 
-使用 SQL Hint 功能，需要将 ShardingSphere SQL Parser 规则中的 `sqlCommentParseEnabled` 设置为 true，开启 SQL 注释解析功能。此外，如果使用 MySQL 客户端连接，需要添加 `-c` 选项保留注释，客户端默认是 `--skip-comments` 过滤注释。
+如果使用 MySQL 客户端连接，需要添加 `-c` 选项保留注释，客户端默认是 `--skip-comments` 过滤注释。
 
 ## 参数解释
 
 ShardingSphere SQL Hint 中可以定义如下的属性，为了兼容低版本 SQL Hint 语法，也可以使用别名中定义的属性： 
 
-| *名称*                        | *别名*                  | *数据类型*     | *说明*                                  | *默认值* |
-|-----------------------------|-----------------------|------------|---------------------------------------|-------|
-| SHARDING_DATABASE_VALUE (?) | shardingDatabaseValue | Comparable | 数据分片分库值，和 Hint 分片策略配合使用               | -     |
-| SHARDING_TABLE_VALUE (?)    | shardingTableValue    | Comparable | 数据分片分表值，和 Hint 分片策略配合使用               | -     |
-| WRITE_ROUTE_ONLY (?)        | writeRouteOnly        | boolean    | 读写分离强制路由到主库执行                         | false |
-| DATA_SOURCE_NAME (?)        | dataSourceName        | String     | 数据源透传，将 SQL 直接路由到指定数据源                | -     |
-| SKIP_SQL_REWRITE (?)        | skipSQLRewrite        | boolean    | 跳过 SQL 改写阶段                           | false |
-| DISABLE_AUDIT_NAMES (?)     | disableAuditNames     | String     | 禁用指定 SQL 审计算法                         | -     |
-| SHADOW (?)                  | shadow                | boolean    | 影子库强制路由到影子库数据源执行，和影子库 SQL_HINT 算法配合使用 | false |
+| *名称*                               | *别名*                   | *数据类型*     | *说明*                                  | *默认值* |
+|------------------------------------|------------------------|------------|---------------------------------------|-------|
+| SHARDING_DATABASE_VALUE (?)        | shardingDatabaseValue  | Comparable | 数据分片分库值，和 Hint 分片策略配合使用               | -     |
+| SHARDING_TABLE_VALUE (?)           | shardingTableValue     | Comparable | 数据分片分表值，和 Hint 分片策略配合使用               | -     |
+| WRITE_ROUTE_ONLY (?)               | writeRouteOnly         | boolean    | 读写分离强制路由到主库执行                         | false |
+| DATA_SOURCE_NAME (?)               | dataSourceName         | String     | 数据源透传，将 SQL 直接路由到指定数据源                | -     |
+| SKIP_SQL_REWRITE (?)               | skipSQLRewrite         | boolean    | 跳过 SQL 改写阶段                           | false |
+| SKIP_METADATA_VALIDATE (?)         | skipMetadataValidate   | boolean    | 跳过 SQL 执行元数据校验                      | false |
+| DISABLE_AUDIT_NAMES (?)            | disableAuditNames      | String     | 禁用指定 SQL 审计算法                         | -     |
+| SHADOW (?)                         | shadow                 | boolean    | 影子库强制路由到影子库数据源执行，和影子库 SQL_HINT 算法配合使用 | false |
 
 
 ## SQL Hint
@@ -80,6 +81,16 @@ ShardingSphere SQL Hint 中可以定义如下的属性，为了兼容低版本 S
 
 ```sql
 /* SHARDINGSPHERE_HINT: SKIP_SQL_REWRITE=true */ SELECT * FROM t_order;
+```
+
+### 跳过 SQL 执行元数据校验
+
+跳过 SQL 执行元数据校验 SQL Hint 功能可选属性为 `SKIP_METADATA_VALIDATE`，`true` 表示跳过当前 SQL 执行的元数据校验。
+
+跳过 SQL 执行元数据校验 SQL Hint 功能的使用示例：
+
+```sql
+/* SHARDINGSPHERE_HINT: SKIP_METADATA_VALIDATE=true */ SELECT * FROM t_order;
 ```
 
 ### 禁用 SQL 审计

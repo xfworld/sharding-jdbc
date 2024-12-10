@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-infra-data-source-pool</artifactId>
-        <version>5.4.1-SNAPSHOT</version>
+        <version>5.5.2-SNAPSHOT</version>
     </parent>
     <artifactId>shardingsphere-infra-data-source-pool-core</artifactId>
     <name>${project.artifactId}</name>
@@ -31,15 +31,6 @@
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-infra-database-core</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
         </dependency>
         
         <dependency>
@@ -53,6 +44,15 @@
             <artifactId>shardingsphere-test-util</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
         </dependency>
     </dependencies>
 </project>

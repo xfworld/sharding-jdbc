@@ -17,12 +17,12 @@
 
 package org.apache.shardingsphere.data.pipeline.postgresql.datasource;
 
-import org.apache.shardingsphere.data.pipeline.spi.datasource.JdbcQueryPropertiesExtension;
+import org.apache.shardingsphere.data.pipeline.spi.JdbcQueryPropertiesExtension;
 
 import java.util.Properties;
 
 /**
- * PostgreSQL JDBC query properties extension.
+ * JDBC query properties extension of PostgreSQL.
  */
 public final class PostgreSQLJdbcQueryPropertiesExtension implements JdbcQueryPropertiesExtension {
     

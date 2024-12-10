@@ -21,6 +21,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.AbstractExpectedSQLSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.column.ExpectedColumn;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.generic.ExpectedDataType;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.table.ExpectedSimpleTable;
 
 import javax.xml.bind.annotation.XmlAttribute;
@@ -41,8 +42,17 @@ public final class ExpectedColumnDefinition extends AbstractExpectedSQLSegment {
     @XmlAttribute(name = "primary-key")
     private boolean primaryKey;
     
+    @XmlAttribute(name = "auto-increment")
+    private boolean autoIncrement;
+    
     @XmlElement
     private ExpectedColumn column;
+    
+    @XmlElement
+    private ExpectedDataType dataType;
+    
+    @XmlAttribute(name = "not-null")
+    private boolean notNull;
     
     @XmlElement(name = "referenced-table")
     private final List<ExpectedSimpleTable> referencedTables = new LinkedList<>();

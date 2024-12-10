@@ -26,6 +26,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Data set row.
@@ -36,6 +37,8 @@ import java.util.List;
 @EqualsAndHashCode
 public final class DataSetRow {
     
+    private static final String E2E_DATA_DELIMITER = "{E2E_DATA_DELIMITER}";
+    
     @XmlAttribute(name = "data-node")
     private String dataNode;
     
@@ -43,7 +46,7 @@ public final class DataSetRow {
     private String values;
     
     @XmlAttribute
-    private boolean mayNotExist;
+    private boolean updated;
     
     /**
      * Split values with vertical bar.
@@ -52,6 +55,6 @@ public final class DataSetRow {
      * @return split values
      */
     public List<String> splitValues(final String delimiter) {
-        return Splitter.on(delimiter).trimResults().splitToList(values);
+        return Splitter.on(delimiter).trimResults().splitToList(values).stream().map(each -> each.replace(E2E_DATA_DELIMITER, delimiter)).collect(Collectors.toList());
     }
 }

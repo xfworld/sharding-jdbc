@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.sharding.merge.ddl;
 
-import org.apache.commons.collections4.map.CaseInsensitiveMap;
+import com.cedarsoftware.util.CaseInsensitiveMap;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
 import org.apache.shardingsphere.infra.binder.context.statement.ddl.FetchStatementContext;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
@@ -30,7 +30,7 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
 import org.apache.shardingsphere.sharding.merge.common.IteratorStreamMergedResult;
 import org.apache.shardingsphere.sharding.merge.ddl.fetch.FetchStreamMergedResult;
-import org.apache.shardingsphere.sql.parser.sql.common.util.SQLUtils;
+import org.apache.shardingsphere.sql.parser.statement.core.util.SQLUtils;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -51,14 +51,8 @@ public final class ShardingDDLResultMerger implements ResultMerger {
             return new IteratorStreamMergedResult(queryResults);
         }
         FetchStatementContext fetchStatementContext = (FetchStatementContext) sqlStatementContext;
-        Map<String, Integer> columnLabelIndexMap = getColumnLabelIndexMap(queryResults.get(0));
-        fetchStatementContext.getCursorStatementContext().getSelectStatementContext().setIndexes(columnLabelIndexMap);
-        return new FetchStreamMergedResult(queryResults, fetchStatementContext, getSchema(sqlStatementContext, database), connectionContext);
-    }
-    
-    private ShardingSphereSchema getSchema(final SQLStatementContext sqlStatementContext, final ShardingSphereDatabase database) {
-        String defaultSchemaName = new DatabaseTypeRegistry(sqlStatementContext.getDatabaseType()).getDefaultSchemaName(database.getName());
-        return sqlStatementContext.getTablesContext().getSchemaName().map(database::getSchema).orElseGet(() -> database.getSchema(defaultSchemaName));
+        fetchStatementContext.getCursorStatementContext().getSelectStatementContext().setIndexes(getColumnLabelIndexMap(queryResults.get(0)));
+        return new FetchStreamMergedResult(queryResults, fetchStatementContext, getSchema(fetchStatementContext, database), connectionContext);
     }
     
     private Map<String, Integer> getColumnLabelIndexMap(final QueryResult queryResult) throws SQLException {
@@ -67,5 +61,10 @@ public final class ShardingDDLResultMerger implements ResultMerger {
             result.put(SQLUtils.getExactlyValue(queryResult.getMetaData().getColumnLabel(i + 1)), i + 1);
         }
         return result;
+    }
+    
+    private ShardingSphereSchema getSchema(final FetchStatementContext fetchStatementContext, final ShardingSphereDatabase database) {
+        String defaultSchemaName = new DatabaseTypeRegistry(fetchStatementContext.getDatabaseType()).getDefaultSchemaName(database.getName());
+        return fetchStatementContext.getTablesContext().getSchemaName().map(database::getSchema).orElseGet(() -> database.getSchema(defaultSchemaName));
     }
 }

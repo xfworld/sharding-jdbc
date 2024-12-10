@@ -18,15 +18,14 @@
 package org.apache.shardingsphere.infra.rewrite.sql.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.rewrite.context.SQLRewriteContext;
 import org.apache.shardingsphere.infra.rewrite.sql.SQLBuilder;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.SQLToken;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.Substitutable;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.generic.ComposableSQLToken;
-import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.generic.SubstitutableColumnNameToken;
-import org.apache.shardingsphere.infra.route.context.RouteUnit;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.Attachable;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.Substitutable;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Abstract SQL builder.
@@ -34,53 +33,54 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public abstract class AbstractSQLBuilder implements SQLBuilder {
     
-    private final SQLRewriteContext context;
+    private final String sql;
     
-    private final RouteUnit routeUnit;
+    private final List<SQLToken> sqlTokens;
     
     @Override
     public final String toSQL() {
-        if (context.getSqlTokens().isEmpty()) {
-            return context.getSql();
+        if (sqlTokens.isEmpty()) {
+            return sql;
         }
-        Collections.sort(context.getSqlTokens());
-        StringBuilder result = new StringBuilder();
-        result.append(context.getSql(), 0, context.getSqlTokens().get(0).getStartIndex());
-        for (SQLToken each : context.getSqlTokens()) {
-            if (each instanceof ComposableSQLToken) {
-                result.append(getComposableSQLTokenText((ComposableSQLToken) each));
-            } else if (each instanceof SubstitutableColumnNameToken) {
-                result.append(((SubstitutableColumnNameToken) each).toString(routeUnit));
-            } else {
-                result.append(getSQLTokenText(each));
+        Collections.sort(sqlTokens);
+        StringBuilder result = new StringBuilder(sql.length());
+        result.append(sql, 0, sqlTokens.get(0).getStartIndex());
+        Optional<SQLToken> previousToken = Optional.empty();
+        for (SQLToken each : sqlTokens) {
+            if (isContainsAttachableToken(each, previousToken.orElse(null))
+                    || each.getStartIndex() > previousToken.map(SQLToken::getStopIndex).orElse(0)) {
+                appendRewriteSQL(each, result);
+                previousToken = Optional.of(each);
             }
-            result.append(getConjunctionText(each));
         }
         return result.toString();
+    }
+    
+    private boolean isContainsAttachableToken(final SQLToken sqlToken, final SQLToken previousToken) {
+        return sqlToken instanceof Attachable || previousToken instanceof Attachable;
+    }
+    
+    private void appendRewriteSQL(final SQLToken sqlToken, final StringBuilder builder) {
+        builder.append(getSQLTokenText(sqlToken));
+        builder.append(getConjunctionText(sqlToken, sqlTokens, sql.length()));
     }
     
     protected abstract String getSQLTokenText(SQLToken sqlToken);
     
-    private String getComposableSQLTokenText(final ComposableSQLToken composableSQLToken) {
-        StringBuilder result = new StringBuilder();
-        for (SQLToken each : composableSQLToken.getSqlTokens()) {
-            result.append(getSQLTokenText(each));
-            result.append(getConjunctionText(each));
-        }
-        return result.toString();
+    private String getConjunctionText(final SQLToken sqlToken, final List<SQLToken> sqlTokens, final int sqlLength) {
+        int startIndex = getStartIndex(sqlToken, sqlLength);
+        int stopIndex = getStopIndex(sqlToken, sqlTokens, sqlLength, startIndex);
+        return sql.substring(startIndex, stopIndex);
     }
     
-    private String getConjunctionText(final SQLToken sqlToken) {
-        return context.getSql().substring(getStartIndex(sqlToken), getStopIndex(sqlToken));
-    }
-    
-    private int getStartIndex(final SQLToken sqlToken) {
+    private int getStartIndex(final SQLToken sqlToken, final int sqlLength) {
         int startIndex = sqlToken instanceof Substitutable ? ((Substitutable) sqlToken).getStopIndex() + 1 : sqlToken.getStartIndex();
-        return Math.min(startIndex, context.getSql().length());
+        return Math.min(startIndex, sqlLength);
     }
     
-    private int getStopIndex(final SQLToken sqlToken) {
-        int currentSQLTokenIndex = context.getSqlTokens().indexOf(sqlToken);
-        return context.getSqlTokens().size() - 1 == currentSQLTokenIndex ? context.getSql().length() : context.getSqlTokens().get(currentSQLTokenIndex + 1).getStartIndex();
+    private int getStopIndex(final SQLToken sqlToken, final List<SQLToken> sqlTokens, final int sqlLength, final int startIndex) {
+        int currentSQLTokenIndex = sqlTokens.indexOf(sqlToken);
+        int stopIndex = sqlTokens.size() - 1 == currentSQLTokenIndex ? sqlLength : sqlTokens.get(currentSQLTokenIndex + 1).getStartIndex();
+        return startIndex <= stopIndex ? stopIndex : getStopIndex(sqlTokens.get(currentSQLTokenIndex + 1), sqlTokens, sqlLength, startIndex);
     }
 }

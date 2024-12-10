@@ -29,7 +29,9 @@
     <module name="FileTabCharacter">
         <property name="eachLine" value="true" />
     </module>
-    <module name="FileLength" />
+    <module name="FileLength">
+        <property name="max" value="3000" />
+    </module>
     <module name="LineLength">
         <property name="fileExtensions" value="java" />
         <property name="max" value="200" />
@@ -137,7 +139,7 @@
         <!-- Imports -->
         <module name="AvoidStarImport" />
         <module name="AvoidStaticImport">
-            <property name="excludes" value="org.junit.jupiter.api.Assertions.*,org.junit.jupiter.api.Assumptions.*,org.hamcrest.Matchers.*,org.hamcrest.CoreMatchers.*,org.hamcrest.MatcherAssert.*,org.mockito.Mockito.*,org.mockito.ArgumentMatchers.*" />
+            <property name="excludes" value="org.junit.jupiter.api.Assertions.*,org.junit.jupiter.api.Assumptions.*,org.hamcrest.Matchers.*,org.hamcrest.CoreMatchers.*,org.hamcrest.MatcherAssert.*,org.mockito.Mockito.*,org.mockito.ArgumentMatchers.*,org.apache.shardingsphere.test.matcher.ShardingSphereAssertionMatchers.*,org.apache.shardingsphere.test.matcher.ShardingSphereArgumentVerifyMatchers.*" />
         </module>
         <module name="IllegalImport" />
         <module name="RedundantImport" />
@@ -208,7 +210,9 @@
         <module name="AvoidEscapedUnicodeCharacters" />
         <module name="CommentsIndentation" />
         <module name="DescendantToken" />
-        <module name="FinalParameters" />
+        <module name="FinalParameters">
+            <property name="tokens" value="METHOD_DEF, CTOR_DEF, LITERAL_CATCH" />
+        </module>
         <module name="Indentation">
             <property name="arrayInitIndent" value="2" />
             <property name="lineWrappingIndentation" value="8" />
@@ -230,7 +234,9 @@
         <module name="AbbreviationAsWordInName">
             <property name="allowedAbbreviationLength" value="8" />
         </module>
-        <module name="CatchParameterName" />
+        <module name="CatchParameterName">
+            <property name="format" value="^(ex|[a-z][a-z][a-zA-Z]+)$"/>
+        </module>
         <module name="ClassTypeParameterName" />
         <module name="ConstantName" />
         <module name="InterfaceTypeParameterName" />

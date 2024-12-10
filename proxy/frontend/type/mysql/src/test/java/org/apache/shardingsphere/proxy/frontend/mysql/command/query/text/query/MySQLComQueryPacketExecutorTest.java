@@ -42,10 +42,11 @@ import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.handler.ProxyBackendHandler;
 import org.apache.shardingsphere.proxy.backend.response.header.query.QueryHeader;
 import org.apache.shardingsphere.proxy.backend.response.header.query.QueryResponseHeader;
+import org.apache.shardingsphere.proxy.backend.response.header.update.MultiStatementsUpdateResponseHeader;
 import org.apache.shardingsphere.proxy.backend.response.header.update.UpdateResponseHeader;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
 import org.apache.shardingsphere.proxy.frontend.command.executor.ResponseType;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 import org.apache.shardingsphere.sqltranslator.rule.SQLTranslatorRule;
 import org.apache.shardingsphere.sqltranslator.rule.builder.DefaultSQLTranslatorRuleConfigurationBuilder;
 import org.apache.shardingsphere.test.mock.AutoMockExtension;
@@ -65,6 +66,7 @@ import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -81,6 +83,8 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class MySQLComQueryPacketExecutorTest {
     
+    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "MySQL");
+    
     @Mock
     private ProxyBackendHandler proxyBackendHandler;
     
@@ -93,14 +97,13 @@ class MySQLComQueryPacketExecutorTest {
     @BeforeEach
     void setUp() {
         when(packet.getSQL()).thenReturn("");
-        when(connectionSession.getAttributeMap().attr(MySQLConstants.MYSQL_CHARACTER_SET_ATTRIBUTE_KEY).get()).thenReturn(MySQLCharacterSet.UTF8MB4_GENERAL_CI);
+        when(connectionSession.getAttributeMap().attr(MySQLConstants.CHARACTER_SET_ATTRIBUTE_KEY).get()).thenReturn(MySQLCharacterSet.UTF8MB4_GENERAL_CI);
     }
     
     @Test
     void assertIsQueryResponse() throws SQLException, NoSuchFieldException, IllegalAccessException {
         MySQLComQueryPacketExecutor mysqlComQueryPacketExecutor = new MySQLComQueryPacketExecutor(packet, connectionSession);
-        MemberAccessor accessor = Plugins.getMemberAccessor();
-        accessor.set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), mysqlComQueryPacketExecutor, proxyBackendHandler);
+        Plugins.getMemberAccessor().set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), mysqlComQueryPacketExecutor, proxyBackendHandler);
         QueryHeader queryHeader = mock(QueryHeader.class);
         when(queryHeader.getColumnTypeName()).thenReturn("VARCHAR");
         when(proxyBackendHandler.execute()).thenReturn(new QueryResponseHeader(Collections.singletonList(queryHeader)));
@@ -111,8 +114,7 @@ class MySQLComQueryPacketExecutorTest {
     @Test
     void assertIsUpdateResponse() throws SQLException, NoSuchFieldException, IllegalAccessException {
         MySQLComQueryPacketExecutor mysqlComQueryPacketExecutor = new MySQLComQueryPacketExecutor(packet, connectionSession);
-        MemberAccessor accessor = Plugins.getMemberAccessor();
-        accessor.set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), mysqlComQueryPacketExecutor, proxyBackendHandler);
+        Plugins.getMemberAccessor().set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), mysqlComQueryPacketExecutor, proxyBackendHandler);
         when(proxyBackendHandler.execute()).thenReturn(new UpdateResponseHeader(mock(SQLStatement.class)));
         mysqlComQueryPacketExecutor.execute();
         assertThat(mysqlComQueryPacketExecutor.getResponseType(), is(ResponseType.UPDATE));
@@ -120,25 +122,45 @@ class MySQLComQueryPacketExecutorTest {
     
     @Test
     void assertExecuteMultiUpdateStatements() throws SQLException, NoSuchFieldException, IllegalAccessException {
-        when(connectionSession.getAttributeMap().hasAttr(MySQLConstants.MYSQL_OPTION_MULTI_STATEMENTS)).thenReturn(true);
-        when(connectionSession.getAttributeMap().attr(MySQLConstants.MYSQL_OPTION_MULTI_STATEMENTS).get()).thenReturn(0);
-        when(connectionSession.getDatabaseName()).thenReturn("foo_db");
+        when(connectionSession.getAttributeMap().hasAttr(MySQLConstants.OPTION_MULTI_STATEMENTS_ATTRIBUTE_KEY)).thenReturn(true);
+        when(connectionSession.getAttributeMap().attr(MySQLConstants.OPTION_MULTI_STATEMENTS_ATTRIBUTE_KEY).get()).thenReturn(0);
+        when(connectionSession.getUsedDatabaseName()).thenReturn("foo_db");
         when(packet.getSQL()).thenReturn("update t set v=v+1 where id=1;update t set v=v+1 where id=2;update t set v=v+1 where id=3");
         ContextManager contextManager = mock(ContextManager.class);
         MetaDataContexts metaDataContexts = mockMetaDataContexts();
         when(contextManager.getMetaDataContexts()).thenReturn(metaDataContexts);
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
         MySQLComQueryPacketExecutor actual = new MySQLComQueryPacketExecutor(packet, connectionSession);
-        MemberAccessor accessor = Plugins.getMemberAccessor();
-        accessor.set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), actual, proxyBackendHandler);
+        Plugins.getMemberAccessor().set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), actual, proxyBackendHandler);
         when(proxyBackendHandler.execute()).thenReturn(new UpdateResponseHeader(mock(SQLStatement.class)));
         Collection<DatabasePacket> actualPackets = actual.execute();
         assertThat(actualPackets.size(), is(1));
         assertThat(actualPackets.iterator().next(), instanceOf(MySQLOKPacket.class));
     }
     
+    @Test
+    void assertExecuteMultiInsertOnDuplicateKeyStatements() throws SQLException, NoSuchFieldException, IllegalAccessException {
+        when(connectionSession.getAttributeMap().hasAttr(MySQLConstants.OPTION_MULTI_STATEMENTS_ATTRIBUTE_KEY)).thenReturn(true);
+        when(connectionSession.getAttributeMap().attr(MySQLConstants.OPTION_MULTI_STATEMENTS_ATTRIBUTE_KEY).get()).thenReturn(0);
+        when(connectionSession.getUsedDatabaseName()).thenReturn("foo_db");
+        when(packet.getSQL()).thenReturn("insert into t (id, v) values(1,1) on duplicate key update v=2;insert into t (id, v) values(2,1) on duplicate key update v=3");
+        ContextManager contextManager = mock(ContextManager.class, RETURNS_DEEP_STUBS);
+        MetaDataContexts metaDataContexts = mockMetaDataContexts();
+        when(contextManager.getMetaDataContexts()).thenReturn(metaDataContexts);
+        when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
+        MySQLComQueryPacketExecutor actual = new MySQLComQueryPacketExecutor(packet, connectionSession);
+        MemberAccessor accessor = Plugins.getMemberAccessor();
+        accessor.set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), actual, proxyBackendHandler);
+        when(proxyBackendHandler.execute())
+                .thenReturn(new MultiStatementsUpdateResponseHeader(Arrays.asList(new UpdateResponseHeader(mock(SQLStatement.class)), new UpdateResponseHeader(mock(SQLStatement.class)))));
+        Collection<DatabasePacket> actualPackets = actual.execute();
+        assertThat(actualPackets.size(), is(2));
+        Iterator<DatabasePacket> iterator = actualPackets.iterator();
+        assertThat(iterator.next(), instanceOf(MySQLOKPacket.class));
+        assertThat(iterator.next(), instanceOf(MySQLOKPacket.class));
+    }
+    
     private MetaDataContexts mockMetaDataContexts() {
-        DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "MySQL");
         MetaDataContexts result = mock(MetaDataContexts.class, RETURNS_DEEP_STUBS);
         when(result.getMetaData().getDatabase("foo_db").getProtocolType()).thenReturn(databaseType);
         RuleMetaData globalRuleMetaData = new RuleMetaData(
@@ -149,21 +171,18 @@ class MySQLComQueryPacketExecutorTest {
         when(result.getMetaData().getProps().<Boolean>getValue(ConfigurationPropertyKey.SQL_SHOW)).thenReturn(false);
         ShardingSphereTable table = new ShardingSphereTable("t", Arrays.asList(new ShardingSphereColumn("id", Types.BIGINT, true, false, false, false, true, false),
                 new ShardingSphereColumn("v", Types.INTEGER, false, false, false, false, true, false)), Collections.emptyList(), Collections.emptyList());
-        ShardingSphereSchema schema = new ShardingSphereSchema();
-        schema.getTables().put("t", table);
-        ShardingSphereDatabase database = new ShardingSphereDatabase("foo_db", TypedSPILoader.getService(DatabaseType.class, "MySQL"),
-                new ResourceMetaData(Collections.emptyMap()), new RuleMetaData(Collections.emptyList()), Collections.singletonMap("foo_db", schema));
+        ShardingSphereSchema schema = new ShardingSphereSchema("foo_db", Collections.singleton(table), Collections.emptyList());
+        ShardingSphereDatabase database = new ShardingSphereDatabase("foo_db",
+                databaseType, new ResourceMetaData(Collections.emptyMap()), new RuleMetaData(Collections.emptyList()), Collections.singleton(schema));
         when(result.getMetaData().getDatabase("foo_db")).thenReturn(database);
         when(result.getMetaData().containsDatabase("foo_db")).thenReturn(true);
         return result;
-        
     }
     
     @Test
     void assertNext() throws SQLException, NoSuchFieldException, IllegalAccessException {
         MySQLComQueryPacketExecutor actual = new MySQLComQueryPacketExecutor(packet, connectionSession);
-        MemberAccessor accessor = Plugins.getMemberAccessor();
-        accessor.set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), actual, proxyBackendHandler);
+        Plugins.getMemberAccessor().set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), actual, proxyBackendHandler);
         when(proxyBackendHandler.next()).thenReturn(true, false);
         assertTrue(actual.next());
         assertFalse(actual.next());
@@ -177,8 +196,7 @@ class MySQLComQueryPacketExecutorTest {
     @Test
     void assertClose() throws SQLException, NoSuchFieldException, IllegalAccessException {
         MySQLComQueryPacketExecutor actual = new MySQLComQueryPacketExecutor(packet, connectionSession);
-        MemberAccessor accessor = Plugins.getMemberAccessor();
-        accessor.set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), actual, proxyBackendHandler);
+        Plugins.getMemberAccessor().set(MySQLComQueryPacketExecutor.class.getDeclaredField("proxyBackendHandler"), actual, proxyBackendHandler);
         actual.close();
         verify(proxyBackendHandler).close();
     }

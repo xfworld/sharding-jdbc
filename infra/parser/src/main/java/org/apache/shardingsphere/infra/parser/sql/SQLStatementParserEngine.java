@@ -22,7 +22,7 @@ import lombok.Getter;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.parser.cache.SQLStatementCacheBuilder;
 import org.apache.shardingsphere.sql.parser.api.CacheOption;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
 /**
  * SQL statement parser engine.
@@ -39,15 +39,11 @@ public final class SQLStatementParserEngine {
     @Getter
     private final CacheOption parseTreeCacheOption;
     
-    @Getter
-    private final boolean isParseComment;
-    
-    public SQLStatementParserEngine(final DatabaseType databaseType, final CacheOption sqlStatementCacheOption, final CacheOption parseTreeCacheOption, final boolean isParseComment) {
-        sqlStatementParserExecutor = new SQLStatementParserExecutor(databaseType, parseTreeCacheOption, isParseComment);
-        sqlStatementCache = SQLStatementCacheBuilder.build(databaseType, sqlStatementCacheOption, parseTreeCacheOption, isParseComment);
+    public SQLStatementParserEngine(final DatabaseType databaseType, final CacheOption sqlStatementCacheOption, final CacheOption parseTreeCacheOption) {
+        sqlStatementParserExecutor = new SQLStatementParserExecutor(databaseType, parseTreeCacheOption);
+        sqlStatementCache = SQLStatementCacheBuilder.build(databaseType, sqlStatementCacheOption, parseTreeCacheOption);
         this.sqlStatementCacheOption = sqlStatementCacheOption;
         this.parseTreeCacheOption = parseTreeCacheOption;
-        this.isParseComment = isParseComment;
     }
     
     /**

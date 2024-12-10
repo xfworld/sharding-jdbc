@@ -19,17 +19,20 @@ package org.apache.shardingsphere.proxy.backend.handler.data;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.proxy.backend.connector.DatabaseConnectorFactory;
 import org.apache.shardingsphere.proxy.backend.handler.data.impl.UnicastDatabaseBackendHandler;
 import org.apache.shardingsphere.proxy.backend.response.header.update.UpdateResponseHeader;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.DALStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.SetStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DoStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.DALStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.SetStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.DoStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLShowCreateTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLShowTableStatusStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLShowTablesStatement;
 
 /**
  * Database backend handler factory.
@@ -51,12 +54,17 @@ public final class DatabaseBackendHandlerFactory {
         if (sqlStatement instanceof DoStatement) {
             return new UnicastDatabaseBackendHandler(queryContext, connectionSession);
         }
-        if (sqlStatement instanceof SetStatement && null == connectionSession.getDatabaseName()) {
+        if (sqlStatement instanceof SetStatement && null == connectionSession.getUsedDatabaseName()) {
             return () -> new UpdateResponseHeader(sqlStatement);
         }
-        if (sqlStatement instanceof DALStatement || sqlStatement instanceof SelectStatement && null == ((SelectStatement) sqlStatement).getFrom()) {
+        if (sqlStatement instanceof DALStatement && !isDatabaseRequiredDALStatement(sqlStatement)
+                || sqlStatement instanceof SelectStatement && !((SelectStatement) sqlStatement).getFrom().isPresent()) {
             return new UnicastDatabaseBackendHandler(queryContext, connectionSession);
         }
         return DatabaseConnectorFactory.getInstance().newInstance(queryContext, connectionSession.getDatabaseConnectionManager(), preferPreparedStatement);
+    }
+    
+    private static boolean isDatabaseRequiredDALStatement(final SQLStatement sqlStatement) {
+        return sqlStatement instanceof MySQLShowTablesStatement || sqlStatement instanceof MySQLShowTableStatusStatement || sqlStatement instanceof MySQLShowCreateTableStatement;
     }
 }

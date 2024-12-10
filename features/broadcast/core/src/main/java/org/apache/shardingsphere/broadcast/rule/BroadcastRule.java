@@ -17,164 +17,67 @@
 
 package org.apache.shardingsphere.broadcast.rule;
 
+import com.cedarsoftware.util.CaseInsensitiveSet;
 import lombok.Getter;
-import org.apache.shardingsphere.broadcast.api.config.BroadcastRuleConfiguration;
-import org.apache.shardingsphere.infra.datanode.DataNode;
-import org.apache.shardingsphere.infra.rule.identifier.scope.DatabaseRule;
-import org.apache.shardingsphere.infra.rule.identifier.type.DataNodeContainedRule;
-import org.apache.shardingsphere.infra.rule.identifier.type.TableContainedRule;
-import org.apache.shardingsphere.infra.rule.identifier.type.TableNamesMapper;
+import org.apache.shardingsphere.broadcast.config.BroadcastRuleConfiguration;
+import org.apache.shardingsphere.broadcast.constant.BroadcastOrder;
+import org.apache.shardingsphere.broadcast.rule.attribute.BroadcastDataNodeRuleAttribute;
+import org.apache.shardingsphere.broadcast.rule.attribute.BroadcastTableNamesRuleAttribute;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
+import org.apache.shardingsphere.infra.metadata.database.resource.PhysicalDataSourceAggregator;
+import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
+import org.apache.shardingsphere.infra.rule.attribute.RuleAttributes;
+import org.apache.shardingsphere.infra.rule.attribute.datasource.aggregate.AggregatedDataSourceRuleAttribute;
+import org.apache.shardingsphere.infra.rule.scope.DatabaseRule;
 
 import javax.sql.DataSource;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Optional;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 /**
  * Broadcast rule.
  */
 @Getter
-public final class BroadcastRule implements DatabaseRule, DataNodeContainedRule, TableContainedRule {
+public final class BroadcastRule implements DatabaseRule {
     
     private final BroadcastRuleConfiguration configuration;
     
-    private final String databaseName;
+    private final Collection<String> dataSourceNames;
     
     private final Collection<String> tables;
     
-    private final Collection<String> dataSourceNames;
+    private final RuleAttributes attributes;
     
-    private final Map<String, Collection<DataNode>> tableDataNodes;
-    
-    private final TableNamesMapper logicalTableMapper;
-    
-    public BroadcastRule(final BroadcastRuleConfiguration config, final String databaseName, final Map<String, DataSource> dataSources) {
+    public BroadcastRule(final BroadcastRuleConfiguration config, final Map<String, DataSource> dataSources, final Collection<ShardingSphereRule> builtRules) {
         configuration = config;
-        this.databaseName = databaseName;
-        dataSourceNames = getDataSourceNames(dataSources);
-        tables = createBroadcastTables(config.getTables());
-        logicalTableMapper = createTableMapper();
-        tableDataNodes = createShardingTableDataNodes(dataSourceNames, tables);
-    }
-    
-    private Collection<String> getDataSourceNames(final Map<String, DataSource> dataSources) {
-        return new LinkedList<>(dataSources.keySet());
-    }
-    
-    private Collection<String> createBroadcastTables(final Collection<String> broadcastTables) {
-        Collection<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        result.addAll(broadcastTables);
-        return result;
-    }
-    
-    private TableNamesMapper createTableMapper() {
-        TableNamesMapper result = new TableNamesMapper();
-        tables.forEach(result::put);
-        return result;
-    }
-    
-    private Map<String, Collection<DataNode>> createShardingTableDataNodes(final Collection<String> dataSourceNames, final Collection<String> tables) {
-        Map<String, Collection<DataNode>> result = new HashMap<>(tables.size(), 1F);
-        for (String each : tables) {
-            result.put(each.toLowerCase(), generateDataNodes(each, dataSourceNames));
-        }
-        return result;
-    }
-    
-    private Collection<DataNode> generateDataNodes(final String logicTable, final Collection<String> dataSourceNames) {
-        Collection<DataNode> result = new LinkedList<>();
-        for (String each : dataSourceNames) {
-            result.add(new DataNode(each, logicTable));
-        }
-        return result;
-    }
-    
-    @Override
-    public Map<String, Collection<DataNode>> getAllDataNodes() {
-        return tableDataNodes;
-    }
-    
-    @Override
-    public Collection<DataNode> getDataNodesByTableName(final String tableName) {
-        return tableDataNodes.getOrDefault(tableName, Collections.emptyList());
-    }
-    
-    @Override
-    public Optional<String> findFirstActualTable(final String logicTable) {
-        return tableDataNodes.containsKey(logicTable.toLowerCase()) ? Optional.of(logicTable) : Optional.empty();
-    }
-    
-    @Override
-    public boolean isNeedAccumulate(final Collection<String> tables) {
-        return !isAllBroadcastTables(tables);
-    }
-    
-    @Override
-    public Optional<String> findLogicTableByActualTable(final String actualTable) {
-        return tableDataNodes.containsKey(actualTable.toLowerCase()) ? Optional.of(actualTable) : Optional.empty();
-    }
-    
-    @Override
-    public Optional<String> findActualTableByCatalog(final String catalog, final String logicTable) {
-        if (!tableDataNodes.containsKey(logicTable.toLowerCase())) {
-            return Optional.empty();
-        }
-        if (tableDataNodes.get(logicTable.toLowerCase()).stream().noneMatch(each -> each.getDataSourceName().equalsIgnoreCase(catalog))) {
-            return Optional.empty();
-        }
-        return Optional.of(logicTable);
+        Map<String, DataSource> aggregatedDataSources = new RuleMetaData(builtRules).findAttribute(AggregatedDataSourceRuleAttribute.class)
+                .map(AggregatedDataSourceRuleAttribute::getAggregatedDataSources).orElseGet(() -> PhysicalDataSourceAggregator.getAggregatedDataSources(dataSources, builtRules));
+        dataSourceNames = new CaseInsensitiveSet<>(aggregatedDataSources.keySet());
+        tables = new CaseInsensitiveSet<>(config.getTables());
+        attributes = new RuleAttributes(new BroadcastDataNodeRuleAttribute(dataSourceNames, tables),
+                new BroadcastTableNamesRuleAttribute(tables), new AggregatedDataSourceRuleAttribute(aggregatedDataSources));
     }
     
     /**
-     * Get broadcast rule table names.
-     * 
-     * @param logicTableNames logic table names
-     * @return broadcast rule table names.
-     */
-    public Collection<String> getBroadcastRuleTableNames(final Collection<String> logicTableNames) {
-        return logicTableNames.stream().filter(tables::contains).collect(Collectors.toSet());
-    }
-    
-    /**
-     * Judge whether logic table is all broadcast tables or not.
+     * Get broadcast table names.
      *
-     * @param logicTableNames logic table names
-     * @return whether logic table is all broadcast tables or not
+     * @param logicTableNames all logic table names
+     * @return broadcast table names
      */
-    public boolean isAllBroadcastTables(final Collection<String> logicTableNames) {
-        return !logicTableNames.isEmpty() && tables.containsAll(logicTableNames);
-    }
-    
-    /**
-     * Get available datasource names.
-     * @return datasource names
-     */
-    public Collection<String> getAvailableDataSourceNames() {
-        return dataSourceNames;
-    }
-    
-    @Override
-    public TableNamesMapper getLogicTableMapper() {
-        return logicalTableMapper;
+    @HighFrequencyInvocation
+    public Collection<String> getBroadcastTableNames(final Collection<String> logicTableNames) {
+        Collection<String> result = new CaseInsensitiveSet<>();
+        for (String each : logicTableNames) {
+            if (tables.contains(each)) {
+                result.add(each);
+            }
+        }
+        return result;
     }
     
     @Override
-    public TableNamesMapper getActualTableMapper() {
-        return new TableNamesMapper();
-    }
-    
-    @Override
-    public TableNamesMapper getDistributedTableMapper() {
-        return getLogicTableMapper();
-    }
-    
-    @Override
-    public TableNamesMapper getEnhancedTableMapper() {
-        return new TableNamesMapper();
+    public int getOrder() {
+        return BroadcastOrder.ORDER;
     }
 }

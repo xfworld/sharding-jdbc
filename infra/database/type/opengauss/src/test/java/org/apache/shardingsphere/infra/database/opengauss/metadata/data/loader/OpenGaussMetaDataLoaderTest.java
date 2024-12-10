@@ -23,6 +23,7 @@ import org.apache.shardingsphere.infra.database.core.metadata.data.model.ColumnM
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.IndexMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
+import org.apache.shardingsphere.infra.database.core.metadata.database.datatype.DataTypeRegistry;
 import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.database.opengauss.type.OpenGaussDatabaseType;
@@ -78,7 +79,8 @@ class OpenGaussMetaDataLoaderTest {
         when(dataSource.getConnection().prepareStatement(BASIC_INDEX_META_DATA_SQL).executeQuery()).thenReturn(indexResultSet);
         ResultSet advanceIndexResultSet = mockAdvanceIndexMetaDataResultSet();
         when(dataSource.getConnection().prepareStatement(ADVANCE_INDEX_META_DATA_SQL).executeQuery()).thenReturn(advanceIndexResultSet);
-        assertTableMetaDataMap(getDialectTableMetaDataLoader().load(new MetaDataLoaderMaterial(Collections.emptyList(), dataSource, new OpenGaussDatabaseType(), "sharding_db")));
+        DataTypeRegistry.load(dataSource, "openGauss");
+        assertTableMetaDataMap(getDialectTableMetaDataLoader().load(new MetaDataLoaderMaterial(Collections.emptyList(), "foo_ds", dataSource, new OpenGaussDatabaseType(), "sharding_db")));
     }
     
     private ResultSet mockSchemaMetaDataResultSet() throws SQLException {
@@ -101,7 +103,8 @@ class OpenGaussMetaDataLoaderTest {
         when(dataSource.getConnection().prepareStatement(BASIC_INDEX_META_DATA_SQL).executeQuery()).thenReturn(indexResultSet);
         ResultSet advanceIndexResultSet = mockAdvanceIndexMetaDataResultSet();
         when(dataSource.getConnection().prepareStatement(ADVANCE_INDEX_META_DATA_SQL).executeQuery()).thenReturn(advanceIndexResultSet);
-        assertTableMetaDataMap(getDialectTableMetaDataLoader().load(new MetaDataLoaderMaterial(Collections.singletonList("tbl"), dataSource, new OpenGaussDatabaseType(), "sharding_db")));
+        DataTypeRegistry.load(dataSource, "openGauss");
+        assertTableMetaDataMap(getDialectTableMetaDataLoader().load(new MetaDataLoaderMaterial(Collections.singletonList("tbl"), "foo_ds", dataSource, new OpenGaussDatabaseType(), "sharding_db")));
     }
     
     private DataSource mockDataSource() throws SQLException {
@@ -177,9 +180,8 @@ class OpenGaussMetaDataLoaderTest {
         assertThat(columnsIterator.next(), is(new ColumnMetaData("name", Types.VARCHAR, false, false, true, true, false, true)));
         assertThat(actualTableMetaData.getIndexes().size(), is(1));
         Iterator<IndexMetaData> indexesIterator = actualTableMetaData.getIndexes().iterator();
-        IndexMetaData indexMetaData = new IndexMetaData("id");
+        IndexMetaData indexMetaData = new IndexMetaData("id", Collections.singletonList("id"));
         indexMetaData.setUnique(true);
-        indexMetaData.getColumns().add("id");
         assertThat(indexesIterator.next(), is(indexMetaData));
     }
 }

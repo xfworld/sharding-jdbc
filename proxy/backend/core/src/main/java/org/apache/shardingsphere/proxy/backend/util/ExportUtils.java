@@ -21,13 +21,15 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.infra.config.rule.scope.DatabaseRuleConfiguration;
+import org.apache.shardingsphere.infra.config.rule.scope.DatabaseRuleConfigurationEmptyChecker;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
+import org.apache.shardingsphere.infra.exception.generic.FileIOException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
 import org.apache.shardingsphere.infra.spi.type.ordered.OrderedSPILoader;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.yaml.config.swapper.rule.YamlRuleConfigurationSwapper;
-import org.apache.shardingsphere.proxy.backend.exception.FileIOException;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +48,7 @@ public final class ExportUtils {
     
     /**
      * Export configuration data to specified file.
-     * 
+     *
      * @param filePath file path
      * @param exportedData exported configuration data
      * @throws FileIOException file IO exception
@@ -54,14 +56,14 @@ public final class ExportUtils {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void exportToFile(final String filePath, final String exportedData) {
         File file = new File(filePath);
-        if (!file.exists()) {
+        if (!file.exists() && null != file.getParentFile()) {
             file.getParentFile().mkdirs();
         }
         try (OutputStream output = Files.newOutputStream(Paths.get(file.toURI()))) {
             output.write(exportedData.getBytes());
             output.flush();
-        } catch (final IOException ex) {
-            throw new FileIOException(ex);
+        } catch (final IOException ignore) {
+            throw new FileIOException(file);
         }
     }
     
@@ -106,12 +108,13 @@ public final class ExportUtils {
     
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static void appendRuleConfigurations(final Collection<RuleConfiguration> ruleConfigs, final StringBuilder stringBuilder) {
-        if (ruleConfigs.isEmpty() || ruleConfigs.stream().allMatch(each -> ((DatabaseRuleConfiguration) each).isEmpty())) {
+        if (ruleConfigs.isEmpty()
+                || ruleConfigs.stream().allMatch(each -> TypedSPILoader.getService(DatabaseRuleConfigurationEmptyChecker.class, each.getClass()).isEmpty((DatabaseRuleConfiguration) each))) {
             return;
         }
         stringBuilder.append("rules:").append(System.lineSeparator());
         for (Entry<RuleConfiguration, YamlRuleConfigurationSwapper> entry : OrderedSPILoader.getServices(YamlRuleConfigurationSwapper.class, ruleConfigs).entrySet()) {
-            if (((DatabaseRuleConfiguration) entry.getKey()).isEmpty()) {
+            if (TypedSPILoader.getService(DatabaseRuleConfigurationEmptyChecker.class, entry.getKey().getClass()).isEmpty((DatabaseRuleConfiguration) entry.getKey())) {
                 continue;
             }
             stringBuilder.append(YamlEngine.marshal(Collections.singletonList(entry.getValue().swapToYamlConfiguration(entry.getKey()))));

@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.infra.hint;
 
+import com.cedarsoftware.util.CaseInsensitiveMap;
 import com.google.common.base.Splitter;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -26,16 +27,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
 
 /**
  * SQL hint utility class.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SQLHintUtils {
+    
+    private static final String SQL_COMMENT_PREFIX = "/*";
     
     private static final String SQL_COMMENT_SUFFIX = "*/";
     
@@ -48,27 +50,69 @@ public final class SQLHintUtils {
     private static final int SQL_HINT_VALUE_SIZE = 2;
     
     /**
-     * Get SQL hint props.
+     * Extract SQL hint.
      *
-     * @param comment SQL comment
-     * @return SQL hint props
+     * @param sql SQL
+     * @return hint value context
      */
-    public static Properties getSQLHintProps(final String comment) {
-        Properties result = new Properties();
-        String lowerCaseComment = comment.toLowerCase();
-        int startIndex = lowerCaseComment.startsWith(SQLHintTokenEnum.SQL_START_HINT_TOKEN.getAlias().toLowerCase())
-                ? lowerCaseComment.indexOf(SQLHintTokenEnum.SQL_HINT_TOKEN.getAlias())
-                : lowerCaseComment.indexOf(SQLHintTokenEnum.SQL_HINT_TOKEN.getKey());
-        if (startIndex < 0) {
-            return result;
+    public static HintValueContext extractHint(final String sql) {
+        if (!containsSQLHint(sql)) {
+            return new HintValueContext();
         }
-        startIndex = startIndex + SQLHintTokenEnum.SQL_HINT_TOKEN.getKey().length();
-        int endIndex = comment.endsWith(SQL_COMMENT_SUFFIX) ? comment.indexOf(SQL_COMMENT_SUFFIX) : comment.length();
-        Collection<String> sqlHints = Splitter.on(SQL_HINT_SPLIT).trimResults().splitToList(comment.substring(startIndex, endIndex).trim());
+        HintValueContext result = new HintValueContext();
+        int hintKeyValueBeginIndex = getHintKeyValueBeginIndex(sql);
+        String hintKeyValueText = sql.substring(hintKeyValueBeginIndex, sql.indexOf(SQL_COMMENT_SUFFIX, hintKeyValueBeginIndex));
+        Map<String, String> hintKeyValues = getSQLHintKeyValues(hintKeyValueText);
+        if (containsHintKey(hintKeyValues, SQLHintPropertiesKey.DATASOURCE_NAME_KEY)) {
+            result.setDataSourceName(getHintValue(hintKeyValues, SQLHintPropertiesKey.DATASOURCE_NAME_KEY));
+        }
+        if (containsHintKey(hintKeyValues, SQLHintPropertiesKey.WRITE_ROUTE_ONLY_KEY)) {
+            result.setWriteRouteOnly(Boolean.parseBoolean(getHintValue(hintKeyValues, SQLHintPropertiesKey.WRITE_ROUTE_ONLY_KEY)));
+        }
+        if (containsHintKey(hintKeyValues, SQLHintPropertiesKey.SKIP_SQL_REWRITE_KEY)) {
+            result.setSkipSQLRewrite(Boolean.parseBoolean(getHintValue(hintKeyValues, SQLHintPropertiesKey.SKIP_SQL_REWRITE_KEY)));
+        }
+        if (containsHintKey(hintKeyValues, SQLHintPropertiesKey.SKIP_METADATA_VALIDATE_KEY)) {
+            result.setSkipMetadataValidate(Boolean.parseBoolean(getHintValue(hintKeyValues, SQLHintPropertiesKey.SKIP_METADATA_VALIDATE_KEY)));
+        }
+        if (containsHintKey(hintKeyValues, SQLHintPropertiesKey.DISABLE_AUDIT_NAMES_KEY)) {
+            String property = getHintValue(hintKeyValues, SQLHintPropertiesKey.DISABLE_AUDIT_NAMES_KEY);
+            result.getDisableAuditNames().addAll(getSplitterSQLHintValue(property));
+        }
+        if (containsHintKey(hintKeyValues, SQLHintPropertiesKey.SHADOW_KEY)) {
+            result.setShadow(Boolean.parseBoolean(getHintValue(hintKeyValues, SQLHintPropertiesKey.SHADOW_KEY)));
+        }
+        for (Entry<String, String> entry : hintKeyValues.entrySet()) {
+            Object value = convert(entry.getValue());
+            Comparable<?> comparable = value instanceof Comparable ? (Comparable<?>) value : Objects.toString(value);
+            if (containsHintKey(Objects.toString(entry.getKey()), SQLHintPropertiesKey.SHARDING_DATABASE_VALUE_KEY)) {
+                result.getShardingDatabaseValues().put(Objects.toString(entry.getKey()).toUpperCase(), comparable);
+            }
+            if (containsHintKey(Objects.toString(entry.getKey()), SQLHintPropertiesKey.SHARDING_TABLE_VALUE_KEY)) {
+                result.getShardingTableValues().put(Objects.toString(entry.getKey()).toUpperCase(), comparable);
+            }
+        }
+        return result;
+    }
+    
+    private static int getHintKeyValueBeginIndex(final String sql) {
+        int tokenBeginIndex = sql.contains(SQLHintTokenType.SQL_START_HINT_TOKEN.getKey()) ? sql.indexOf(SQLHintTokenType.SQL_START_HINT_TOKEN.getKey())
+                : sql.indexOf(SQLHintTokenType.SQL_START_HINT_TOKEN.getAlias());
+        return sql.indexOf(":", tokenBeginIndex) + 1;
+    }
+    
+    private static boolean containsSQLHint(final String sql) {
+        return (sql.contains(SQLHintTokenType.SQL_START_HINT_TOKEN.getKey()) || sql.contains(SQLHintTokenType.SQL_START_HINT_TOKEN.getAlias()))
+                && sql.contains(SQL_COMMENT_PREFIX) && sql.contains(SQL_COMMENT_SUFFIX);
+    }
+    
+    private static Map<String, String> getSQLHintKeyValues(final String hintKeyValueText) {
+        Collection<String> sqlHints = Splitter.on(SQL_HINT_SPLIT).trimResults().splitToList(hintKeyValueText.trim());
+        Map<String, String> result = new CaseInsensitiveMap<>(sqlHints.size(), 1F);
         for (String each : sqlHints) {
             List<String> hintValues = Splitter.on(SQL_HINT_VALUE_SPLIT).trimResults().splitToList(each);
             if (SQL_HINT_VALUE_SIZE == hintValues.size()) {
-                result.put(hintValues.get(0), convert(hintValues.get(1)));
+                result.put(hintValues.get(0), hintValues.get(1));
             }
         }
         return result;
@@ -77,79 +121,26 @@ public final class SQLHintUtils {
     private static Object convert(final String value) {
         try {
             return new BigInteger(value);
-        } catch (final NumberFormatException e) {
+        } catch (final NumberFormatException ignored) {
             return value;
         }
     }
     
-    /**
-     * Get splitter SQL hint Value.
-     *
-     * @param value SQL hint value
-     * @return Splitter SQL hint value
-     */
-    public static Collection<String> getSplitterSQLHintValue(final String value) {
-        return value.isEmpty() ? Collections.emptySet() : new HashSet<>(Splitter.on(SQLHintUtils.SQL_HINT_VALUE_COLLECTION_SPLIT).omitEmptyStrings().trimResults().splitToList(value));
+    private static boolean containsHintKey(final Map<String, String> hintKeyValues, final SQLHintPropertiesKey sqlHintPropsKey) {
+        return hintKeyValues.containsKey(sqlHintPropsKey.getKey()) || hintKeyValues.containsKey(sqlHintPropsKey.getAlias());
     }
     
-    /**
-     * Extract SQL hint.
-     *
-     * @param sql SQL
-     * @return Hint value context
-     */
-    public static Optional<HintValueContext> extractHint(final String sql) {
-        if (!startWithHint(sql)) {
-            return Optional.empty();
-        }
-        HintValueContext result = new HintValueContext();
-        String hintText = sql.substring(0, sql.indexOf(SQL_COMMENT_SUFFIX) + 2);
-        Properties hintProps = SQLHintUtils.getSQLHintProps(hintText);
-        if (containsPropertyKey(hintProps, SQLHintPropertiesKey.DATASOURCE_NAME_KEY)) {
-            result.setDataSourceName(getProperty(hintProps, SQLHintPropertiesKey.DATASOURCE_NAME_KEY));
-        }
-        if (containsPropertyKey(hintProps, SQLHintPropertiesKey.WRITE_ROUTE_ONLY_KEY)) {
-            result.setWriteRouteOnly(Boolean.parseBoolean(getProperty(hintProps, SQLHintPropertiesKey.WRITE_ROUTE_ONLY_KEY)));
-        }
-        if (containsPropertyKey(hintProps, SQLHintPropertiesKey.USE_TRAFFIC_KEY)) {
-            result.setUseTraffic(Boolean.parseBoolean(getProperty(hintProps, SQLHintPropertiesKey.USE_TRAFFIC_KEY)));
-        }
-        if (containsPropertyKey(hintProps, SQLHintPropertiesKey.SKIP_SQL_REWRITE_KEY)) {
-            result.setSkipSQLRewrite(Boolean.parseBoolean(getProperty(hintProps, SQLHintPropertiesKey.SKIP_SQL_REWRITE_KEY)));
-        }
-        if (containsPropertyKey(hintProps, SQLHintPropertiesKey.DISABLE_AUDIT_NAMES_KEY)) {
-            result.setDisableAuditNames(getProperty(hintProps, SQLHintPropertiesKey.DISABLE_AUDIT_NAMES_KEY));
-        }
-        if (containsPropertyKey(hintProps, SQLHintPropertiesKey.SHADOW_KEY)) {
-            result.setShadow(Boolean.parseBoolean(getProperty(hintProps, SQLHintPropertiesKey.SHADOW_KEY)));
-        }
-        for (Entry<Object, Object> entry : hintProps.entrySet()) {
-            Comparable<?> value = entry.getValue() instanceof Comparable ? (Comparable<?>) entry.getValue() : Objects.toString(entry.getValue());
-            if (containsPropertyKey(Objects.toString(entry.getKey()), SQLHintPropertiesKey.SHARDING_DATABASE_VALUE_KEY)) {
-                result.getShardingDatabaseValues().put(Objects.toString(entry.getKey()).toUpperCase(), value);
-            }
-            if (containsPropertyKey(Objects.toString(entry.getKey()), SQLHintPropertiesKey.SHARDING_TABLE_VALUE_KEY)) {
-                result.getShardingTableValues().put(Objects.toString(entry.getKey()).toUpperCase(), value);
-            }
-        }
-        return Optional.of(result);
-    }
-    
-    private static boolean startWithHint(final String sql) {
-        return null != sql && (sql.startsWith(SQLHintTokenEnum.SQL_START_HINT_TOKEN.getKey()) || sql.startsWith(SQLHintTokenEnum.SQL_START_HINT_TOKEN.getAlias()));
-    }
-    
-    private static boolean containsPropertyKey(final Properties hintProps, final SQLHintPropertiesKey sqlHintPropsKey) {
-        return hintProps.containsKey(sqlHintPropsKey.getKey()) || hintProps.containsKey(sqlHintPropsKey.getAlias());
-    }
-    
-    private static boolean containsPropertyKey(final String hintPropKey, final SQLHintPropertiesKey sqlHintPropsKey) {
+    private static boolean containsHintKey(final String hintPropKey, final SQLHintPropertiesKey sqlHintPropsKey) {
         return hintPropKey.contains(sqlHintPropsKey.getKey()) || hintPropKey.contains(sqlHintPropsKey.getAlias());
     }
     
-    private static String getProperty(final Properties hintProps, final SQLHintPropertiesKey sqlHintPropsKey) {
-        String result = hintProps.getProperty(sqlHintPropsKey.getKey());
-        return null == result ? hintProps.getProperty(sqlHintPropsKey.getAlias()) : result;
+    private static String getHintValue(final Map<String, String> hintKeyValues, final SQLHintPropertiesKey sqlHintPropsKey) {
+        String result = hintKeyValues.get(sqlHintPropsKey.getKey());
+        return null == result ? hintKeyValues.get(sqlHintPropsKey.getAlias()) : result;
+    }
+    
+    private static Collection<String> getSplitterSQLHintValue(final String property) {
+        return property.isEmpty() ? Collections.emptySet() : new HashSet<>(Splitter.on(SQL_HINT_VALUE_COLLECTION_SPLIT).omitEmptyStrings().trimResults().splitToList(property));
     }
     
     /**
@@ -159,6 +150,13 @@ public final class SQLHintUtils {
      * @return SQL after remove hint
      */
     public static String removeHint(final String sql) {
-        return startWithHint(sql) ? sql.substring(sql.indexOf(SQL_COMMENT_SUFFIX) + 2) : sql;
+        if (containsSQLHint(sql)) {
+            int hintKeyValueBeginIndex = getHintKeyValueBeginIndex(sql);
+            int sqlHintBeginIndex = sql.substring(0, hintKeyValueBeginIndex).lastIndexOf(SQL_COMMENT_PREFIX, hintKeyValueBeginIndex);
+            int sqlHintEndIndex = sql.indexOf(SQL_COMMENT_SUFFIX, hintKeyValueBeginIndex) + SQL_COMMENT_SUFFIX.length();
+            String removedHintSQL = sql.substring(0, sqlHintBeginIndex) + sql.substring(sqlHintEndIndex);
+            return removedHintSQL.trim();
+        }
+        return sql;
     }
 }

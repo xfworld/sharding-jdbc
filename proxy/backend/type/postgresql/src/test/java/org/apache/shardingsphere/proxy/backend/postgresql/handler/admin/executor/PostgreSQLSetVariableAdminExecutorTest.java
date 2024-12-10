@@ -23,9 +23,9 @@ import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.variable.session.ReplayedSessionVariableProvider;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
 import org.apache.shardingsphere.proxy.backend.session.RequiredSessionVariableRecorder;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableAssignSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dal.VariableSegment;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLSetStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.VariableAssignSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.VariableSegment;
+import org.apache.shardingsphere.sql.parser.statement.postgresql.dal.PostgreSQLSetStatement;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -42,12 +42,8 @@ class PostgreSQLSetVariableAdminExecutorTest {
     
     @Test
     void assertExecute() {
-        VariableAssignSegment variableAssignSegment = new VariableAssignSegment();
-        VariableSegment variable = new VariableSegment(0, 0, "key");
-        variableAssignSegment.setVariable(variable);
-        variableAssignSegment.setAssignValue("value");
         PostgreSQLSetStatement setStatement = new PostgreSQLSetStatement();
-        setStatement.getVariableAssigns().add(variableAssignSegment);
+        setStatement.getVariableAssigns().add(new VariableAssignSegment(0, 0, new VariableSegment(0, 0, "key"), "value"));
         PostgreSQLSetVariableAdminExecutor executor = new PostgreSQLSetVariableAdminExecutor(setStatement);
         ConnectionSession connectionSession = mock(ConnectionSession.class);
         RequiredSessionVariableRecorder requiredSessionVariableRecorder = mock(RequiredSessionVariableRecorder.class);

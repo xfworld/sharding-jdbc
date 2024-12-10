@@ -24,13 +24,13 @@ import lombok.RequiredArgsConstructor;
 @Getter
 public enum GlobalLockNames {
     
-    STATISTICS("statistics_%s_%s_%s"),
-    
     CLUSTER_LOCK("cluster_lock"),
     
     PREPARE("prepare_%s"),
     
-    GLOBAL_LOCK("global_clock");
+    GLOBAL_LOCK("global_clock"),
+    
+    STATISTICS("statistics");
     
     private final String lockName;
 }

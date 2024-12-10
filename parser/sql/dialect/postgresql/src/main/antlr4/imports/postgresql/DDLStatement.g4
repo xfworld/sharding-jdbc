@@ -1709,7 +1709,7 @@ dropOperatorClass
 dropOperatorFamily
     : DROP OPERATOR FAMILY ifExists? anyName USING name dropBehavior?
     ;
-    
+
 dropOwned
     : DROP OWNED BY roleList dropBehavior?
     ;
@@ -1790,21 +1790,32 @@ importQualificationType
     : LIMIT TO | EXCEPT
     ;
 
-
 declare
-    : DECLARE cursorName cursorOptions CURSOR (WITH HOLD | WITHOUT HOLD)? FOR select
-    ;
-
-cursorOptions
-    : cursorOption*
+    : DECLARE cursorName cursorOption CURSOR ((WITH | WITHOUT) HOLD)? FOR select
     ;
 
 cursorOption
-    : NO SCROLL
-    | SCROLL
-    | BINARY
-    | ASENSITIVE
-    | INSENSITIVE
+    : BINARY? (ASENSITIVE | INSENSITIVE)? (NO? SCROLL)?
+    ;
+
+open
+    : OPEN cursorName (usingValueClause | usingSqlDescriptorClause)?
+    ;
+
+usingValueClause
+    : USING value (COMMA_ value)*
+    ;
+
+value
+    : aexprConst | hostVariable
+    ;
+
+usingSqlDescriptorClause
+    : USING SQL DESCRIPTOR descriptorName
+    ;
+
+descriptorName
+    : identifier | hostVariable
     ;
 
 move
@@ -1947,11 +1958,11 @@ securityLabelClausces
 grant
     : GRANT (privilegeClause | roleClause)
     ;
-    
+
 privilegeClause
     : privilegeTypes ON onObjectClause (FROM | TO) granteeList (WITH GRANT OPTION)?
     ;
-    
+
 roleClause
     : privilegeList (FROM | TO) roleList (WITH ADMIN OPTION)? (GRANTED BY roleSpec)?
     ;
@@ -1959,7 +1970,7 @@ roleClause
 privilegeTypes
     : privilegeType columnNames? (COMMA_ privilegeType columnNames?)*
     ;
-    
+
 onObjectClause
     : DATABASE nameList
     | SCHEMA nameList
@@ -1981,11 +1992,11 @@ onObjectClause
     | ALL PROCEDURES IN SCHEMA nameList
     | ALL ROUTINES IN SCHEMA nameList
     ;
-    
+
 numericOnlyList
     : numericOnly (COMMA_ numericOnly)*
     ;
-    
+
 privilegeLevel
     : ASTERISK_ | ASTERISK_ DOT_ASTERISK_ | identifier DOT_ASTERISK_ | tableNames | schemaName DOT_ routineName
     ;

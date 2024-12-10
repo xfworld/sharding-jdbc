@@ -35,6 +35,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -65,6 +66,7 @@ public final class JDBCRepository implements StandalonePersistRepository {
         try (
                 Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement()) {
+            statement.execute(repositorySQL.getCreateTableSQL());
             // TODO remove it later. Add for reset standalone test e2e's env. Need to close DataSource to release H2's memory data
             if (jdbcRepositoryProps.<String>getValue(JDBCRepositoryPropertyKey.JDBC_URL).contains("h2:mem:")) {
                 try {
@@ -73,12 +75,11 @@ public final class JDBCRepository implements StandalonePersistRepository {
                 }
             }
             // Finish TODO
-            statement.execute(repositorySQL.getCreateTableSQL());
         }
     }
     
     @Override
-    public String getDirectly(final String key) {
+    public String query(final String key) {
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(repositorySQL.getSelectByKeySQL())) {
@@ -110,17 +111,28 @@ public final class JDBCRepository implements StandalonePersistRepository {
                     int lastIndexOf = childrenKey.lastIndexOf(SEPARATOR);
                     resultChildren.add(childrenKey.substring(lastIndexOf + 1));
                 }
+                resultChildren.sort(Comparator.reverseOrder());
                 return new ArrayList<>(resultChildren);
             }
         } catch (final SQLException ex) {
             log.error("Get children {} data by key: {} failed", getType(), key, ex);
+            return Collections.emptyList();
         }
-        return Collections.emptyList();
     }
     
     @Override
     public boolean isExisted(final String key) {
-        return !Strings.isNullOrEmpty(getDirectly(key));
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(repositorySQL.getSelectByKeySQL())) {
+            preparedStatement.setString(1, key);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (final SQLException ex) {
+            log.error("Check existence of {} data by key: {} failed", getType(), key, ex);
+        }
+        return false;
     }
     
     @Override
@@ -136,8 +148,7 @@ public final class JDBCRepository implements StandalonePersistRepository {
             // Create key level directory recursively.
             for (int i = 0; i < paths.length - 1; i++) {
                 String tempKey = tempPrefix + SEPARATOR + paths[i];
-                String tempKeyVal = getDirectly(tempKey);
-                if (Strings.isNullOrEmpty(tempKeyVal)) {
+                if (!isExisted(tempKey)) {
                     insert(tempKey, "", parent);
                 }
                 tempPrefix = tempKey;
@@ -174,12 +185,22 @@ public final class JDBCRepository implements StandalonePersistRepository {
         }
     }
     
+    /**
+     * Delete the specified row.
+     * Once the database connection involved in this row of data has been closed by other threads and this row of data is located in the H2Database started in memory mode,
+     * the data is actually deleted.
+     *
+     * @param key key of data
+     */
     @Override
     public void delete(final String key) {
+        if (dataSource.isClosed() && dataSource.getJdbcUrl().startsWith("jdbc:h2:mem:")) {
+            return;
+        }
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(repositorySQL.getDeleteSQL())) {
-            preparedStatement.setString(1, key);
+            preparedStatement.setString(1, key + "%");
             preparedStatement.executeUpdate();
         } catch (final SQLException ex) {
             log.error("Delete {} data by key: {} failed", getType(), key, ex);

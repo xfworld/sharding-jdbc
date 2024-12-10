@@ -12,7 +12,7 @@ The `ALTER MASK RULE` syntax is used to create a mask rule.
 {{< tabs >}}
 {{% tab name="Grammar" %}}
 ```sql
-AlterEncryptRule ::=
+AlterMaskRule ::=
   'ALTER' 'MASK' 'RULE' maskRuleDefinition (',' maskRuleDefinition)*
 
 maskRuleDefinition ::=
@@ -22,7 +22,7 @@ columnDefinition ::=
   '(' 'NAME' '=' columnName ',' maskAlgorithmDefinition ')'
 
 maskAlgorithmDefinition ::=
-  'TYPE' '(' 'NAME' '=' maskAlgorithmType (',' propertiesDefinition)? ')'
+  'TYPE' '(' 'NAME' '=' algorithmType (',' propertiesDefinition)? ')'
 
 propertiesDefinition ::=
   'PROPERTIES' '(' key '=' value (',' key '=' value)* ')'
@@ -33,7 +33,7 @@ ruleName ::=
 columnName ::=
   identifier
 
-maskAlgorithmType ::=
+algorithmType ::=
   literal
 
 key ::=
@@ -50,7 +50,7 @@ value ::=
 
 ### Supplement
 
-- `maskAlgorithmType` specifies the data masking algorithm type, please refer to [Data Masking Algorithm](/en/user-manual/common-config/builtin-algorithm/mask/).
+- `algorithmType` specifies the data masking algorithm type, please refer to [Data Masking Algorithm](/en/user-manual/common-config/builtin-algorithm/mask/).
 
 ### Example
 

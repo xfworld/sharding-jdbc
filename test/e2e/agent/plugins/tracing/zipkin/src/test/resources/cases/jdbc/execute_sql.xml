@@ -16,16 +16,16 @@
   ~ limitations under the License.
   -->
 
-<integration-test-cases>
+<e2e-test-cases>
     <test-case service-name="shardingsphere" span-name="/ShardingSphere/executeSQL/">
-        <tag-assertion key="component" value="ShardingSphere" need-assert-value="true" />
-        <tag-assertion key="span.kind" value="client" need-assert-value="true" />
-        <tag-assertion key="db.type" value="MySQL" need-assert-value="true" />
-        <tag-assertion key="peer.hostname" value="mysql.agent.jdbc.zipkin.host" need-assert-value="true" />
-        <tag-assertion key="peer.port" value="3306" need-assert-value="true" />
-        <tag-assertion key="db.instance" value="ds_0" need-assert-value="true" />
-        <tag-assertion key="db.instance" value="ds_1" need-assert-value="true" />
-        <tag-assertion key="db.bind_vars" />
-        <tag-assertion key="db.statement" />
+        <tag key="component" value="ShardingSphere" />
+        <tag key="span.kind" value="client" />
+        <tag key="db.type" value="MySQL" />
+        <tag key="peer.hostname" value="mysql.host" />
+        <tag key="peer.port" value="3306" />
+        <tag key="db.instance" value="ds_0" />
+        <tag key="db.instance" value="ds_1" />
+        <tag key="db.bind_vars" />
+        <tag key="db.statement" />
     </test-case>
-</integration-test-cases>
+</e2e-test-cases>

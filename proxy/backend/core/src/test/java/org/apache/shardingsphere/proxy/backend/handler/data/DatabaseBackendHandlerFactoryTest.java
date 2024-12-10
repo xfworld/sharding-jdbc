@@ -17,18 +17,22 @@
 
 package org.apache.shardingsphere.proxy.backend.handler.data;
 
-import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
+import org.apache.shardingsphere.infra.hint.HintValueContext;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
+import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.proxy.backend.connector.ProxyDatabaseConnectionManager;
-import org.apache.shardingsphere.proxy.backend.connector.DatabaseConnector;
+import org.apache.shardingsphere.proxy.backend.connector.StandardDatabaseConnector;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.handler.data.impl.UnicastDatabaseBackendHandler;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.DALStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.DALStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
 import org.apache.shardingsphere.test.mock.AutoMockExtension;
 import org.apache.shardingsphere.test.mock.ConstructionMockSettings;
 import org.apache.shardingsphere.test.mock.StaticMockSettings;
@@ -38,16 +42,18 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 @ExtendWith(AutoMockExtension.class)
 @StaticMockSettings(ProxyContext.class)
-@ConstructionMockSettings(DatabaseConnector.class)
+@ConstructionMockSettings(StandardDatabaseConnector.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class DatabaseBackendHandlerFactoryTest {
     
@@ -56,8 +62,16 @@ class DatabaseBackendHandlerFactoryTest {
         String sql = "DESC tbl";
         SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class);
         when(sqlStatementContext.getSqlStatement()).thenReturn(mock(DALStatement.class));
-        DatabaseBackendHandler actual = DatabaseBackendHandlerFactory.newInstance(new QueryContext(sqlStatementContext, sql, Collections.emptyList()), mock(ConnectionSession.class), false);
+        DatabaseBackendHandler actual = DatabaseBackendHandlerFactory.newInstance(
+                new QueryContext(sqlStatementContext, sql, Collections.emptyList(), new HintValueContext(), mockConnectionContext(), mock(ShardingSphereMetaData.class)),
+                mock(ConnectionSession.class), false);
         assertThat(actual, instanceOf(UnicastDatabaseBackendHandler.class));
+    }
+    
+    private ConnectionContext mockConnectionContext() {
+        ConnectionContext result = mock(ConnectionContext.class);
+        when(result.getCurrentDatabaseName()).thenReturn(Optional.of("foo_db"));
+        return result;
     }
     
     @Test
@@ -65,7 +79,10 @@ class DatabaseBackendHandlerFactoryTest {
         String sql = "SELECT 1";
         SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class);
         when(sqlStatementContext.getSqlStatement()).thenReturn(mock(SelectStatement.class));
-        DatabaseBackendHandler actual = DatabaseBackendHandlerFactory.newInstance(new QueryContext(sqlStatementContext, sql, Collections.emptyList()), mock(ConnectionSession.class), false);
+        DatabaseBackendHandler actual =
+                DatabaseBackendHandlerFactory.newInstance(
+                        new QueryContext(sqlStatementContext, sql, Collections.emptyList(), new HintValueContext(), mockConnectionContext(), mock(ShardingSphereMetaData.class)),
+                        mock(ConnectionSession.class), false);
         assertThat(actual, instanceOf(UnicastDatabaseBackendHandler.class));
     }
     
@@ -76,14 +93,18 @@ class DatabaseBackendHandlerFactoryTest {
         ConnectionSession connectionSession = mockConnectionSession();
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
-        DatabaseBackendHandler actual = DatabaseBackendHandlerFactory.newInstance(new QueryContext(sqlStatementContext, sql, Collections.emptyList()), connectionSession, false);
-        assertThat(actual, instanceOf(DatabaseConnector.class));
+        DatabaseBackendHandler actual =
+                DatabaseBackendHandlerFactory.newInstance(
+                        new QueryContext(sqlStatementContext, sql, Collections.emptyList(), new HintValueContext(), mockConnectionContext(), mock(ShardingSphereMetaData.class)),
+                        connectionSession, false);
+        assertThat(actual, instanceOf(StandardDatabaseConnector.class));
     }
     
     private SQLStatementContext mockSQLStatementContext() {
-        SQLStatementContext result = mock(SQLStatementContext.class, RETURNS_DEEP_STUBS);
+        SQLStatementContext result = mock(SQLStatementContext.class, withSettings().extraInterfaces(TableAvailable.class).defaultAnswer(RETURNS_DEEP_STUBS));
         when(result.getSqlStatement()).thenReturn(mock(SQLStatement.class));
-        when(result.getTablesContext().getSchemaNames()).thenReturn(Collections.emptyList());
+        when(((TableAvailable) result).getTablesContext().getSchemaNames()).thenReturn(Collections.emptyList());
+        when(((TableAvailable) result).getTablesContext().getDatabaseName()).thenReturn(Optional.empty());
         return result;
     }
     
@@ -99,7 +120,7 @@ class DatabaseBackendHandlerFactoryTest {
     
     private ConnectionSession mockConnectionSession() {
         ConnectionSession result = mock(ConnectionSession.class);
-        when(result.getDatabaseName()).thenReturn("foo_db");
+        when(result.getUsedDatabaseName()).thenReturn("foo_db");
         when(result.getDatabaseConnectionManager()).thenReturn(mock(ProxyDatabaseConnectionManager.class));
         when(result.getDatabaseConnectionManager().getConnectionSession()).thenReturn(result);
         return result;

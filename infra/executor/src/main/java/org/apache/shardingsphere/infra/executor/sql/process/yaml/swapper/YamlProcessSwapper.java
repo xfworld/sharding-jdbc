@@ -21,7 +21,7 @@ import org.apache.shardingsphere.infra.executor.sql.process.Process;
 import org.apache.shardingsphere.infra.executor.sql.process.yaml.YamlProcess;
 import org.apache.shardingsphere.infra.util.yaml.swapper.YamlConfigurationSwapper;
 
-import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -38,16 +38,17 @@ public final class YamlProcessSwapper implements YamlConfigurationSwapper<YamlPr
         result.setDatabaseName(data.getDatabaseName());
         result.setUsername(data.getUsername());
         result.setHostname(data.getHostname());
-        result.setTotalUnitCount(data.getTotalUnitCount());
-        result.setCompletedUnitCount(data.getCompletedUnitCount());
+        result.setTotalUnitCount(data.getTotalUnitCount().get());
+        result.setCompletedUnitCount(data.getCompletedUnitCount().get());
         result.setIdle(data.isIdle());
-        result.setHeldByConnection(data.isHeldByConnection());
+        result.setInterrupted(data.isInterrupted());
         return result;
     }
     
     @Override
     public Process swapToObject(final YamlProcess yamlConfig) {
         return new Process(yamlConfig.getId(), yamlConfig.getStartMillis(), yamlConfig.getSql(), yamlConfig.getDatabaseName(), yamlConfig.getUsername(), yamlConfig.getHostname(),
-                yamlConfig.getTotalUnitCount(), Collections.emptyList(), new AtomicInteger(yamlConfig.getCompletedUnitCount()), yamlConfig.isIdle(), yamlConfig.isHeldByConnection());
+                new AtomicInteger(yamlConfig.getTotalUnitCount()), new AtomicInteger(yamlConfig.getCompletedUnitCount()), new AtomicBoolean(yamlConfig.isIdle()),
+                new AtomicBoolean(yamlConfig.isInterrupted()));
     }
 }

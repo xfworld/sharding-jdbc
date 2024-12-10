@@ -17,12 +17,13 @@
   -->
 
 <configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
-    <logger name="org.apache.shardingsphere" level="warn" additivity="false">
+    <logger name="org.apache.shardingsphere" level="off" additivity="false">
         <appender-ref ref="console" />
     </logger>
     

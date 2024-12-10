@@ -17,26 +17,14 @@
 
 package org.apache.shardingsphere.broadcast.yaml;
 
-import org.apache.shardingsphere.broadcast.yaml.config.YamlBroadcastRuleConfiguration;
-import org.apache.shardingsphere.infra.yaml.config.pojo.YamlRootConfiguration;
+import org.apache.shardingsphere.broadcast.config.BroadcastRuleConfiguration;
 import org.apache.shardingsphere.test.it.yaml.YamlRuleConfigurationIT;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import java.util.Arrays;
 
 class BroadcastRuleConfigurationYamlIT extends YamlRuleConfigurationIT {
     
     BroadcastRuleConfigurationYamlIT() {
-        super("yaml/broadcast-rule.yaml");
-    }
-    
-    @Override
-    protected void assertYamlRootConfiguration(final YamlRootConfiguration actual) {
-        assertBroadcastRule((YamlBroadcastRuleConfiguration) actual.getRules().iterator().next());
-    }
-    
-    private void assertBroadcastRule(final YamlBroadcastRuleConfiguration actual) {
-        assertThat(actual.getTables().size(), is(1));
-        assertThat(actual.getTables().iterator().next(), is("t_address"));
+        super("yaml/broadcast-rule.yaml", new BroadcastRuleConfiguration(Arrays.asList("foo_tbl", "bar_tbl")));
     }
 }

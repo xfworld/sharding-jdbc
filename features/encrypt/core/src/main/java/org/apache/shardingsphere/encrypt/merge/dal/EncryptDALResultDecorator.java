@@ -17,46 +17,35 @@
 
 package org.apache.shardingsphere.encrypt.merge.dal;
 
-import org.apache.shardingsphere.encrypt.merge.dal.show.DecoratedEncryptShowColumnsMergedResult;
-import org.apache.shardingsphere.encrypt.merge.dal.show.DecoratedEncryptShowCreateTableMergedResult;
-import org.apache.shardingsphere.encrypt.merge.dal.show.MergedEncryptShowColumnsMergedResult;
-import org.apache.shardingsphere.encrypt.merge.dal.show.MergedEncryptShowCreateTableMergedResult;
+import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.encrypt.merge.dal.show.EncryptShowColumnsMergedResult;
+import org.apache.shardingsphere.encrypt.merge.dal.show.EncryptShowCreateTableMergedResult;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.merge.engine.decorator.ResultDecorator;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
-import org.apache.shardingsphere.infra.merge.result.impl.transparent.TransparentMergedResult;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLExplainStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowColumnsStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowCreateTableStatement;
+import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLExplainStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLShowColumnsStatement;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.MySQLShowCreateTableStatement;
 
 /**
  * DAL result decorator for encrypt.
  */
+@RequiredArgsConstructor
 public final class EncryptDALResultDecorator implements ResultDecorator<EncryptRule> {
     
-    @Override
-    public MergedResult decorate(final QueryResult queryResult, final SQLStatementContext sqlStatementContext, final EncryptRule rule) {
-        SQLStatement sqlStatement = sqlStatementContext.getSqlStatement();
-        if (sqlStatement instanceof MySQLExplainStatement || sqlStatement instanceof MySQLShowColumnsStatement) {
-            return new MergedEncryptShowColumnsMergedResult(queryResult, sqlStatementContext, rule);
-        }
-        if (sqlStatement instanceof MySQLShowCreateTableStatement) {
-            return new MergedEncryptShowCreateTableMergedResult(queryResult, sqlStatementContext, rule);
-        }
-        return new TransparentMergedResult(queryResult);
-    }
+    private final RuleMetaData globalRuleMetaData;
     
     @Override
     public MergedResult decorate(final MergedResult mergedResult, final SQLStatementContext sqlStatementContext, final EncryptRule rule) {
         SQLStatement sqlStatement = sqlStatementContext.getSqlStatement();
         if (sqlStatement instanceof MySQLExplainStatement || sqlStatement instanceof MySQLShowColumnsStatement) {
-            return new DecoratedEncryptShowColumnsMergedResult(mergedResult, sqlStatementContext, rule);
+            return new EncryptShowColumnsMergedResult(mergedResult, sqlStatementContext, rule);
         }
         if (sqlStatement instanceof MySQLShowCreateTableStatement) {
-            return new DecoratedEncryptShowCreateTableMergedResult(mergedResult, sqlStatementContext, rule);
+            return new EncryptShowCreateTableMergedResult(globalRuleMetaData, mergedResult, sqlStatementContext, rule);
         }
         return mergedResult;
     }

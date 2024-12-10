@@ -17,14 +17,13 @@
 
 package org.apache.shardingsphere.infra.metadata.statistics.collector;
 
-import org.apache.shardingsphere.infra.metadata.statistics.ShardingSphereTableData;
-import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
+import org.apache.shardingsphere.infra.metadata.statistics.ShardingSphereTableData;
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPI;
 
 import java.sql.SQLException;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -34,13 +33,13 @@ import java.util.Optional;
 public interface ShardingSphereStatisticsCollector extends TypedSPI {
     
     /**
-     * Collect.
+     * Collect statistics.
      *
      * @param databaseName database name
      * @param table table
-     * @param shardingSphereDatabases ShardingSphere databases
+     * @param metaData ShardingSphere meta data
      * @return ShardingSphere table data
-     * @throws SQLException sql exception
+     * @throws SQLException SQL exception
      */
-    Optional<ShardingSphereTableData> collect(String databaseName, ShardingSphereTable table, Map<String, ShardingSphereDatabase> shardingSphereDatabases) throws SQLException;
+    Optional<ShardingSphereTableData> collect(String databaseName, ShardingSphereTable table, ShardingSphereMetaData metaData) throws SQLException;
 }

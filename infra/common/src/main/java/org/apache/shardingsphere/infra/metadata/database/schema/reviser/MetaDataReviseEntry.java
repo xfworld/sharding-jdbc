@@ -18,7 +18,6 @@
 package org.apache.shardingsphere.infra.metadata.database.schema.reviser;
 
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.metadata.database.schema.reviser.column.ColumnDataTypeReviser;
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.column.ColumnExistedReviser;
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.column.ColumnGeneratedReviser;
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.column.ColumnNameReviser;
@@ -42,7 +41,7 @@ public interface MetaDataReviseEntry<T extends ShardingSphereRule> extends Order
     
     /**
      * Get schema table aggregation reviser.
-     * 
+     *
      * @param props configuration properties
      * @return schema table aggregation reviser
      */
@@ -52,7 +51,7 @@ public interface MetaDataReviseEntry<T extends ShardingSphereRule> extends Order
     
     /**
      * Get table name reviser.
-     * 
+     *
      * @return table name reviser
      */
     default Optional<? extends TableNameReviser<T>> getTableNameReviser() {
@@ -72,23 +71,12 @@ public interface MetaDataReviseEntry<T extends ShardingSphereRule> extends Order
     
     /**
      * Get column name reviser.
-     * 
+     *
      * @param rule rule
      * @param tableName table name
      * @return column name reviser
      */
     default Optional<? extends ColumnNameReviser> getColumnNameReviser(final T rule, final String tableName) {
-        return Optional.empty();
-    }
-    
-    /**
-     * Get column data type reviser.
-     *
-     * @param rule rule
-     * @param tableName table name
-     * @return column data type reviser
-     */
-    default Optional<? extends ColumnDataTypeReviser> getColumnDataTypeReviser(final T rule, final String tableName) {
         return Optional.empty();
     }
     

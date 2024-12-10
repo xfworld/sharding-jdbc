@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.infra.database.core.type;
 
+import org.apache.shardingsphere.infra.database.core.exception.UnsupportedStorageTypeException;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -32,7 +33,7 @@ class DatabaseTypeFactoryTest {
     
     @Test
     void assertGetDatabaseTypeWithBranchURL() {
-        assertThat(DatabaseTypeFactory.get("jdbc:trunk:branch://localhost:3306/test").getType(), is("BRANCH"));
+        assertThat(DatabaseTypeFactory.get("jdbc:trunk:branch://localhost:3306/test?databaseType=BRANCH").getType(), is("TRUNK"));
     }
     
     @Test

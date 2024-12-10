@@ -18,30 +18,38 @@
 package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.updatable;
 
 import io.netty.util.DefaultAttributeMap;
-import org.apache.shardingsphere.distsql.parser.statement.ral.updatable.SetDistVariableStatement;
+import org.apache.shardingsphere.distsql.statement.ral.updatable.SetDistVariableStatement;
 import org.apache.shardingsphere.infra.database.mysql.type.MySQLDatabaseType;
-import org.apache.shardingsphere.proxy.backend.exception.UnsupportedVariableException;
-import org.apache.shardingsphere.proxy.backend.handler.distsql.ral.UpdatableRALBackendHandler;
+import org.apache.shardingsphere.infra.exception.kernel.syntax.UnsupportedVariableException;
+import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
+import org.apache.shardingsphere.proxy.backend.handler.distsql.DistSQLUpdateBackendHandler;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.transaction.api.TransactionType;
+import org.apache.shardingsphere.test.mock.AutoMockExtension;
+import org.apache.shardingsphere.test.mock.StaticMockSettings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(AutoMockExtension.class)
+@StaticMockSettings(ProxyContext.class)
 class SetDistVariableUpdatableRALBackendHandlerTest {
     
     private ConnectionSession connectionSession;
     
     @BeforeEach
     void setUp() {
-        connectionSession = new ConnectionSession(mock(MySQLDatabaseType.class), TransactionType.LOCAL, new DefaultAttributeMap());
+        when(ProxyContext.getInstance()).thenReturn(mock(ProxyContext.class, RETURNS_DEEP_STUBS));
+        connectionSession = new ConnectionSession(mock(MySQLDatabaseType.class), new DefaultAttributeMap());
     }
     
     @Test
     void assertNotSupportedVariable() {
-        UpdatableRALBackendHandler<?> handler = new UpdatableRALBackendHandler<>(new SetDistVariableStatement("unsupported", "XXX"), connectionSession);
+        DistSQLUpdateBackendHandler handler = new DistSQLUpdateBackendHandler(new SetDistVariableStatement("unsupported", "XXX"), connectionSession);
         assertThrows(UnsupportedVariableException.class, handler::execute);
     }
 }

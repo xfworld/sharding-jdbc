@@ -30,14 +30,15 @@ public final class InstanceMetaDataFactory {
     
     /**
      * Create instance meta data.
-     * 
+     *
      * @param instanceId instance ID
      * @param instanceType instance type 
      * @param attributes attributes
      * @param version version
+     * @param databaseName database name
      * @return created instance meta data
      */
-    public static InstanceMetaData create(final String instanceId, final InstanceType instanceType, final String attributes, final String version) {
-        return InstanceType.JDBC == instanceType ? new JDBCInstanceMetaData(instanceId, version) : new ProxyInstanceMetaData(instanceId, attributes, version);
+    public static InstanceMetaData create(final String instanceId, final InstanceType instanceType, final String attributes, final String version, final String databaseName) {
+        return InstanceType.JDBC == instanceType ? new JDBCInstanceMetaData(instanceId, attributes, version, databaseName) : new ProxyInstanceMetaData(instanceId, attributes, version);
     }
 }

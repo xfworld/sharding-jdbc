@@ -19,23 +19,31 @@ package org.apache.shardingsphere.infra.executor.sql.process;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.executor.kernel.model.ExecutionGroup;
 import org.apache.shardingsphere.infra.executor.kernel.model.ExecutionGroupContext;
+import org.apache.shardingsphere.infra.executor.sql.context.ExecutionUnit;
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.SQLExecutionUnit;
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.driver.jdbc.JDBCExecutionUnit;
 import org.apache.shardingsphere.infra.metadata.user.Grantee;
 
 import java.sql.Statement;
-import java.util.Collection;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Process.
  */
+@HighFrequencyInvocation
 @RequiredArgsConstructor
 @Getter
 public final class Process {
+    
+    private final Map<Integer, Statement> processStatements = new ConcurrentHashMap<>();
     
     private final String id;
     
@@ -49,37 +57,35 @@ public final class Process {
     
     private final String hostname;
     
-    private final int totalUnitCount;
-    
-    private final Collection<Statement> processStatements;
+    private final AtomicInteger totalUnitCount;
     
     private final AtomicInteger completedUnitCount;
     
-    private final boolean idle;
+    private final AtomicBoolean idle;
     
-    private final boolean heldByConnection;
+    private final AtomicBoolean interrupted;
     
-    public Process(final ExecutionGroupContext<? extends SQLExecutionUnit> executionGroupContext, final boolean heldByConnection) {
-        this("", executionGroupContext, true, heldByConnection);
+    public Process(final ExecutionGroupContext<? extends SQLExecutionUnit> executionGroupContext) {
+        this("", executionGroupContext, true);
     }
     
-    public Process(final String sql, final ExecutionGroupContext<? extends SQLExecutionUnit> executionGroupContext, final boolean heldByConnection) {
-        this(sql, executionGroupContext, false, heldByConnection);
+    public Process(final String sql, final ExecutionGroupContext<? extends SQLExecutionUnit> executionGroupContext) {
+        this(sql, executionGroupContext, false);
     }
     
-    private Process(final String sql, final ExecutionGroupContext<? extends SQLExecutionUnit> executionGroupContext, final boolean idle, final boolean heldByConnection) {
+    private Process(final String sql, final ExecutionGroupContext<? extends SQLExecutionUnit> executionGroupContext, final boolean idle) {
         id = executionGroupContext.getReportContext().getProcessId();
         startMillis = System.currentTimeMillis();
         this.sql = sql;
         databaseName = executionGroupContext.getReportContext().getDatabaseName();
-        Grantee grantee = executionGroupContext.getReportContext().getGrantee();
-        username = null == grantee ? null : grantee.getUsername();
-        hostname = null == grantee ? null : grantee.getHostname();
-        totalUnitCount = getTotalUnitCount(executionGroupContext);
-        processStatements = getProcessStatements(executionGroupContext);
+        Optional<Grantee> grantee = executionGroupContext.getReportContext().getGrantee();
+        username = grantee.map(Grantee::getUsername).orElse("");
+        hostname = grantee.map(Grantee::getHostname).orElse("");
+        totalUnitCount = new AtomicInteger(getTotalUnitCount(executionGroupContext));
+        processStatements.putAll(createProcessStatements(executionGroupContext));
         completedUnitCount = new AtomicInteger(0);
-        this.idle = idle;
-        this.heldByConnection = heldByConnection;
+        this.idle = new AtomicBoolean(idle);
+        interrupted = new AtomicBoolean();
     }
     
     private int getTotalUnitCount(final ExecutionGroupContext<? extends SQLExecutionUnit> executionGroupContext) {
@@ -90,12 +96,13 @@ public final class Process {
         return result;
     }
     
-    private Collection<Statement> getProcessStatements(final ExecutionGroupContext<? extends SQLExecutionUnit> executionGroupContext) {
-        Collection<Statement> result = new LinkedList<>();
+    private Map<Integer, Statement> createProcessStatements(final ExecutionGroupContext<? extends SQLExecutionUnit> executionGroupContext) {
+        Map<Integer, Statement> result = new LinkedHashMap<>();
         for (ExecutionGroup<? extends SQLExecutionUnit> each : executionGroupContext.getInputGroups()) {
             for (SQLExecutionUnit executionUnit : each.getInputs()) {
                 if (executionUnit instanceof JDBCExecutionUnit) {
-                    result.add(((JDBCExecutionUnit) executionUnit).getStorageResource());
+                    JDBCExecutionUnit jdbcExecutionUnit = (JDBCExecutionUnit) executionUnit;
+                    result.put(System.identityHashCode(jdbcExecutionUnit.getExecutionUnit()), jdbcExecutionUnit.getStorageResource());
                 }
             }
         }
@@ -110,11 +117,38 @@ public final class Process {
     }
     
     /**
-     * Get completed unit count.
-     * 
-     * @return completed unit count
+     * Is interrupted.
+     *
+     * @return interrupted
      */
-    public int getCompletedUnitCount() {
-        return completedUnitCount.get();
+    public boolean isInterrupted() {
+        return interrupted.get();
+    }
+    
+    /**
+     * Set interrupted.
+     *
+     * @param interrupted interrupted
+     */
+    public void setInterrupted(final boolean interrupted) {
+        this.interrupted.set(interrupted);
+    }
+    
+    /**
+     * Is idle.
+     *
+     * @return idle
+     */
+    public boolean isIdle() {
+        return idle.get();
+    }
+    
+    /**
+     * Remove process statement.
+     *
+     * @param executionUnit execution unit
+     */
+    public void removeProcessStatement(final ExecutionUnit executionUnit) {
+        processStatements.remove(System.identityHashCode(executionUnit));
     }
 }

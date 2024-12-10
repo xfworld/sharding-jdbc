@@ -19,7 +19,7 @@ package org.apache.shardingsphere.encrypt.rewrite.token.generator.insert;
 
 import org.apache.shardingsphere.encrypt.rewrite.token.generator.fixture.EncryptGeneratorFixtureBuilder;
 import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,11 +34,11 @@ import static org.mockito.Mockito.mock;
 
 class EncryptInsertCipherNameTokenGeneratorTest {
     
-    private final EncryptInsertCipherNameTokenGenerator generator = new EncryptInsertCipherNameTokenGenerator();
+    private EncryptInsertCipherNameTokenGenerator generator;
     
     @BeforeEach
     void setup() {
-        generator.setEncryptRule(EncryptGeneratorFixtureBuilder.createEncryptRule());
+        generator = new EncryptInsertCipherNameTokenGenerator(EncryptGeneratorFixtureBuilder.createEncryptRule());
     }
     
     @Test

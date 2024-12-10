@@ -17,49 +17,83 @@
 
 package org.apache.shardingsphere.metadata.persist.service.config.database;
 
-import lombok.SneakyThrows;
-import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.metadata.persist.service.config.database.rule.DatabaseRulePersistService;
+import org.apache.shardingsphere.infra.metadata.version.MetaDataVersion;
+import org.apache.shardingsphere.metadata.persist.fixture.NoTupleRuleConfigurationFixture;
+import org.apache.shardingsphere.metadata.persist.fixture.MetaDataRuleConfigurationFixture;
+import org.apache.shardingsphere.metadata.persist.service.config.RepositoryTuplePersistService;
 import org.apache.shardingsphere.mode.spi.PersistRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.internal.configuration.plugins.Plugins;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.stream.Collectors;
+import java.util.Collections;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DatabaseRulePersistServiceTest {
     
+    private DatabaseRulePersistService persistService;
+    
     @Mock
     private PersistRepository repository;
     
-    @Test
-    void assertLoadWithoutExistedNode() {
-        assertTrue(new DatabaseRulePersistService(repository).load("foo_db").isEmpty());
+    @Mock
+    private RepositoryTuplePersistService repositoryTuplePersistService;
+    
+    @BeforeEach
+    void setUp() throws ReflectiveOperationException {
+        persistService = new DatabaseRulePersistService(repository);
+        Plugins.getMemberAccessor().set(DatabaseRulePersistService.class.getDeclaredField("repositoryTuplePersistService"), persistService, repositoryTuplePersistService);
     }
     
     @Test
-    void assertLoadWithExistedNode() {
-        when(repository.getDirectly("/metadata/foo_db/active_version")).thenReturn("0");
-        when(repository.getDirectly("/metadata/foo_db/versions/0/rules")).thenReturn(readYAML());
-        Collection<RuleConfiguration> actual = new DatabaseRulePersistService(repository).load("foo_db");
+    void assertLoad() {
+        assertTrue(persistService.load("foo_db").isEmpty());
+    }
+    
+    @Test
+    void assertPersistWithoutActiveVersion() {
+        Collection<MetaDataVersion> actual = persistService.persist("foo_db", Arrays.asList(new MetaDataRuleConfigurationFixture("test"), new NoTupleRuleConfigurationFixture("test")));
         assertThat(actual.size(), is(1));
+        assertThat(actual.iterator().next().getKey(), is("/metadata/foo_db/rules/fixture/fixture"));
+        assertNull(actual.iterator().next().getCurrentActiveVersion());
+        assertThat(actual.iterator().next().getNextActiveVersion(), is("0"));
     }
     
-    @SneakyThrows({IOException.class, URISyntaxException.class})
-    private String readYAML() {
-        return Files.readAllLines(Paths.get(ClassLoader.getSystemResource("yaml/persist/data-database-rule.yaml").toURI()))
-                .stream().map(each -> each + System.lineSeparator()).collect(Collectors.joining());
+    @Test
+    void assertPersistWithActiveVersion() {
+        when(repository.query("/metadata/foo_db/rules/fixture/fixture/active_version")).thenReturn("10");
+        when(repository.getChildrenKeys("/metadata/foo_db/rules/fixture/fixture/versions")).thenReturn(Collections.singletonList("10"));
+        Collection<MetaDataVersion> actual = persistService.persist("foo_db", Collections.singleton(new MetaDataRuleConfigurationFixture("test")));
+        assertThat(actual.size(), is(1));
+        assertThat(actual.iterator().next().getKey(), is("/metadata/foo_db/rules/fixture/fixture"));
+        assertThat(actual.iterator().next().getCurrentActiveVersion(), is("10"));
+        assertThat(actual.iterator().next().getNextActiveVersion(), is("11"));
+    }
+    
+    @Test
+    void assertDeleteWithRuleTypeName() {
+        persistService.delete("foo_db", "fixture_rule");
+        verify(repository).delete("/metadata/foo_db/rules/fixture_rule");
+    }
+    
+    @Test
+    void assertDeleteWithRuleConfigurations() {
+        Collection<MetaDataVersion> actual = persistService.delete("foo_db", Arrays.asList(new MetaDataRuleConfigurationFixture("test"), new NoTupleRuleConfigurationFixture("test")));
+        assertThat(actual.size(), is(1));
+        assertThat(actual.iterator().next().getKey(), is("/metadata/foo_db/rules/fixture/fixture"));
+        assertThat(actual.iterator().next().getCurrentActiveVersion(), is(""));
+        assertThat(actual.iterator().next().getNextActiveVersion(), is(""));
     }
 }

@@ -27,8 +27,8 @@ import org.apache.shardingsphere.infra.database.core.metadata.data.model.Constra
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.IndexMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereConstraint;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereIndex;
@@ -37,11 +37,12 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.MetaDataReviseEngine;
 import org.apache.shardingsphere.infra.metadata.database.schema.util.SchemaMetaDataUtils;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
-import org.apache.shardingsphere.infra.rule.identifier.type.TableContainedRule;
+import org.apache.shardingsphere.infra.rule.attribute.table.TableMapperRuleAttribute;
 
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -84,22 +85,23 @@ public final class GenericSchemaBuilder {
     }
     
     private static Collection<String> getAllTableNames(final Collection<ShardingSphereRule> rules) {
-        return rules.stream().filter(TableContainedRule.class::isInstance).flatMap(each -> ((TableContainedRule) each).getLogicTableMapper().getTableNames().stream()).collect(Collectors.toSet());
+        Collection<String> result = new HashSet<>();
+        for (ShardingSphereRule each : rules) {
+            each.getAttributes().findAttribute(TableMapperRuleAttribute.class).ifPresent(optional -> result.addAll(optional.getLogicTableNames()));
+        }
+        return result;
     }
     
     private static Map<String, SchemaMetaData> loadSchemas(final Collection<String> tableNames, final GenericSchemaBuilderMaterial material) throws SQLException {
         boolean checkMetaDataEnable = material.getProps().getValue(ConfigurationPropertyKey.CHECK_TABLE_METADATA_ENABLED);
         Collection<MetaDataLoaderMaterial> materials = SchemaMetaDataUtils.getMetaDataLoaderMaterials(tableNames, material, checkMetaDataEnable);
-        if (materials.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        return MetaDataLoader.load(materials);
+        return materials.isEmpty() ? Collections.emptyMap() : MetaDataLoader.load(materials);
     }
     
     private static Map<String, SchemaMetaData> translate(final Map<String, SchemaMetaData> schemaMetaDataMap, final GenericSchemaBuilderMaterial material) {
         Collection<TableMetaData> tableMetaDataList = new LinkedList<>();
-        for (DatabaseType each : material.getStorageTypes().values()) {
-            String defaultSchemaName = new DatabaseTypeRegistry(each).getDefaultSchemaName(material.getDefaultSchemaName());
+        for (StorageUnit each : material.getStorageUnits().values()) {
+            String defaultSchemaName = new DatabaseTypeRegistry(each.getStorageType()).getDefaultSchemaName(material.getDefaultSchemaName());
             tableMetaDataList.addAll(Optional.ofNullable(schemaMetaDataMap.get(defaultSchemaName)).map(SchemaMetaData::getTables).orElseGet(Collections::emptyList));
         }
         String frontendSchemaName = new DatabaseTypeRegistry(material.getProtocolType()).getDefaultSchemaName(material.getDefaultSchemaName());
@@ -110,58 +112,36 @@ public final class GenericSchemaBuilder {
     
     private static Map<String, ShardingSphereSchema> revise(final Map<String, SchemaMetaData> schemaMetaDataMap, final GenericSchemaBuilderMaterial material) {
         Map<String, SchemaMetaData> result = new LinkedHashMap<>(schemaMetaDataMap);
-        result.putAll(new MetaDataReviseEngine(material.getRules().stream().filter(TableContainedRule.class::isInstance).collect(Collectors.toList())).revise(result, material));
+        result.putAll(new MetaDataReviseEngine(material.getRules().stream()
+                .filter(each -> each.getAttributes().findAttribute(TableMapperRuleAttribute.class).isPresent()).collect(Collectors.toList())).revise(result, material));
         return convertToSchemaMap(result, material);
     }
     
     private static Map<String, ShardingSphereSchema> convertToSchemaMap(final Map<String, SchemaMetaData> schemaMetaDataMap, final GenericSchemaBuilderMaterial material) {
         if (schemaMetaDataMap.isEmpty()) {
-            return Collections.singletonMap(material.getDefaultSchemaName(), new ShardingSphereSchema());
+            return Collections.singletonMap(material.getDefaultSchemaName(), new ShardingSphereSchema(material.getDefaultSchemaName()));
         }
         Map<String, ShardingSphereSchema> result = new ConcurrentHashMap<>(schemaMetaDataMap.size(), 1F);
         for (Entry<String, SchemaMetaData> entry : schemaMetaDataMap.entrySet()) {
-            Map<String, ShardingSphereTable> tables = convertToTableMap(entry.getValue().getTables());
-            result.put(entry.getKey().toLowerCase(), new ShardingSphereSchema(tables, new LinkedHashMap<>()));
+            result.put(entry.getKey().toLowerCase(), new ShardingSphereSchema(entry.getKey(), convertToTables(entry.getValue().getTables()), new LinkedList<>()));
         }
         return result;
     }
     
-    private static Map<String, ShardingSphereTable> convertToTableMap(final Collection<TableMetaData> tableMetaDataList) {
-        Map<String, ShardingSphereTable> result = new LinkedHashMap<>(tableMetaDataList.size(), 1F);
-        for (TableMetaData each : tableMetaDataList) {
-            Collection<ShardingSphereColumn> columns = convertToColumns(each.getColumns());
-            Collection<ShardingSphereIndex> indexes = convertToIndexes(each.getIndexes());
-            Collection<ShardingSphereConstraint> constraints = convertToConstraints(each.getConstraints());
-            result.put(each.getName(), new ShardingSphereTable(each.getName(), columns, indexes, constraints));
-        }
-        return result;
+    private static Collection<ShardingSphereTable> convertToTables(final Collection<TableMetaData> tableMetaDataList) {
+        return tableMetaDataList.stream().map(each -> new ShardingSphereTable(
+                each.getName(), convertToColumns(each.getColumns()), convertToIndexes(each.getIndexes()), convertToConstraints(each.getConstraints()), each.getType())).collect(Collectors.toList());
     }
     
     private static Collection<ShardingSphereColumn> convertToColumns(final Collection<ColumnMetaData> columnMetaDataList) {
-        Collection<ShardingSphereColumn> result = new LinkedList<>();
-        for (ColumnMetaData each : columnMetaDataList) {
-            result.add(new ShardingSphereColumn(each.getName(), each.getDataType(), each.isPrimaryKey(), each.isGenerated(), each.isCaseSensitive(), each.isVisible(), each.isUnsigned(),
-                    each.isNullable()));
-        }
-        return result;
+        return columnMetaDataList.stream().map(ShardingSphereColumn::new).collect(Collectors.toList());
     }
     
     private static Collection<ShardingSphereIndex> convertToIndexes(final Collection<IndexMetaData> indexMetaDataList) {
-        Collection<ShardingSphereIndex> result = new LinkedList<>();
-        for (IndexMetaData each : indexMetaDataList) {
-            ShardingSphereIndex index = new ShardingSphereIndex(each.getName());
-            index.getColumns().addAll(each.getColumns());
-            index.setUnique(each.isUnique());
-            result.add(index);
-        }
-        return result;
+        return indexMetaDataList.stream().map(ShardingSphereIndex::new).collect(Collectors.toList());
     }
     
     private static Collection<ShardingSphereConstraint> convertToConstraints(final Collection<ConstraintMetaData> constraintMetaDataList) {
-        Collection<ShardingSphereConstraint> result = new LinkedList<>();
-        for (ConstraintMetaData each : constraintMetaDataList) {
-            result.add(new ShardingSphereConstraint(each.getName(), each.getReferencedTableName()));
-        }
-        return result;
+        return constraintMetaDataList.stream().map(ShardingSphereConstraint::new).collect(Collectors.toList());
     }
 }

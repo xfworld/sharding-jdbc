@@ -24,10 +24,10 @@ import lombok.Setter;
 import lombok.ToString;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.DerivedColumn;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
-import org.apache.shardingsphere.infra.binder.context.segment.select.projection.util.ProjectionUtils;
+import org.apache.shardingsphere.infra.binder.context.segment.select.projection.extractor.ProjectionIdentifierExtractEngine;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.AggregationType;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.AggregationType;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,10 +50,20 @@ public class AggregationProjection implements Projection {
     
     private final DatabaseType databaseType;
     
+    private final String separator;
+    
     private final List<AggregationProjection> derivedAggregationProjections = new ArrayList<>(2);
     
     @Setter
     private int index = -1;
+    
+    public AggregationProjection(final AggregationType type, final String expression, final IdentifierValue alias, final DatabaseType databaseType) {
+        this.type = type;
+        this.expression = expression;
+        this.alias = alias;
+        this.databaseType = databaseType;
+        this.separator = null;
+    }
     
     @Override
     public String getColumnName() {
@@ -62,12 +72,18 @@ public class AggregationProjection implements Projection {
     
     @Override
     public String getColumnLabel() {
-        return getAlias().isPresent() && !DerivedColumn.isDerivedColumnName(getAlias().get().getValueWithQuoteCharacters()) ? ProjectionUtils.getColumnLabelFromAlias(getAlias().get(), databaseType)
-                : ProjectionUtils.getColumnNameFromFunction(type.name(), expression, databaseType);
+        ProjectionIdentifierExtractEngine extractEngine = new ProjectionIdentifierExtractEngine(databaseType);
+        return getAlias().isPresent() && !DerivedColumn.isDerivedColumnName(getAlias().get().getValueWithQuoteCharacters())
+                ? extractEngine.getIdentifierValue(getAlias().get())
+                : extractEngine.getColumnNameFromFunction(type.name(), expression);
     }
     
     @Override
     public final Optional<IdentifierValue> getAlias() {
         return Optional.ofNullable(alias);
+    }
+    
+    public Optional<String> getSeparator() {
+        return Optional.ofNullable(separator);
     }
 }

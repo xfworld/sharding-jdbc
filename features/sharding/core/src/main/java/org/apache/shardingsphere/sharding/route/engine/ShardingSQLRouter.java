@@ -17,26 +17,27 @@
 
 package org.apache.shardingsphere.sharding.route.engine;
 
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.binder.context.type.CursorAvailable;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
-import org.apache.shardingsphere.infra.route.SQLRouter;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
-import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
+import org.apache.shardingsphere.infra.route.type.EntranceSQLRouter;
+import org.apache.shardingsphere.infra.route.type.TableSQLRouter;
 import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.sharding.cache.route.CachedShardingSQLRouter;
 import org.apache.shardingsphere.sharding.constant.ShardingOrder;
+import org.apache.shardingsphere.sharding.route.engine.checker.ShardingRouteContextCheckerFactory;
 import org.apache.shardingsphere.sharding.route.engine.condition.ShardingCondition;
 import org.apache.shardingsphere.sharding.route.engine.condition.ShardingConditions;
 import org.apache.shardingsphere.sharding.route.engine.condition.engine.ShardingConditionEngine;
 import org.apache.shardingsphere.sharding.route.engine.type.ShardingRouteEngineFactory;
-import org.apache.shardingsphere.sharding.route.engine.validator.ShardingStatementValidator;
-import org.apache.shardingsphere.sharding.route.engine.validator.ShardingStatementValidatorFactory;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DMLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.DMLStatement;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -44,32 +45,35 @@ import java.util.Optional;
 /**
  * Sharding SQL router.
  */
-public final class ShardingSQLRouter implements SQLRouter<ShardingRule> {
+@HighFrequencyInvocation
+public final class ShardingSQLRouter implements EntranceSQLRouter<ShardingRule>, TableSQLRouter<ShardingRule> {
     
     @Override
-    public RouteContext createRouteContext(final QueryContext queryContext, final RuleMetaData globalRuleMetaData, final ShardingSphereDatabase database, final ShardingRule rule,
-                                           final ConfigurationProperties props, final ConnectionContext connectionContext) {
+    public RouteContext createRouteContext(final QueryContext queryContext, final RuleMetaData globalRuleMetaData, final ShardingSphereDatabase database,
+                                           final ShardingRule rule, final Collection<String> tableNames, final ConfigurationProperties props) {
         if (rule.isShardingCacheEnabled()) {
             Optional<RouteContext> result = new CachedShardingSQLRouter()
-                    .loadRouteContext(this::createRouteContext0, queryContext, globalRuleMetaData, database, rule.getShardingCache(), props, connectionContext);
+                    .loadRouteContext(this::createRouteContext0, queryContext, globalRuleMetaData, database, rule.getShardingCache(), tableNames, props);
             if (result.isPresent()) {
                 return result.get();
             }
         }
-        return createRouteContext0(queryContext, globalRuleMetaData, database, rule, props, connectionContext);
+        return createRouteContext0(queryContext, globalRuleMetaData, database, rule, tableNames, props);
     }
     
     private RouteContext createRouteContext0(final QueryContext queryContext, final RuleMetaData globalRuleMetaData, final ShardingSphereDatabase database, final ShardingRule rule,
-                                             final ConfigurationProperties props, final ConnectionContext connectionContext) {
+                                             final Collection<String> tableNames, final ConfigurationProperties props) {
+        Collection<String> logicTableNames = rule.getShardingLogicTableNames(tableNames);
+        if (logicTableNames.isEmpty()) {
+            return new RouteContext();
+        }
         SQLStatement sqlStatement = queryContext.getSqlStatementContext().getSqlStatement();
         ShardingConditions shardingConditions = createShardingConditions(queryContext, globalRuleMetaData, database, rule);
-        Optional<ShardingStatementValidator> validator = ShardingStatementValidatorFactory.newInstance(sqlStatement, shardingConditions, globalRuleMetaData);
-        validator.ifPresent(optional -> optional.preValidate(rule, queryContext.getSqlStatementContext(), queryContext.getParameters(), database, props));
         if (sqlStatement instanceof DMLStatement && shardingConditions.isNeedMerge()) {
             shardingConditions.merge();
         }
-        RouteContext result = ShardingRouteEngineFactory.newInstance(rule, database, queryContext, shardingConditions, props, connectionContext, globalRuleMetaData).route(rule);
-        validator.ifPresent(optional -> optional.postValidate(rule, queryContext.getSqlStatementContext(), queryContext.getHintValueContext(), queryContext.getParameters(), database, props, result));
+        RouteContext result = ShardingRouteEngineFactory.newInstance(rule, database, queryContext, shardingConditions, logicTableNames, props).route(rule);
+        checkRouteContext(queryContext, database, rule, props, sqlStatement, shardingConditions, result);
         return result;
     }
     
@@ -84,10 +88,9 @@ public final class ShardingSQLRouter implements SQLRouter<ShardingRule> {
         return new ShardingConditions(shardingConditions, queryContext.getSqlStatementContext(), rule);
     }
     
-    @Override
-    public void decorateRouteContext(final RouteContext routeContext, final QueryContext queryContext, final ShardingSphereDatabase database, final ShardingRule rule,
-                                     final ConfigurationProperties props, final ConnectionContext connectionContext) {
-        // TODO
+    private void checkRouteContext(final QueryContext queryContext, final ShardingSphereDatabase database, final ShardingRule rule, final ConfigurationProperties props,
+                                   final SQLStatement sqlStatement, final ShardingConditions shardingConditions, final RouteContext routeContext) {
+        ShardingRouteContextCheckerFactory.newInstance(sqlStatement, shardingConditions).ifPresent(optional -> optional.check(rule, queryContext, database, props, routeContext));
     }
     
     @Override

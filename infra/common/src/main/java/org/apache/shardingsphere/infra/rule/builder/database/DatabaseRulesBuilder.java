@@ -24,11 +24,12 @@ import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.infra.config.rule.checker.RuleConfigurationChecker;
 import org.apache.shardingsphere.infra.config.rule.function.DistributedRuleConfiguration;
 import org.apache.shardingsphere.infra.config.rule.function.EnhancedRuleConfiguration;
-import org.apache.shardingsphere.infra.instance.InstanceContext;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
+import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.spi.type.ordered.OrderedSPILoader;
 
-import javax.sql.DataSource;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,21 +50,23 @@ public final class DatabaseRulesBuilder {
      * Build database rules.
      *
      * @param databaseName database name
+     * @param protocolType protocol type
      * @param databaseConfig database configuration
-     * @param instanceContext instance context
+     * @param computeNodeInstanceContext compute node instance context
+     * @param resourceMetaData  resource meta data
      * @return built rules
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static Collection<ShardingSphereRule> build(final String databaseName, final DatabaseConfiguration databaseConfig, final InstanceContext instanceContext) {
+    public static Collection<ShardingSphereRule> build(final String databaseName, final DatabaseType protocolType, final DatabaseConfiguration databaseConfig,
+                                                       final ComputeNodeInstanceContext computeNodeInstanceContext, final ResourceMetaData resourceMetaData) {
         Collection<ShardingSphereRule> result = new LinkedList<>();
         for (Entry<RuleConfiguration, DatabaseRuleBuilder> entry : getRuleBuilderMap(databaseConfig).entrySet()) {
             RuleConfigurationChecker configChecker = OrderedSPILoader.getServicesByClass(
                     RuleConfigurationChecker.class, Collections.singleton(entry.getKey().getClass())).get(entry.getKey().getClass());
-            Map<String, DataSource> dataSources = databaseConfig.getStorageUnits().entrySet().stream().collect(Collectors.toMap(Entry::getKey, storageUnit -> storageUnit.getValue().getDataSource()));
             if (null != configChecker) {
-                configChecker.check(databaseName, entry.getKey(), dataSources, result);
+                configChecker.check(databaseName, entry.getKey(), resourceMetaData.getDataSourceMap(), result);
             }
-            result.add(entry.getValue().build(entry.getKey(), databaseName, dataSources, result, instanceContext));
+            result.add(entry.getValue().build(entry.getKey(), databaseName, protocolType, resourceMetaData, result, computeNodeInstanceContext));
         }
         return result;
     }
@@ -72,24 +75,25 @@ public final class DatabaseRulesBuilder {
      * Build database rules.
      *
      * @param databaseName database name
-     * @param dataSources data sources
+     * @param protocolType protocol type
      * @param rules rules
      * @param ruleConfig rule configuration
-     * @param instanceContext instance context
+     * @param computeNodeInstanceContext compute node instance context
+     * @param resourceMetaData  resource meta data
      * @return built rules
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static Collection<ShardingSphereRule> build(final String databaseName, final Map<String, DataSource> dataSources, final Collection<ShardingSphereRule> rules,
-                                                       final RuleConfiguration ruleConfig, final InstanceContext instanceContext) {
+    public static Collection<ShardingSphereRule> build(final String databaseName, final DatabaseType protocolType, final Collection<ShardingSphereRule> rules, final RuleConfiguration ruleConfig,
+                                                       final ComputeNodeInstanceContext computeNodeInstanceContext, final ResourceMetaData resourceMetaData) {
         Collection<ShardingSphereRule> result = new LinkedList<>();
         for (Entry<RuleConfiguration, DatabaseRuleBuilder> entry : OrderedSPILoader.getServices(DatabaseRuleBuilder.class,
                 Collections.singletonList(ruleConfig), Comparator.reverseOrder()).entrySet()) {
             RuleConfigurationChecker configChecker = OrderedSPILoader.getServicesByClass(
                     RuleConfigurationChecker.class, Collections.singleton(entry.getKey().getClass())).get(entry.getKey().getClass());
             if (null != configChecker) {
-                configChecker.check(databaseName, entry.getKey(), dataSources, rules);
+                configChecker.check(databaseName, entry.getKey(), resourceMetaData.getDataSourceMap(), rules);
             }
-            result.add(entry.getValue().build(entry.getKey(), databaseName, dataSources, rules, instanceContext));
+            result.add(entry.getValue().build(entry.getKey(), databaseName, protocolType, resourceMetaData, rules, computeNodeInstanceContext));
         }
         return result;
     }

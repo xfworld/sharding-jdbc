@@ -17,16 +17,16 @@
 
 package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.queryable;
 
-import org.apache.shardingsphere.distsql.parser.statement.ral.queryable.ShowComputeNodeModeStatement;
+import org.apache.shardingsphere.distsql.statement.ral.queryable.show.ShowComputeNodeModeStatement;
 import org.apache.shardingsphere.infra.config.mode.ModeConfiguration;
-import org.apache.shardingsphere.infra.instance.InstanceContext;
+import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
+import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepositoryConfiguration;
 import org.apache.shardingsphere.test.util.PropertiesBuilder;
 import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.Test;
 
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -39,9 +39,12 @@ import static org.mockito.Mockito.when;
 class ShowComputeNodeModeExecutorTest {
     
     @Test
-    void assertExecute() throws SQLException {
+    void assertExecute() {
         ShowComputeNodeModeExecutor executor = new ShowComputeNodeModeExecutor();
-        Collection<LocalDataQueryResultRow> actual = executor.getRows(createInstanceContext(), new ShowComputeNodeModeStatement());
+        ContextManager contextManager = mock(ContextManager.class);
+        ComputeNodeInstanceContext computeNodeInstanceContext = createInstanceContext();
+        when(contextManager.getComputeNodeInstanceContext()).thenReturn(computeNodeInstanceContext);
+        Collection<LocalDataQueryResultRow> actual = executor.getRows(new ShowComputeNodeModeStatement(), contextManager);
         assertThat(actual.size(), is(1));
         Iterator<LocalDataQueryResultRow> iterator = actual.iterator();
         LocalDataQueryResultRow row = iterator.next();
@@ -50,19 +53,8 @@ class ShowComputeNodeModeExecutorTest {
         assertThat(row.getCell(3), is("{\"key\":\"value1,value2\"}"));
     }
     
-    @Test
-    void assertGetColumnNames() {
-        ShowComputeNodeModeExecutor executor = new ShowComputeNodeModeExecutor();
-        Collection<String> columns = executor.getColumnNames();
-        assertThat(columns.size(), is(3));
-        Iterator<String> iterator = columns.iterator();
-        assertThat(iterator.next(), is("type"));
-        assertThat(iterator.next(), is("repository"));
-        assertThat(iterator.next(), is("props"));
-    }
-    
-    private InstanceContext createInstanceContext() {
-        InstanceContext result = mock(InstanceContext.class, RETURNS_DEEP_STUBS);
+    private ComputeNodeInstanceContext createInstanceContext() {
+        ComputeNodeInstanceContext result = mock(ComputeNodeInstanceContext.class, RETURNS_DEEP_STUBS);
         when(result.getInstance().getMetaData().getId()).thenReturn("127.0.0.1@3309");
         when(result.getModeConfiguration()).thenReturn(new ModeConfiguration("Cluster",
                 new ClusterPersistRepositoryConfiguration("ZooKeeper", "governance_ds", "127.0.0.1:2181", PropertiesBuilder.build(new Property("key", "value1,value2")))));

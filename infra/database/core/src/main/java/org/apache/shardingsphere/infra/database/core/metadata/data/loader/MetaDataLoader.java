@@ -24,8 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.infra.database.core.metadata.data.loader.type.TableMetaDataLoader;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
 import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
+import org.apache.shardingsphere.infra.database.core.metadata.database.datatype.DataTypeRegistry;
 import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.generic.UnknownSQLException;
 
 import java.sql.SQLException;
 import java.util.Collection;
@@ -62,6 +62,7 @@ public final class MetaDataLoader {
         Map<String, SchemaMetaData> result = new LinkedHashMap<>(materials.size(), 1F);
         Collection<Future<Collection<SchemaMetaData>>> futures = new LinkedList<>();
         for (MetaDataLoaderMaterial each : materials) {
+            DataTypeRegistry.load(each.getDataSource(), each.getStorageType().getType());
             futures.add(EXECUTOR_SERVICE.submit(() -> load(each)));
         }
         try {
@@ -74,7 +75,7 @@ public final class MetaDataLoader {
             if (ex.getCause() instanceof SQLException) {
                 throw (SQLException) ex.getCause();
             }
-            throw new UnknownSQLException(ex).toSQLException();
+            throw new SQLException(ex);
         }
         return result;
     }
@@ -96,7 +97,7 @@ public final class MetaDataLoader {
         for (String each : material.getActualTableNames()) {
             TableMetaDataLoader.load(material.getDataSource(), each, material.getStorageType()).ifPresent(tableMetaData::add);
         }
-        return Collections.singletonList(new SchemaMetaData(material.getDefaultSchemaName(), tableMetaData));
+        return Collections.singleton(new SchemaMetaData(material.getDefaultSchemaName(), tableMetaData));
     }
     
     private static void merge(final Map<String, SchemaMetaData> schemaMetaDataMap, final Collection<SchemaMetaData> addedSchemaMetaDataList) {

@@ -28,7 +28,7 @@ Apache ShardingSphere-JDBC 可以通过 `Java` 和 `YAML` 这 2 种方式进行�
 ```xml
 <dependency>
     <groupId>org.apache.shardingsphere</groupId>
-    <artifactId>shardingsphere-jdbc-core</artifactId>
+    <artifactId>shardingsphere-jdbc</artifactId>
     <version>${latest.release.version}</version>
 </dependency>
 ```
@@ -66,4 +66,4 @@ spring.datasource.driver-class-name=org.apache.shardingsphere.driver.ShardingSph
 spring.datasource.url=jdbc:shardingsphere:classpath:xxx.yaml
 ```
 
-详情请参见[Spring Boot](/cn/user-manual/shardingsphere-jdbc/yaml-config/jdbc-driver/spring-boot/)。
+详情请参见 [Spring Boot](/cn/user-manual/shardingsphere-jdbc/yaml-config/jdbc-driver/spring-boot/)。

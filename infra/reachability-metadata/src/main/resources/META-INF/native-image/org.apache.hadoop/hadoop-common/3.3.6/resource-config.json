@@ -1,0 +1,8 @@
+{
+  "resources":{
+  "includes":[{
+    "condition":{"typeReachable":"org.apache.hadoop.conf.Configuration"},
+    "pattern":"\\Qhadoop-site.xml\\E"
+  }]},
+  "bundles":[]
+}

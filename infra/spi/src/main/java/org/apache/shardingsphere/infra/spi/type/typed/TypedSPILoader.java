@@ -33,7 +33,7 @@ public final class TypedSPILoader {
     
     /**
      * Find service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param <T> SPI class type
@@ -45,7 +45,7 @@ public final class TypedSPILoader {
     
     /**
      * Find service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param props properties
@@ -87,7 +87,7 @@ public final class TypedSPILoader {
     
     /**
      * Get service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param <T> SPI class type
@@ -99,7 +99,7 @@ public final class TypedSPILoader {
     
     /**
      * Get service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param props properties
@@ -107,12 +107,12 @@ public final class TypedSPILoader {
      * @return service
      */
     public static <T extends TypedSPI> T getService(final Class<T> serviceInterface, final Object type, final Properties props) {
-        return findService(serviceInterface, type, props).orElseThrow(() -> new ServiceProviderNotFoundException(serviceInterface, type));
+        return findService(serviceInterface, type, props).orElseGet(() -> findService(serviceInterface, null, props).orElseThrow(() -> new ServiceProviderNotFoundException(serviceInterface, type)));
     }
     
     /**
      * Check service.
-     * 
+     *
      * @param serviceInterface typed SPI service interface
      * @param type type
      * @param props properties

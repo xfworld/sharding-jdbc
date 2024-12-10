@@ -22,8 +22,12 @@ import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
+import org.apache.shardingsphere.infra.rule.attribute.datanode.MutableDataNodeRuleAttribute;
 import org.apache.shardingsphere.single.constant.SingleOrder;
 import org.apache.shardingsphere.single.rule.SingleRule;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.JoinType;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.JoinTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
 import org.apache.shardingsphere.sqlfederation.spi.SQLFederationDecider;
 
 import java.util.Collection;
@@ -45,9 +49,21 @@ public final class SingleSQLFederationDecider implements SQLFederationDecider<Si
         if (containsView(database, singleTables)) {
             return true;
         }
-        boolean isAllTablesInSameComputeNode = rule.isAllTablesInSameComputeNode(includedDataNodes, singleTables);
+        if (!includedDataNodes.isEmpty() && !isInnerCommaJoin(selectStatementContext.getSqlStatement())) {
+            return true;
+        }
+        boolean result = rule.isAllTablesInSameComputeNode(includedDataNodes, singleTables);
         includedDataNodes.addAll(getTableDataNodes(rule, singleTables));
-        return !isAllTablesInSameComputeNode;
+        return !result;
+    }
+    
+    private boolean isInnerCommaJoin(final SelectStatement selectStatement) {
+        if (!selectStatement.getFrom().isPresent() || !(selectStatement.getFrom().get() instanceof JoinTableSegment)) {
+            return true;
+        }
+        return selectStatement.getFrom().isPresent() && selectStatement.getFrom().get() instanceof JoinTableSegment
+                && (JoinType.INNER.name().equalsIgnoreCase(((JoinTableSegment) selectStatement.getFrom().get()).getJoinType())
+                        || JoinType.COMMA.name().equalsIgnoreCase(((JoinTableSegment) selectStatement.getFrom().get()).getJoinType()));
     }
     
     private Collection<QualifiedTable> getSingleTables(final SelectStatementContext selectStatementContext, final ShardingSphereDatabase database, final SingleRule rule) {
@@ -65,9 +81,9 @@ public final class SingleSQLFederationDecider implements SQLFederationDecider<Si
     }
     
     private Collection<DataNode> getTableDataNodes(final SingleRule rule, final Collection<QualifiedTable> singleTables) {
-        Collection<DataNode> result = new HashSet<>();
+        Collection<DataNode> result = new HashSet<>(singleTables.size(), 1F);
         for (QualifiedTable each : singleTables) {
-            rule.findTableDataNode(each.getSchemaName(), each.getTableName()).ifPresent(result::add);
+            rule.getAttributes().getAttribute(MutableDataNodeRuleAttribute.class).findTableDataNode(each.getSchemaName(), each.getTableName()).ifPresent(result::add);
         }
         return result;
     }

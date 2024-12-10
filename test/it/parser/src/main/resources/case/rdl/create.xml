@@ -376,6 +376,7 @@
                 <cipher name="user_cipher">
                     <encryptor algorithm-name="AES">
                         <property key="aes-key-value" value="123456abc" />
+                        <property key="digest-algorithm-name" value="SHA-1" />
                     </encryptor>
                 </cipher>
             </column>
@@ -395,6 +396,7 @@
                 <cipher name="user_cipher">
                     <encryptor algorithm-name="AES">
                         <property key="aes-key-value" value="123456abc" />
+                        <property key="digest-algorithm-name" value="SHA-1" />
                     </encryptor>
                 </cipher>
             </column>
@@ -414,6 +416,7 @@
                 <cipher name="user_cipher">
                     <encryptor algorithm-name="AES">
                         <property key="aes-key-value" value="123456abc" />
+                        <property key="digest-algorithm-name" value="SHA-1" />
                     </encryptor>
                 </cipher>
             </column>
@@ -433,6 +436,7 @@
                 <cipher name="user_cipher">
                     <encryptor algorithm-name="AES">
                         <property key="aes-key-value" value="123456abc" />
+                        <property key="digest-algorithm-name" value="SHA-1" />
                     </encryptor>
                 </cipher>
                 <assisted-query name="assisted_column">
@@ -455,6 +459,7 @@
                 <cipher name="user_cipher">
                     <encryptor algorithm-name="AES">
                         <property key="aes-key-value" value="123456abc" />
+                        <property key="digest-algorithm-name" value="SHA-1" />
                     </encryptor>
                 </cipher>
                 <like-query name="like_column">
@@ -477,6 +482,7 @@
                 <cipher name="user_cipher">
                     <encryptor algorithm-name="AES">
                         <property key="aes-key-value" value="123456abc" />
+                        <property key="digest-algorithm-name" value="SHA-1" />
                     </encryptor>
                 </cipher>
             </column>
@@ -575,9 +581,9 @@
     </create-default-sharding-strategy>
     
     <create-default-sharding-strategy sql-case-id="create-default-sharding-table-strategy-with-hint-strategy-type">
-        <strategy default-type="TABLE" strategy-type="hint" sharding-column="user_id">
+        <strategy default-type="TABLE" strategy-type="hint">
             <algorithm-segment algorithm-name="HINT_INLINE">
-                <property key="algorithm-expression" value="t_order_${user_id % 2}" />
+                <property key="algorithm-expression" value="t_order_${value % 2}" />
             </algorithm-segment>
         </strategy>
     </create-default-sharding-strategy>
@@ -595,9 +601,9 @@
     </create-default-sharding-strategy>
     
     <create-default-sharding-strategy sql-case-id="create-default-sharding-database-strategy-with-hint-strategy-type">
-        <strategy default-type="DATABASE" strategy-type="hint" sharding-column="user_id">
+        <strategy default-type="DATABASE" strategy-type="hint">
             <algorithm-segment algorithm-name="HINT_INLINE">
-                <property key="algorithm-expression" value="t_order_${user_id % 2}" />
+                <property key="algorithm-expression" value="t_order_${value % 2}" />
             </algorithm-segment>
         </strategy>
     </create-default-sharding-strategy>
@@ -663,9 +669,9 @@
     <create-sharding-table-rule sql-case-id="create-sharding-table-rule-with-none-table-strategy-and-hint-database-strategy">
         <rule name="t_order_item">
             <data-node>ds_${0..1}.t_order_item_${0..1}</data-node>
-            <database-strategy type="hint" sharding-column="user_id">
+            <database-strategy type="hint">
                 <algorithm-segment algorithm-name="hint_inline">
-                    <property key="algorithm-expression" value="t_order_${user_id % 2}" />
+                    <property key="algorithm-expression" value="t_order_${value % 2}" />
                 </algorithm-segment>
             </database-strategy>
             <table-strategy type="none" />
@@ -677,6 +683,7 @@
             <column name="user_id" cipher-column="user_cipher">
                 <encryptor algorithm-name="AES">
                     <property key="aes-key-value" value="123456abc" />
+                    <property key="digest-algorithm-name" value="SHA-1" />
                 </encryptor>
             </column>
             <column name="order_id" cipher-column="order_cipher">

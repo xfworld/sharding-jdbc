@@ -20,7 +20,7 @@ grammar DMLStatement;
 import BaseRule;
 
 insert
-    : INSERT insertSpecification INTO? tableName partitionNames? (insertValuesClause | setAssignmentsClause | insertSelectClause) onDuplicateKeyClause?
+    : INSERT insertSpecification INTO? tableName partitionNames? (insertValuesClause | setAssignmentsClause | insertSelectClause) onDuplicateKeyClause? returningClause?
     ;
 
 insertSpecification
@@ -48,7 +48,7 @@ insertSelectClause
     ;
 
 onDuplicateKeyClause
-    : (AS identifier)? ON DUPLICATE KEY UPDATE assignment (COMMA_ assignment)*
+    : (AS identifier derivedColumns?)?  ON DUPLICATE KEY UPDATE assignment (COMMA_ assignment)*
     ;
 
 valueReference
@@ -60,7 +60,7 @@ derivedColumns
     ;
 
 replace
-    : REPLACE replaceSpecification? INTO? tableName partitionNames? (replaceValuesClause | setAssignmentsClause | replaceSelectClause)
+    : REPLACE replaceSpecification? INTO? tableName partitionNames? (replaceValuesClause | setAssignmentsClause | replaceSelectClause) returningClause?
     ;
 
 replaceSpecification
@@ -105,7 +105,7 @@ blobValue
     ;
 
 delete
-    : DELETE deleteSpecification (singleTableClause | multipleTablesClause) whereClause? orderByClause? limitClause?
+    : DELETE deleteSpecification (singleTableClause | multipleTablesClause) whereClause? orderByClause? limitClause? returningClause?
     ;
 
 deleteSpecification
@@ -143,7 +143,8 @@ queryExpressionBody
     ;
 
 combineClause
-    : UNION combineOption? (queryPrimary | queryExpressionParens)
+    : INTERSECT combineOption? (queryPrimary | queryExpressionParens)
+    | UNION combineOption? (queryPrimary | queryExpressionParens)
     | EXCEPT combineOption? (queryPrimary | queryExpressionParens)
     ;
 
@@ -162,7 +163,7 @@ querySpecification
     ;
 
 call
-    : CALL identifier (LP_ (expr (COMMA_ expr)*)? RP_)?
+    : CALL (owner DOT_)? identifier (LP_ (expr (COMMA_ expr)*)? RP_)?
     ;
 
 doStatement
@@ -243,7 +244,7 @@ withClause
     ;
 
 cteClause
-    : identifier (LP_ columnNames RP_)? AS subquery
+    : alias (LP_ columnNames RP_)? AS subquery
     ;
 
 selectSpecification
@@ -287,7 +288,11 @@ tableReference
     ;
 
 tableFactor
-    : tableName partitionNames? (AS? alias)? indexHintList? | subquery AS? alias (LP_ columnNames RP_)? | LATERAL subquery AS? alias (LP_ columnNames RP_)? | LP_ tableReferences RP_
+    : tableName partitionNames? (AS? alias)? indexHintList?
+    | subquery AS? alias (LP_ columnNames RP_)?
+    | expr (AS? alias)?
+    | LATERAL subquery AS? alias (LP_ columnNames RP_)?
+    | LP_ tableReferences RP_
     ;
 
 partitionNames
@@ -295,11 +300,20 @@ partitionNames
     ;
 
 indexHintList
-    : indexHint (COMMA_ indexHint)*
+    : indexHint (indexHint)*
     ;
 
 indexHint
-    : (USE | IGNORE | FORCE) (INDEX | KEY) (FOR (JOIN | ORDER BY | GROUP BY))? LP_ indexName (COMMA_ indexName)* RP_
+    : USE (INDEX | KEY) indexHintClause LP_ (indexNameList)? RP_
+    | (IGNORE | FORCE) (INDEX | KEY) indexHintClause LP_ indexNameList RP_
+    ;
+
+indexHintClause
+    : (FOR (JOIN | ORDER BY | GROUP BY))?
+    ;
+
+indexNameList
+    : indexName (COMMA_ indexName)*
     ;
 
 joinedTable
@@ -345,7 +359,7 @@ limitClause
 limitRowCount
     : numberLiterals | parameterMarker
     ;
-    
+
 limitOffset
     : numberLiterals | parameterMarker
     ;
@@ -402,4 +416,12 @@ tableIdentOptWild
 
 tableAliasRefList
     : tableIdentOptWild (COMMA_ tableIdentOptWild)*
+    ;
+
+returningClause
+    : RETURNING targetList
+    ;
+
+targetList
+    : projection (COMMA_ projection)*
     ;
