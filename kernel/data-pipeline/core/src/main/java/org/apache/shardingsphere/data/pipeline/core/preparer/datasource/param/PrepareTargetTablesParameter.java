@@ -20,9 +20,11 @@ package org.apache.shardingsphere.data.pipeline.core.preparer.datasource.param;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.data.pipeline.core.datasource.PipelineDataSourceManager;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.parser.SQLParserEngine;
 
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * Prepare target tables parameter.
@@ -36,4 +38,8 @@ public final class PrepareTargetTablesParameter {
     private final PipelineDataSourceManager dataSourceManager;
     
     private final SQLParserEngine sqlParserEngine;
+    
+    private final Map<String, ShardingSphereMetaData> targetSchemaMetaData;
+    
+    private final String targetDatabaseName;
 }

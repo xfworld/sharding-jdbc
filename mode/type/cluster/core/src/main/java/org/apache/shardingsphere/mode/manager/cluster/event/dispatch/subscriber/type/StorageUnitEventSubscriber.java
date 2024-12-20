@@ -21,11 +21,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.eventbus.Subscribe;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
-import org.apache.shardingsphere.infra.util.eventbus.EventSubscriber;
-import org.apache.shardingsphere.mode.event.dispatch.datasource.unit.AlterStorageUnitEvent;
-import org.apache.shardingsphere.mode.event.dispatch.datasource.unit.RegisterStorageUnitEvent;
-import org.apache.shardingsphere.mode.event.dispatch.datasource.unit.UnregisterStorageUnitEvent;
+import org.apache.shardingsphere.mode.event.dispatch.datasource.unit.StorageUnitAlteredEvent;
+import org.apache.shardingsphere.mode.event.dispatch.datasource.unit.StorageUnitRegisteredEvent;
+import org.apache.shardingsphere.mode.event.dispatch.datasource.unit.StorageUnitUnregisteredEvent;
 import org.apache.shardingsphere.mode.manager.ContextManager;
+import org.apache.shardingsphere.mode.manager.cluster.event.dispatch.subscriber.DispatchEventSubscriber;
 
 import java.util.Collections;
 
@@ -33,7 +33,7 @@ import java.util.Collections;
  * Storage unit event subscriber.
  */
 @RequiredArgsConstructor
-public final class StorageUnitEventSubscriber implements EventSubscriber {
+public final class StorageUnitEventSubscriber implements DispatchEventSubscriber {
     
     private final ContextManager contextManager;
     
@@ -43,7 +43,7 @@ public final class StorageUnitEventSubscriber implements EventSubscriber {
      * @param event register storage unit event
      */
     @Subscribe
-    public synchronized void renew(final RegisterStorageUnitEvent event) {
+    public synchronized void renew(final StorageUnitRegisteredEvent event) {
         Preconditions.checkArgument(event.getActiveVersion().equals(
                 contextManager.getPersistServiceFacade().getMetaDataPersistService().getMetaDataVersionPersistService().getActiveVersionByFullPath(event.getActiveVersionKey())),
                 "Invalid active version: %s of key: %s", event.getActiveVersion(), event.getActiveVersionKey());
@@ -58,7 +58,7 @@ public final class StorageUnitEventSubscriber implements EventSubscriber {
      * @param event register storage unit event
      */
     @Subscribe
-    public synchronized void renew(final AlterStorageUnitEvent event) {
+    public synchronized void renew(final StorageUnitAlteredEvent event) {
         Preconditions.checkArgument(event.getActiveVersion().equals(
                 contextManager.getPersistServiceFacade().getMetaDataPersistService().getMetaDataVersionPersistService().getActiveVersionByFullPath(event.getActiveVersionKey())),
                 "Invalid active version: %s of key: %s", event.getActiveVersion(), event.getActiveVersionKey());
@@ -73,7 +73,7 @@ public final class StorageUnitEventSubscriber implements EventSubscriber {
      * @param event register storage unit event
      */
     @Subscribe
-    public synchronized void renew(final UnregisterStorageUnitEvent event) {
+    public synchronized void renew(final StorageUnitUnregisteredEvent event) {
         Preconditions.checkState(contextManager.getMetaDataContexts().getMetaData().containsDatabase(event.getDatabaseName()), "No database '%s' exists.", event.getDatabaseName());
         contextManager.getMetaDataContextManager().getStorageUnitManager().unregisterStorageUnit(event.getDatabaseName(), event.getStorageUnitName());
     }

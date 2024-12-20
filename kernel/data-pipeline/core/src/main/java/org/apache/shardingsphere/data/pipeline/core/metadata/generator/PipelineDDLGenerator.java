@@ -18,6 +18,7 @@
 package org.apache.shardingsphere.data.pipeline.core.metadata.generator;
 
 import com.google.common.base.Strings;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.dialect.DialectPipelineSQLBuilder;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
@@ -32,6 +33,7 @@ import org.apache.shardingsphere.infra.binder.engine.SQLBindEngine;
 import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.util.IndexMetaDataUtils;
 import org.apache.shardingsphere.infra.parser.SQLParserEngine;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.SQLSegment;
@@ -41,7 +43,6 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,10 +56,13 @@ import java.util.TreeMap;
 /**
  * Pipeline DDL generator.
  */
+@RequiredArgsConstructor
 @Slf4j
 public final class PipelineDDLGenerator {
     
     private static final String SET_SEARCH_PATH_PREFIX = "set search_path";
+    
+    private final ShardingSphereMetaData metaData;
     
     /**
      * Generate logic DDL.
@@ -69,15 +73,17 @@ public final class PipelineDDLGenerator {
      * @param sourceTableName source table name
      * @param targetTableName target table name
      * @param parserEngine parser engine
+     * @param targetDatabaseName target database name
      * @return DDL SQL
      * @throws SQLException SQL exception 
      */
     public List<String> generateLogicDDL(final DatabaseType databaseType, final DataSource sourceDataSource,
-                                         final String schemaName, final String sourceTableName, final String targetTableName, final SQLParserEngine parserEngine) throws SQLException {
+                                         final String schemaName, final String sourceTableName, final String targetTableName,
+                                         final SQLParserEngine parserEngine, final String targetDatabaseName) throws SQLException {
         long startTimeMillis = System.currentTimeMillis();
         List<String> result = new ArrayList<>();
         for (String each : DatabaseTypedSPILoader.getService(DialectPipelineSQLBuilder.class, databaseType).buildCreateTableSQLs(sourceDataSource, schemaName, sourceTableName)) {
-            Optional<String> queryContext = decorate(databaseType, sourceDataSource, schemaName, targetTableName, parserEngine, each);
+            Optional<String> queryContext = decorate(databaseType, targetDatabaseName, schemaName, targetTableName, parserEngine, each);
             queryContext.ifPresent(sql -> {
                 String trimmedSql = sql.trim();
                 if (!Strings.isNullOrEmpty(trimmedSql)) {
@@ -90,19 +96,15 @@ public final class PipelineDDLGenerator {
         return result;
     }
     
-    private Optional<String> decorate(final DatabaseType databaseType, final DataSource dataSource, final String schemaName, final String targetTableName,
-                                      final SQLParserEngine parserEngine, final String sql) throws SQLException {
+    private Optional<String> decorate(final DatabaseType databaseType, final String targetDatabaseName, final String schemaName, final String targetTableName,
+                                      final SQLParserEngine parserEngine, final String sql) {
         if (Strings.isNullOrEmpty(sql)) {
             return Optional.empty();
         }
-        String databaseName;
-        try (Connection connection = dataSource.getConnection()) {
-            databaseName = connection.getCatalog();
-        }
-        String result = decorateActualSQL(databaseName, targetTableName, parserEngine, sql.trim());
+        String result = decorateActualSQL(targetDatabaseName, targetTableName, parserEngine, sql.trim());
         // TODO remove it after set search_path is supported.
         if ("openGauss".equals(databaseType.getType())) {
-            return decorateOpenGauss(databaseName, schemaName, result, parserEngine);
+            return decorateOpenGauss(targetDatabaseName, schemaName, result, parserEngine);
         }
         return Optional.of(result);
     }
@@ -129,7 +131,7 @@ public final class PipelineDDLGenerator {
     }
     
     private SQLStatementContext parseSQL(final String currentDatabaseName, final SQLParserEngine parserEngine, final String sql) {
-        return new SQLBindEngine(null, currentDatabaseName, new HintValueContext()).bind(parserEngine.parse(sql, true), Collections.emptyList());
+        return new SQLBindEngine(metaData, currentDatabaseName, new HintValueContext()).bind(parserEngine.parse(sql, true), Collections.emptyList());
     }
     
     private void appendFromIndexAndConstraint(final Map<SQLSegment, String> replaceMap, final String targetTableName, final SQLStatementContext sqlStatementContext) {
