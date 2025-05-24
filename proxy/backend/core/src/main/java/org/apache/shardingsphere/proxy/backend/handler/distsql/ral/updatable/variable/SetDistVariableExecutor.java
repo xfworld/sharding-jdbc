@@ -17,14 +17,10 @@
 
 package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.updatable.variable;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.LoggerContext;
 import org.apache.shardingsphere.distsql.handler.engine.update.DistSQLUpdateExecutor;
 import org.apache.shardingsphere.distsql.statement.ral.updatable.SetDistVariableStatement;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
 import org.apache.shardingsphere.infra.config.props.temporary.TemporaryConfigurationPropertyKey;
-import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.kernel.syntax.InvalidVariableValueException;
 import org.apache.shardingsphere.infra.exception.kernel.syntax.UnsupportedVariableException;
@@ -32,14 +28,10 @@ import org.apache.shardingsphere.infra.props.TypedPropertyKey;
 import org.apache.shardingsphere.infra.props.TypedPropertyValue;
 import org.apache.shardingsphere.infra.props.exception.TypedPropertyValueException;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPI;
-import org.apache.shardingsphere.logging.constant.LoggingConstants;
-import org.apache.shardingsphere.logging.rule.LoggingRule;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
-import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.util.Collection;
 import java.util.Properties;
 
 /**
@@ -72,9 +64,6 @@ public final class SetDistVariableExecutor implements DistSQLUpdateExecutor<SetD
         props.putAll(metaDataContexts.getMetaData().getTemporaryProps().getProps());
         props.put(propertyKey.getKey(), getValue(propertyKey, value));
         contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService().alterProperties(props);
-        refreshRootLogger(props);
-        syncSQLShowToLoggingRule(propertyKey, metaDataContexts, value, contextManager);
-        syncSQLSimpleToLoggingRule(propertyKey, metaDataContexts, value, contextManager);
     }
     
     private Object getValue(final TypedPropertyKey propertyKey, final String value) {
@@ -87,39 +76,6 @@ public final class SetDistVariableExecutor implements DistSQLUpdateExecutor<SetD
         } catch (final TypedPropertyValueException ignored) {
             throw new InvalidVariableValueException(value);
         }
-    }
-    
-    private void refreshRootLogger(final Properties props) {
-        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-        Logger rootLogger = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME);
-        renewRootLoggerLevel(rootLogger, props);
-    }
-    
-    private void renewRootLoggerLevel(final Logger rootLogger, final Properties props) {
-        rootLogger.setLevel(Level.valueOf(props.getOrDefault(ConfigurationPropertyKey.SYSTEM_LOG_LEVEL.getKey(), ConfigurationPropertyKey.SYSTEM_LOG_LEVEL.getDefaultValue()).toString()));
-    }
-    
-    private void syncSQLShowToLoggingRule(final TypedPropertyKey propertyKey, final MetaDataContexts metaDataContexts, final String value, final ContextManager contextManager) {
-        if (LoggingConstants.SQL_SHOW.equalsIgnoreCase(propertyKey.getKey())) {
-            metaDataContexts.getMetaData().getGlobalRuleMetaData().findSingleRule(LoggingRule.class).flatMap(LoggingRule::getSQLLogger).ifPresent(option -> {
-                option.getProps().setProperty(LoggingConstants.SQL_LOG_ENABLE, value);
-                persistGlobalRuleConfigurations(contextManager);
-            });
-        }
-    }
-    
-    private void syncSQLSimpleToLoggingRule(final TypedPropertyKey propertyKey, final MetaDataContexts metaDataContexts, final String value, final ContextManager contextManager) {
-        if (LoggingConstants.SQL_SIMPLE.equalsIgnoreCase(propertyKey.getKey())) {
-            metaDataContexts.getMetaData().getGlobalRuleMetaData().findSingleRule(LoggingRule.class).flatMap(LoggingRule::getSQLLogger).ifPresent(optional -> {
-                optional.getProps().setProperty(LoggingConstants.SQL_LOG_SIMPLE, value);
-                persistGlobalRuleConfigurations(contextManager);
-            });
-        }
-    }
-    
-    private void persistGlobalRuleConfigurations(final ContextManager contextManager) {
-        Collection<RuleConfiguration> globalRuleConfigs = contextManager.getMetaDataContexts().getMetaData().getGlobalRuleMetaData().getConfigurations();
-        contextManager.getPersistServiceFacade().getMetaDataFacade().getGlobalRuleService().persist(globalRuleConfigs);
     }
     
     @Override

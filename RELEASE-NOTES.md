@@ -11,6 +11,10 @@
 
 ### API Changes
 
+1. Remove SQL formatting feature [#35390](https://github.com/apache/shardingsphere/pull/35390)
+1. Remove logging rule feature [#35458](https://github.com/apache/shardingsphere/pull/35458)
+1. Remove configuration property key `system-log-level` [#35493](https://github.com/apache/shardingsphere/pull/35493)
+
 ### New Features
 
 ### Enhancements
@@ -32,9 +36,11 @@
 1. DistSQL: Add job sharding nodes to the result set of `SHOW MIGRATION LIST` - [#35053](https://github.com/apache/shardingsphere/pull/35053)
 1. SQL Parser: Enhance combineType in Oracle to support EXCEPT ALL and INTERSECT ALL - [#35099](https://github.com/apache/shardingsphere/pull/35099)
 1. DistSQL: Add InUsedStorageUnitRetriever for single rule - [#35131](https://github.com/apache/shardingsphere/pull/35131)
-1. SQL Parser: Support parsing MySQL stored procedure syntax - [#35137](https://github.com/apache/shardingsphere/pull/35137)
+1. SQL Parser: Support parsing MySQL stored procedure syntax - [#35137](https://github.com/apache/shardingsphere/pull/35137), [#35441](https://github.com/apache/shardingsphere/pull/35441)
 1. SQL Parser: Support Oracle SQL parsing V1 keywords as identifiers - [#35373](https://github.com/apache/shardingsphere/pull/35373)
 1. SQL Parser: Support Oracle in literal sql parsing - [#35384](https://github.com/apache/shardingsphere/pull/35384)
+1. SQL Bind: Support explain statement sql bind - [#35439](https://github.com/apache/shardingsphere/pull/35439)
+1. SQL Parser: Add MySQL interval expression sql parsing - [#35468](https://github.com/apache/shardingsphere/pull/35468)
 
 ### Bug Fixes
 

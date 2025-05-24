@@ -49,10 +49,10 @@ import org.apache.shardingsphere.sql.parser.statement.doris.dml.DorisImportState
 import org.apache.shardingsphere.sql.parser.statement.doris.dml.DorisLoadDataStatement;
 import org.apache.shardingsphere.sql.parser.statement.doris.dml.DorisLoadXMLStatement;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * DML statement visitor for Doris.
@@ -61,20 +61,19 @@ public final class DorisDMLStatementVisitor extends DorisStatementVisitor implem
     
     @Override
     public ASTNode visitCall(final CallContext ctx) {
-        List<ExpressionSegment> params = new ArrayList<>(ctx.expr().size());
-        ctx.expr().forEach(each -> params.add((ExpressionSegment) visit(each)));
-        String procedureName = ctx.identifier().getText();
-        if (null != ctx.owner()) {
-            procedureName = ctx.owner().getText() + "." + procedureName;
-        }
-        return new DorisCallStatement(procedureName, params);
+        DorisCallStatement result = new DorisCallStatement();
+        String procedureName = null == ctx.owner() ? ctx.identifier().getText() : ctx.owner().getText() + "." + ctx.identifier().getText();
+        result.setProcedureName(procedureName);
+        List<ExpressionSegment> params = ctx.expr().stream().map(each -> (ExpressionSegment) visit(each)).collect(Collectors.toList());
+        result.getParameters().addAll(params);
+        return result;
     }
     
     @Override
     public ASTNode visitDoStatement(final DoStatementContext ctx) {
-        List<ExpressionSegment> params = new ArrayList<>(ctx.expr().size());
-        ctx.expr().forEach(each -> params.add((ExpressionSegment) visit(each)));
-        return new DorisDoStatement(params);
+        DorisDoStatement result = new DorisDoStatement();
+        result.getParameters().addAll(ctx.expr().stream().map(each -> (ExpressionSegment) visit(each)).collect(Collectors.toList()));
+        return result;
     }
     
     @Override
