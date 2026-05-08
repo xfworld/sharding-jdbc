@@ -78,7 +78,7 @@ public final class DatabaseIdentifierContextFactory {
     public static DatabaseIdentifierContext create(final DatabaseType protocolType, final ResourceMetaData resourceMetaData, final ConfigurationProperties props) {
         ConfigurationProperties actualProps = getProps(props);
         IdentifierCaseRuleResolver resolver = new IdentifierCaseRuleResolver();
-        IdentifierCaseRuleSet protocolRuleSet = resolver.resolve(protocolType, actualProps, null);
+        IdentifierCaseRuleSet protocolRuleSet = resolver.resolve(protocolType, actualProps, getFirstDataSource(resourceMetaData));
         Optional<DatabaseType> storageDatabaseType = getIdentifierRuleDatabaseType(resourceMetaData);
         IdentifierCaseRuleSet storageRuleSet = resolver.resolve(storageDatabaseType.orElse(protocolType), actualProps, getFirstDataSource(resourceMetaData));
         IdentifierCaseRuleSet scopeAwareRuleSet = createScopeAwareRuleSet(protocolRuleSet, storageRuleSet);
@@ -110,7 +110,7 @@ public final class DatabaseIdentifierContextFactory {
     public static void refresh(final DatabaseIdentifierContext identifierContext, final DatabaseType protocolType, final ResourceMetaData resourceMetaData, final ConfigurationProperties props) {
         ConfigurationProperties actualProps = getProps(props);
         IdentifierCaseRuleResolver resolver = new IdentifierCaseRuleResolver();
-        IdentifierCaseRuleSet protocolRuleSet = resolver.resolve(protocolType, actualProps, null);
+        IdentifierCaseRuleSet protocolRuleSet = resolver.resolve(protocolType, actualProps, getFirstDataSource(resourceMetaData));
         Optional<DatabaseType> storageDatabaseType = getIdentifierRuleDatabaseType(resourceMetaData);
         IdentifierCaseRuleSet storageRuleSet = resolver.resolve(storageDatabaseType.orElse(protocolType), actualProps, getFirstDataSource(resourceMetaData));
         identifierContext.refresh(createScopeAwareRuleSet(protocolRuleSet, storageRuleSet), isHeterogeneous(protocolType, getStorageDatabaseTypes(resourceMetaData)));
@@ -137,7 +137,7 @@ public final class DatabaseIdentifierContextFactory {
             }
             scopedRules.put(each, IdentifierScope.SCHEMA == each ? protocolRuleSet.getRule(each) : storageRuleSet.getRule(each));
         }
-        scopedRules.put(IdentifierScope.LOGICAL_TABLE, protocolRuleSet.getRule(IdentifierScope.TABLE));
+        scopedRules.put(IdentifierScope.LOGICAL_TABLE, protocolRuleSet.getRule(IdentifierScope.LOGICAL_TABLE));
         return new IdentifierCaseRuleSet(storageRuleSet.getRule(IdentifierScope.TABLE), scopedRules);
     }
     
