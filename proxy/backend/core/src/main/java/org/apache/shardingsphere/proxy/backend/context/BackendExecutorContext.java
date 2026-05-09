@@ -18,7 +18,6 @@
 package org.apache.shardingsphere.proxy.backend.context;
 
 import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
 import org.apache.shardingsphere.infra.executor.kernel.ExecutorEngine;
@@ -27,13 +26,13 @@ import org.apache.shardingsphere.infra.executor.kernel.ExecutorEngine;
  * Backend executor context.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-@Getter
 public final class BackendExecutorContext {
     
     private static final BackendExecutorContext INSTANCE = new BackendExecutorContext();
     
-    private final ExecutorEngine executorEngine = ExecutorEngine.createExecutorEngineWithSize(
-            ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getProps().<Integer>getValue(ConfigurationPropertyKey.KERNEL_EXECUTOR_SIZE));
+    private volatile ExecutorEngine executorEngine;
+    
+    private LifecycleState lifecycleState = LifecycleState.UNINITIALIZED;
     
     /**
      * Get executor context instance.
@@ -42,5 +41,64 @@ public final class BackendExecutorContext {
      */
     public static BackendExecutorContext getInstance() {
         return INSTANCE;
+    }
+    
+    /**
+     * Initialize backend executor context.
+     */
+    public synchronized void init() {
+        if (null != executorEngine) {
+            executorEngine.close();
+        }
+        executorEngine = ExecutorEngine.createExecutorEngineWithSize(
+                ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getProps().<Integer>getValue(ConfigurationPropertyKey.KERNEL_EXECUTOR_SIZE));
+        lifecycleState = LifecycleState.RUNNING;
+    }
+    
+    /**
+     * Get executor engine.
+     *
+     * @return executor engine
+     * @throws IllegalStateException backend executor is unavailable in current lifecycle state
+     */
+    public synchronized ExecutorEngine getExecutorEngine() {
+        if (null == executorEngine) {
+            if (LifecycleState.CLOSED == lifecycleState) {
+                throw new IllegalStateException(String.format("Backend executor engine is unavailable in `%s` lifecycle state.", lifecycleState));
+            }
+            init();
+        }
+        if (LifecycleState.RUNNING != lifecycleState) {
+            throw new IllegalStateException(String.format("Backend executor engine is unavailable in `%s` lifecycle state.", lifecycleState));
+        }
+        return executorEngine;
+    }
+    
+    /**
+     * Close backend executor context.
+     */
+    public synchronized void close() {
+        if (null != executorEngine) {
+            executorEngine.close();
+            executorEngine = null;
+        }
+        lifecycleState = LifecycleState.UNINITIALIZED;
+    }
+    
+    /**
+     * Shutdown backend executor context.
+     */
+    public synchronized void shutdown() {
+        close();
+        lifecycleState = LifecycleState.CLOSED;
+    }
+    
+    private enum LifecycleState {
+        
+        UNINITIALIZED,
+        
+        RUNNING,
+        
+        CLOSED
     }
 }
