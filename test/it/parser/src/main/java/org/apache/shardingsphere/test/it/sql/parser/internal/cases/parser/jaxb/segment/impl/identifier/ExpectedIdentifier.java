@@ -15,23 +15,12 @@
  * limitations under the License.
  */
 
-lexer grammar Literals;
+package org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.identifier;
 
-import Alphabet, Symbol;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.AbstractExpectedIdentifierSQLSegment;
 
-IDENTIFIER_
-    : [A-Za-z_$0-9]*?[A-Za-z_$]+?[A-Za-z_$0-9]*
-    | BQ_ ~'`'+ BQ_
-    ;
-
-DOUBLE_QUOTED_TEXT
-    : DQ_ ('\\'. | '""' | ~('"' | '\\'))* DQ_
-    ;
-
-SINGLE_QUOTED_TEXT
-    : SQ_ ('\\'. | '\'\'' | ~('\'' | '\\'))* SQ_
-    ;
-
-INT_
-    : [0-9]+
-    ;
+/**
+ * Expected identifier.
+ */
+public final class ExpectedIdentifier extends AbstractExpectedIdentifierSQLSegment {
+}
